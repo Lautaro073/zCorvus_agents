@@ -1,0 +1,62 @@
+{
+    "title": "Desbloquea Todo el Poder de zCorvus",
+    "subtitle": "Accede a miles de iconos premium y obtén tu token npm para uso ilimitado",
+    "processing": "Procesando...",
+    "guarantee": "Garantía de devolución de 30 días. Cancela en cualquier momento.",
+    "plans": {
+        "pro": {
+            "name": "Plan Pro",
+            "cta": "Comenzar Plan Pro",
+            "features": {
+                "icons": "Acceso a todos los iconos premium",
+                "npm": "Token npm para proyectos ilimitados",
+                "updates": "Actualizaciones mensuales de iconos",
+                "support": "Soporte por email"
+            }
+        },
+        "enterprise": {
+            "name": "Plan Enterprise",
+            "badge": "Más Popular",
+            "cta": "Comenzar Plan Enterprise",
+            "features": {
+                "everything": "Todo del Plan Pro",
+                "priority": "Soporte prioritario 24/7",
+                "custom": "Iconos personalizados bajo pedido",
+                "team": "Licencia para equipo (hasta 10 usuarios)"
+            }
+        }
+    },
+    "success": {
+        "title": "¡Pago Exitoso!",
+        "subtitle": "Bienvenido a zCorvus Premium",
+        "generatingToken": "Generando tu token npm premium...",
+        "npmToken": "Tu Token NPM",
+        "npmInstructions": "Usa este token para acceder a los paquetes premium de zCorvus en tus proyectos.",
+        "copyToken": "Copiar Token",
+        "tokenCopied": "Token copiado",
+        "tokenGenerated": "Token generado exitosamente",
+        "fileDownloaded": "Archivo descargado",
+        "viewIcons": "Ver Iconos Premium",
+        "tokenNotReady": "Tu token está siendo generado. Recibirás un email con las instrucciones.",
+        "tokenNotFound": "No se pudo generar el token. Contacta soporte.",
+        "continue": "Continuar",
+        "setupTitle": "Cómo configurar tu token:",
+        "steps": {
+            "createNpmrc": "Crea un archivo .npmrc en la raíz de tu proyecto",
+            "addToken": "Agrega tu token al archivo: //registry.npmjs.org/:_authToken=TU_TOKEN",
+            "install": "Instala el paquete: npm install @zcorvus/z-icons-premium"
+        }
+    },
+    "cancel": {
+        "title": "Pago Cancelado",
+        "subtitle": "No se realizó ningún cargo. Puedes intentar nuevamente cuando estés listo.",
+        "tryAgain": "Intentar Nuevamente",
+        "backToIcons": "Volver a Iconos"
+    },
+    "errors": {
+        "checkoutFailed": "Error al crear sesión de pago. Por favor intenta nuevamente.",
+        "notAuthenticated": "Debes iniciar sesión primero",
+        "unknown": "Error inesperado",
+        "storageBlocked": "No se pudo verificar tu sesión. Por favor, asegúrate de que las cookies estén habilitadas en tu navegador e intenta nuevamente."
+    }
+}

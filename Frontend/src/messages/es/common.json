@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "email": "Correo electrónico",
+    "password": "Contraseña"
+  },
+  "profile": {
+    "name": "Nombre",
+    "email": "Correo Electrónico",
+    "language": "Idioma",
+    "editProfile": "Editar Perfil",
+    "role": "Rol",
+    "memberSince": "Miembro Desde",
+    "tokenExpires": "Expira el",
+    "roles": {
+      "user": "Usuario",
+      "admin": "Administrador",
+      "moderator": "Moderador",
+      "pro": "Premium"
+    }
+  }
+}

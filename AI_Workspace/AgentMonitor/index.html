@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitor de Agentes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.1/dist/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark-dimmed.min.css">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero card hidden">
+        <div class="hero-copy">
+          <p class="eyebrow">Centro de observabilidad MCP</p>
+          <h1>Monitor de agentes</h1>
+          <p class="subtitle">Observa en tiempo real el pulso del equipo: eventos, tareas, bloqueos, pruebas y dependencias, todo en una vista pensada para operar.</p>
+          <div class="hero-pills">
+            <span class="hero-pill"><i class="ti ti-bolt"></i> WebSocket en vivo</span>
+            <span class="hero-pill"><i class="ti ti-route-square-2"></i> Trazabilidad por `taskId`</span>
+            <span class="hero-pill"><i class="ti ti-shield-check"></i> Salud operativa por agente</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <div class="live-panel">
+            <span id="socketBadge" class="socket-badge socket-pending"><i class="ti ti-plug-connected"></i><span>Conectando</span></span>
+            <strong class="live-title">Tiempo real por WebSocket</strong>
+            <span id="lastUpdatedLabel" class="last-updated">Esperando actividad</span>
+          </div>
+
+          <div class="hero-buttons">
+            <button id="refreshButton" type="button"><i class="ti ti-refresh"></i><span>Actualizar ahora</span></button>
+            <button id="muteButton" type="button" class="ghost" aria-pressed="false"><i class="ti ti-volume"></i><span>Sonido: activo</span></button>
+          </div>
+        </div>
+      </header>
+
+      <div class="workspace-grid">
+        <main class="workspace-main">
+          <section id="summaryGrid" class="summary-grid"></section>
+
+          <section class="agent-stage card">
+        <div class="stage-main">
+          <p class="eyebrow">Agente en foco</p>
+          <div id="stageEmpty" class="empty-state hidden">
+            <strong>Sin agente protagonista</strong>
+            <p>Cuando entren eventos, aqui veras al agente con mas movimiento o riesgo operativo.</p>
+          </div>
+
+          <div id="stageLead" class="stage-lead hidden">
+            <div class="stage-lead-head">
+              <div class="stage-lead-ident">
+                <span id="stageLeadAvatar" class="stage-lead-avatar" aria-hidden="true"></span>
+                <div>
+                  <strong id="stageLeadName" class="stage-lead-name">Sin agente</strong>
+                  <p id="stageLeadRole" class="stage-lead-role">Sin rol</p>
+                </div>
+              </div>
+
+              <span id="stageLeadHealth" class="badge agent-health">Activo</span>
+            </div>
+
+            <strong id="stageLeadCurrent" class="stage-lead-current">Sin actividad</strong>
+            <p id="stageLeadMeta" class="stage-lead-meta">La actividad destacada se mostrara aqui.</p>
+            <div id="stageLeadSpark" class="stage-lead-spark"></div>
+            <div id="stageLeadTags" class="stage-tag-row"></div>
+
+            <div class="stage-actions">
+              <button id="stageOpenAgentButton" type="button"><i class="ti ti-arrow-up-right"></i><span>Abrir detalle</span></button>
+              <button id="stageFilterAgentButton" type="button" class="ghost"><i class="ti ti-filter"></i><span>Ver solo este agente</span></button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="stage-side">
+          <div class="stage-side-head">
+            <div>
+              <h2><i class="ti ti-users-group"></i><span>Resto del equipo</span></h2>
+              <p class="section-copy">Accesos rapidos a los agentes activos y su ultimo movimiento.</p>
+            </div>
+
+            <span id="stageStripCount" class="muted">0 visibles</span>
+          </div>
+
+          <div id="stageAgentMiniList" class="stage-mini-list"></div>
+        </aside>
+          </section>
+
+          <article class="card panel agents-panel">
+          <div class="panel-head">
+            <div>
+              <h2><i class="ti ti-layout-grid"></i><span>Sala de agentes</span></h2>
+              <p class="section-copy">Mini-tableros para ver volumen, tareas, salud operativa y ultima actividad por rol.</p>
+            </div>
+
+            <span id="agentCount" class="muted">0 agentes</span>
+          </div>
+
+          <div id="agentsEmpty" class="empty-state hidden">
+            <strong>Sin actividad por agente</strong>
+            <p>Los agentes apareceran aqui cuando entren eventos al contexto compartido.</p>
+          </div>
+
+          <div id="agentGrid" class="agent-grid"></div>
+          </article>
+
+          <section class="main-grid">
+            <article class="card panel">
+              <div class="panel-head">
+                <div>
+                  <h2><i class="ti ti-timeline"></i><span>Linea de tiempo</span></h2>
+                  <p class="section-copy">Actividad mas reciente primero, con contexto completo del evento.</p>
+                </div>
+
+                <span id="timelineCount" class="muted">0 eventos</span>
+              </div>
+
+              <div id="timelineEmpty" class="empty-state hidden">
+                <strong>Sin eventos visibles</strong>
+                <p>Cuando lleguen eventos del MCP apareceran aqui al instante.</p>
+              </div>
+
+              <ol id="timelineList" class="timeline"></ol>
+            </article>
+
+            <article class="card panel">
+              <div class="panel-head">
+                <div>
+                  <h2><i class="ti ti-list-details"></i><span>Tareas agrupadas</span></h2>
+                  <p class="section-copy">Seguimiento por <code>taskId</code> para ver progreso, dependencias y cambios de estado.</p>
+                </div>
+
+                <span id="taskCount" class="muted">0 tareas</span>
+              </div>
+
+              <div id="tasksEmpty" class="empty-state hidden">
+                <strong>Sin tareas agrupadas</strong>
+                <p>Los eventos sin <code>taskId</code> siguen visibles en la linea de tiempo.</p>
+              </div>
+
+              <div id="taskGroups" class="task-groups"></div>
+            </article>
+          </section>
+        </main>
+
+        <aside class="workspace-side">
+          <section class="control-dock card">
+            <div class="control-dock-head">
+              <div>
+                <p class="eyebrow eyebrow-soft">Panel de consulta</p>
+                <h2><i class="ti ti-adjustments-horizontal"></i><span>Filtros y exportes</span></h2>
+                <p class="section-copy">Abre los filtros solo cuando quieras refinar la lectura. El foco principal son los agentes y lo que estan haciendo.</p>
+              </div>
+
+              <div class="control-dock-actions">
+                <button id="exportSnapshotButton" type="button" class="ghost"><i class="ti ti-file-download"></i><span>Exportar JSON</span></button>
+                <button id="exportReportButton" type="button" class="ghost"><i class="ti ti-report"></i><span>Exportar reporte</span></button>
+                <button id="toggleFiltersButton" type="button" class="ghost"><i class="ti ti-adjustments-horizontal"></i><span>Filtros</span></button>
+                <button id="resetButton" type="button" class="ghost"><i class="ti ti-filter-off"></i><span>Limpiar filtros</span></button>
+              </div>
+            </div>
+
+            <div id="activeFiltersBar" class="active-filters hidden"></div>
+          </section>
+
+          <section id="filtersSection" class="filters card hidden">
+            <div class="filters-head">
+              <div>
+                <h2><i class="ti ti-adjustments-horizontal"></i><span>Panel de control</span></h2>
+                <p class="section-copy">Reduce ruido sin salir del stream en vivo ni perder trazabilidad.</p>
+              </div>
+            </div>
+
+            <form id="filterForm" class="filter-grid">
+              <label>
+                <span>Agente</span>
+                <select id="agentFilter" name="agentFilter" data-placeholder="Todos los agentes">
+                  <option value="">Todos los agentes</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Tipo</span>
+                <select id="typeFilter" name="typeFilter" data-placeholder="Todos los tipos">
+                  <option value="">Todos los tipos</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Estado</span>
+                <select id="statusFilter" name="status">
+                  <option value="">Todos los estados</option>
+                  <option value="assigned">Asignada</option>
+                  <option value="accepted">Aceptada</option>
+                  <option value="in_progress">En progreso</option>
+                  <option value="blocked">Bloqueada</option>
+                  <option value="completed">Completada</option>
+                  <option value="failed">Fallida</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Asignado a</span>
+                <input id="assignedToFilter" name="assignedTo" type="text" placeholder="Frontend">
+              </label>
+
+              <label>
+                <span>ID de tarea</span>
+                <input id="taskIdFilter" name="taskId" type="text" placeholder="task-123">
+              </label>
+
+              <label>
+                <span>ID de correlacion</span>
+                <input id="correlationIdFilter" name="correlationId" type="text" placeholder="corr-001">
+              </label>
+
+              <label>
+                <span>Desde</span>
+                <input id="sinceFilter" name="since" type="datetime-local">
+              </label>
+
+              <label>
+                <span>Limite</span>
+                <input id="limitFilter" name="limit" type="number" min="1" step="1" value="200">
+              </label>
+            </form>
+          </section>
+
+          <section class="live-ribbon card">
+            <div class="live-ribbon-copy">
+              <p class="eyebrow eyebrow-soft">Ultimo movimiento</p>
+              <strong id="liveEventTitle" class="live-event-title">Sin actividad reciente</strong>
+              <p id="liveEventMeta" class="live-event-meta">El canal en vivo mostrara aqui el ultimo evento del contexto compartido.</p>
+            </div>
+
+            <div class="live-ribbon-badges">
+              <span id="liveEventType" class="badge badge-type">Sin tipo</span>
+              <span id="liveEventStatus" class="badge badge-status hidden"></span>
+            </div>
+          </section>
+
+          <article class="card panel signal-panel">
+          <div class="panel-head">
+            <div>
+              <h2><i class="ti ti-alert-triangle"></i><span>Alertas criticas</span></h2>
+              <p class="section-copy">Focos rapidos para `TEST_FAILED`, `TASK_BLOCKED`, incidentes y estados de riesgo.</p>
+            </div>
+
+            <span id="criticalCount" class="muted">0 alertas</span>
+          </div>
+
+          <div id="criticalEmpty" class="empty-state hidden">
+            <strong>Sin alertas criticas</strong>
+            <p>Cuando aparezca un bloqueo o una falla, se vera aqui y disparara una notificacion.</p>
+          </div>
+
+          <div id="criticalList" class="critical-list"></div>
+          </article>
+        </aside>
+      </div>
+    </div>
+
+    <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+    <div id="detailShell" class="detail-shell hidden" aria-hidden="true">
+      <button id="detailBackdrop" class="detail-backdrop" type="button" aria-label="Cerrar panel"></button>
+      <aside class="detail-drawer" aria-labelledby="detailTitle">
+        <div class="detail-head">
+          <div>
+            <p id="detailKicker" class="eyebrow eyebrow-soft">Detalle</p>
+            <h2 id="detailTitle">Sin seleccion</h2>
+            <p id="detailSubtitle" class="section-copy">Selecciona una tarea, agente o evento para ver su contexto.</p>
+          </div>
+          <button id="detailCloseButton" class="ghost icon-button" type="button" aria-label="Cerrar detalle">x</button>
+        </div>
+
+        <div class="detail-tabs" id="detailTabs" role="tablist" aria-label="Secciones del detalle">
+          <button id="detailOverviewTab" class="detail-tab is-active" type="button" data-tab="overview" role="tab" aria-selected="true">Resumen</button>
+          <button id="detailHistoryTab" class="detail-tab" type="button" data-tab="history" role="tab" aria-selected="false">Historial</button>
+          <button id="detailJsonTab" class="detail-tab" type="button" data-tab="json" role="tab" aria-selected="false">JSON</button>
+        </div>
+
+        <section id="detailOverviewPanel" class="detail-panel">
+          <section class="detail-module detail-module-summary">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-bolt"></i><span>Lectura operativa</span></h3>
+            </div>
+
+            <div class="detail-summary-card">
+              <p id="detailSummaryLead" class="detail-summary-lead">Abre un evento, una tarea o un agente para ver una lectura sintetica de su estado.</p>
+              <div id="detailHighlights" class="detail-highlights"></div>
+            </div>
+          </section>
+
+          <section class="detail-module detail-module-notes">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-notes"></i><span>Notas y criterios</span></h3>
+            </div>
+            <div id="detailRichNotes" class="detail-rich-notes"></div>
+          </section>
+
+          <section class="detail-module detail-module-context">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-stack-2"></i><span>Contexto actual</span></h3>
+            </div>
+            <div id="detailMeta" class="detail-meta-grid"></div>
+          </section>
+
+          <section class="detail-module detail-module-actions">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-click"></i><span>Acciones rapidas</span></h3>
+            </div>
+            <div id="detailActions" class="detail-actions"></div>
+          </section>
+        </section>
+
+        <section id="detailHistoryPanel" class="detail-panel hidden">
+          <section class="detail-module detail-module-history">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-history"></i><span>Historial relacionado</span></h3>
+            </div>
+            <div id="detailHistoryEmpty" class="empty-state hidden">
+              <strong>Sin historial disponible</strong>
+              <p>Este elemento no tiene eventos relacionados para mostrar en la vista historica.</p>
+            </div>
+            <ul id="detailHistoryList" class="detail-history-list"></ul>
+          </section>
+        </section>
+
+        <section id="detailJsonPanel" class="detail-panel hidden">
+          <section class="detail-module detail-module-json">
+            <div class="detail-module-head">
+              <h3><i class="ti ti-code"></i><span>Contexto JSON</span></h3>
+            </div>
+            <pre class="payload detail-payload"><code id="detailPayload" class="language-json">{}</code></pre>
+          </section>
+        </section>
+      </aside>
+    </div>
+
+    <template id="summaryCardTemplate">
+      <article class="card stat-card">
+        <span class="stat-label"></span>
+        <strong class="stat-value"></strong>
+        <span class="stat-meta"></span>
+      </article>
+    </template>
+
+    <template id="criticalItemTemplate">
+      <article class="signal-card actionable-card" tabindex="0" role="button">
+        <div class="signal-head">
+          <div class="signal-badges signal-identity">
+            <span class="signal-avatar" aria-hidden="true"></span>
+            <span class="badge signal-level"></span>
+            <span class="badge signal-type"></span>
+          </div>
+          <time class="signal-time"></time>
+        </div>
+
+        <strong class="signal-title"></strong>
+        <p class="signal-body"></p>
+        <p class="signal-meta"></p>
+      </article>
+    </template>
+
+    <template id="agentCardTemplate">
+      <article class="agent-card actionable-card" tabindex="0" role="button">
+        <div class="agent-card-head">
+          <div>
+            <div class="agent-ident">
+              <span class="agent-avatar" aria-hidden="true"></span>
+              <div>
+                <h3 class="agent-name"></h3>
+                <p class="agent-role"></p>
+              </div>
+            </div>
+            <p class="agent-meta"></p>
+          </div>
+
+          <span class="badge agent-health"></span>
+        </div>
+
+        <div class="agent-now-block">
+          <span class="agent-now-label">Ahora mismo</span>
+          <strong class="agent-now-title"></strong>
+          <p class="agent-now-meta"></p>
+          <div class="agent-now-spark"></div>
+        </div>
+
+        <div class="agent-queue-block">
+          <div class="agent-queue-head">
+            <span class="agent-queue-label">Bitacora viva</span>
+            <span class="agent-queue-count"></span>
+          </div>
+          <ul class="agent-queue-list"></ul>
+        </div>
+
+        <div class="agent-metrics">
+          <div class="metric-box">
+            <span class="metric-label">Eventos</span>
+            <strong class="metric-value agent-events"></strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Tareas</span>
+            <strong class="metric-value agent-tasks"></strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Riesgos</span>
+            <strong class="metric-value agent-risks"></strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Completadas</span>
+            <strong class="metric-value agent-completed"></strong>
+          </div>
+        </div>
+
+        <div class="agent-last">
+          <strong class="agent-last-title"></strong>
+          <span class="agent-last-time"></span>
+        </div>
+      </article>
+    </template>
+
+    <template id="stageAgentMiniTemplate">
+      <article class="stage-mini actionable-card" tabindex="0" role="button">
+        <div class="stage-mini-ident">
+          <span class="stage-mini-avatar" aria-hidden="true"></span>
+          <div>
+            <strong class="stage-mini-name"></strong>
+            <p class="stage-mini-role"></p>
+          </div>
+        </div>
+
+        <div class="stage-mini-body">
+          <span class="badge stage-mini-health"></span>
+          <p class="stage-mini-now"></p>
+          <div class="stage-mini-spark"></div>
+        </div>
+      </article>
+    </template>
+
+    <template id="timelineItemTemplate">
+      <li class="timeline-item actionable-card" tabindex="0" role="button">
+        <div class="timeline-dot"><span class="timeline-dot-icon" aria-hidden="true"></span></div>
+        <div class="timeline-card">
+          <div class="timeline-meta">
+            <span class="badge badge-agent"></span>
+            <span class="badge badge-type"></span>
+            <span class="badge badge-status hidden"></span>
+            <time></time>
+          </div>
+
+          <div class="timeline-title"></div>
+          <dl class="event-fields"></dl>
+
+          <div class="payload-block">
+            <span class="payload-label">Lectura rapida</span>
+            <p class="payload-preview"></p>
+          </div>
+        </div>
+      </li>
+    </template>
+
+    <template id="taskGroupTemplate">
+      <section class="task-group actionable-card" tabindex="0" role="button">
+        <div class="task-group-head">
+          <div>
+            <h3 class="task-title"></h3>
+            <p class="task-meta"></p>
+            <p class="task-summary"></p>
+          </div>
+
+          <div class="task-group-badges">
+            <span class="badge task-duration hidden"></span>
+            <button type="button" class="ghost icon-button task-toggle hidden" aria-label="Expandir subtareas"><i class="ti ti-chevron-down"></i></button>
+            <span class="badge badge-status task-status"></span>
+          </div>
+        </div>
+
+        <ul class="task-events"></ul>
+        <div class="task-children"></div>
+      </section>
+    </template>
+
+    <template id="toastTemplate">
+      <div class="toast">
+        <div class="toast-marker"></div>
+        <div class="toast-copy">
+          <strong class="toast-title"></strong>
+          <p class="toast-body"></p>
+        </div>
+        <button type="button" class="toast-close ghost icon-button" aria-label="Cerrar alerta">x</button>
+      </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/highlight.min.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+  </html>

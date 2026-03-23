@@ -1,0 +1,21 @@
+{
+  "fields": {
+    "email": "Email",
+    "password": "Password"
+  },
+  "profile": {
+    "name": "Name",
+    "email": "Email Address",
+    "language": "Language",
+    "editProfile": "Edit Profile",
+    "role": "Role",
+    "memberSince": "Member Since",
+    "tokenExpires": "Expires on",
+    "roles": {
+      "user": "User",
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "pro": "Premium"
+    }
+  }
+}
