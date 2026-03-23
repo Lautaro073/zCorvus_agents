@@ -434,7 +434,11 @@ function renderMarkdown(markdown) {
 
   try {
     if (window.marked?.parse) {
-      return window.marked.parse(input);
+      const html = window.marked.parse(input);
+      if (window.DOMPurify?.sanitize) {
+        return window.DOMPurify.sanitize(html);
+      }
+      return html;
     }
   } catch {
   }

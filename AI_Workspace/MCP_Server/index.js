@@ -27,6 +27,31 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
 };
 
+const TASK_STATUSES = new Set(["assigned", "accepted", "in_progress", "blocked", "completed", "failed", "cancelled"]);
+const TASK_EVENT_TYPES = new Set(["TASK_ASSIGNED", "TASK_ACCEPTED", "TASK_IN_PROGRESS", "TASK_BLOCKED", "TASK_COMPLETED", "TASK_FAILED", "TASK_CANCELLED"]);
+const KNOWN_EVENT_TYPES = new Set([
+  "TASK_ASSIGNED",
+  "TASK_ACCEPTED",
+  "TASK_IN_PROGRESS",
+  "TASK_BLOCKED",
+  "TASK_COMPLETED",
+  "TASK_FAILED",
+  "TASK_CANCELLED",
+  "SUBTASK_REQUESTED",
+  "PLAN_PROPOSED",
+  "SKILL_CREATED",
+  "LEARNING_RECORDED",
+  "ENDPOINT_CREATED",
+  "UI_COMPONENT_BUILT",
+  "SCHEMA_UPDATED",
+  "ARTIFACT_PUBLISHED",
+  "TEST_PASSED",
+  "TEST_FAILED",
+  "INCIDENT_OPENED",
+  "INCIDENT_RESOLVED",
+  "DOC_UPDATED",
+]);
+
 const tools = [
   {
     name: "append_event",
@@ -51,6 +76,7 @@ const tools = [
         typeFilter: { type: "string", description: "Optional: Only return events of this type" },
         assignedTo: { type: "string", description: "Optional: Only return events assigned to this agent" },
         taskId: { type: "string", description: "Optional: Only return events for this task id" },
+        parentTaskId: { type: "string", description: "Optional: Only return events for this parent task id" },
         status: { type: "string", description: "Optional: Only return events with this status" },
         correlationId: { type: "string", description: "Optional: Only return events with this correlation id" },
         since: { type: "string", description: "Optional: Only return events since this ISO timestamp" },
@@ -100,6 +126,106 @@ function assertPlainObject(value, fieldName) {
   return value;
 }
 
+function assertStatus(value, fieldName = "payload.status") {
+  const normalized = assertNonEmptyString(value, fieldName);
+  if (!TASK_STATUSES.has(normalized)) {
+    throw new Error(`'${fieldName}' must be one of: ${Array.from(TASK_STATUSES).join(", ")}.`);
+  }
+
+  return normalized;
+}
+
+function assertArray(value, fieldName) {
+  if (!Array.isArray(value)) {
+    throw new Error(`'${fieldName}' must be an array.`);
+  }
+
+  return value;
+}
+
+function normalizeBoolean(value) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function normalizeInteger(value) {
+  return Number.isInteger(value) ? value : undefined;
+}
+
+function validatePlannedTask(task, index) {
+  const label = `payload.proposedTasks[${index}]`;
+  assertPlainObject(task, label);
+  assertNonEmptyString(task.taskId, `${label}.taskId`);
+  assertNonEmptyString(task.assignedTo, `${label}.assignedTo`);
+  assertArray(task.dependsOn ?? [], `${label}.dependsOn`);
+  assertNonEmptyString(task.description, `${label}.description`);
+  assertArray(task.acceptanceCriteria ?? [], `${label}.acceptanceCriteria`);
+}
+
+function validateEventPayload(type, payload) {
+  if (TASK_EVENT_TYPES.has(type)) {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.assignedTo, "payload.assignedTo");
+    assertStatus(payload.status, "payload.status");
+  }
+
+  if (type === "TASK_ASSIGNED") {
+    if (!normalizeString(payload.description) && !normalizeString(payload.message)) {
+      throw new Error("'payload.description' or 'payload.message' is required for TASK_ASSIGNED.");
+    }
+  }
+
+  if (type === "PLAN_PROPOSED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.assignedTo, "payload.assignedTo");
+    assertStatus(payload.status, "payload.status");
+    assertNonEmptyString(payload.correlationId, "payload.correlationId");
+    const proposedTasks = assertArray(payload.proposedTasks, "payload.proposedTasks");
+    proposedTasks.forEach((task, index) => validatePlannedTask(task, index));
+  }
+
+  if (type === "SUBTASK_REQUESTED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertStatus(payload.status, "payload.status");
+    assertNonEmptyString(payload.message, "payload.message");
+    assertArray(payload.suggestedSubtasks ?? [], "payload.suggestedSubtasks");
+  }
+
+  if (type === "DOC_UPDATED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertStatus(payload.status, "payload.status");
+    if (!normalizeString(payload.path) && normalizeStringList(payload.artifactPaths).length === 0) {
+      throw new Error("DOC_UPDATED requires 'payload.path' or 'payload.artifactPaths'.");
+    }
+  }
+
+  if (type === "ENDPOINT_CREATED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.path, "payload.path");
+    assertNonEmptyString(payload.method, "payload.method");
+  }
+
+  if (type === "UI_COMPONENT_BUILT") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.path, "payload.path");
+  }
+
+  if (type === "SKILL_CREATED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    if (!normalizeString(payload.path) && !normalizeString(payload.skillName)) {
+      throw new Error("SKILL_CREATED requires 'payload.path' or 'payload.skillName'.");
+    }
+  }
+
+  if (type === "LEARNING_RECORDED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.message, "payload.message");
+  }
+
+  if (type === "TEST_PASSED" || type === "TEST_FAILED" || type === "INCIDENT_OPENED" || type === "INCIDENT_RESOLVED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+  }
+}
+
 function getEventField(event, fieldName) {
   const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};
   return event[fieldName] ?? payload[fieldName];
@@ -114,6 +240,7 @@ function normalizeFilters(filters = {}) {
     typeFilter: normalizeString(filters.typeFilter),
     assignedTo: normalizeString(filters.assignedTo),
     taskId: normalizeString(filters.taskId),
+    parentTaskId: normalizeString(filters.parentTaskId),
     status: normalizeString(filters.status),
     correlationId: normalizeString(filters.correlationId),
     since,
@@ -195,13 +322,28 @@ async function appendEvent(agent, type, payload) {
   const normalizedAgent = assertNonEmptyString(agent, "agent");
   const normalizedType = assertNonEmptyString(type, "type");
   const normalizedPayload = assertPlainObject(payload, "payload");
+  if (KNOWN_EVENT_TYPES.has(normalizedType)) {
+    validateEventPayload(normalizedType, normalizedPayload);
+  }
   const taskId = normalizeString(normalizedPayload.taskId);
   const assignedTo = normalizeString(normalizedPayload.assignedTo);
   const status = normalizeString(normalizedPayload.status);
   const priority = normalizeString(normalizedPayload.priority);
   const correlationId = normalizeString(normalizedPayload.correlationId) || taskId;
+  const parentTaskId = normalizeString(normalizedPayload.parentTaskId);
+  const retryCount = normalizeInteger(normalizedPayload.retryCount);
+  const autoRecovery = normalizeBoolean(normalizedPayload.autoRecovery);
+  const triggeredByType = normalizeString(normalizedPayload.triggeredByType);
+  const rootCause = normalizeString(normalizedPayload.rootCause);
   const dependsOn = normalizeStringList(normalizedPayload.dependsOn);
   const artifactPaths = normalizeStringList(normalizedPayload.artifactPaths);
+  const rolledBack = normalizeBoolean(normalizedPayload.rolledBack);
+  const rollbackBlocked = normalizeBoolean(normalizedPayload.rollbackBlocked);
+  const rollbackConflicts = normalizeStringList(normalizedPayload.rollbackConflicts);
+  const rollbackPath = normalizeString(normalizedPayload.rollbackPath);
+  const featureSlug = normalizeString(normalizedPayload.featureSlug);
+  const docType = normalizeString(normalizedPayload.docType);
+  const specRefs = normalizeStringList(normalizedPayload.specRefs);
   const event = {
     eventId: randomUUID(),
     timestamp: new Date().toISOString(),
@@ -212,8 +354,20 @@ async function appendEvent(agent, type, payload) {
     status,
     priority,
     correlationId,
+    parentTaskId,
+    retryCount,
+    autoRecovery,
+    triggeredByType,
+    rootCause,
     dependsOn,
     artifactPaths,
+    rolledBack,
+    rollbackBlocked,
+    rollbackConflicts,
+    rollbackPath,
+    featureSlug,
+    docType,
+    specRefs,
     payloadVersion: normalizeString(normalizedPayload.payloadVersion) || "1.0",
     payload: normalizedPayload,
   };
@@ -254,6 +408,9 @@ function matchesFilters(event, filters) {
     return false;
   }
   if (filters.taskId && getEventField(event, "taskId") !== filters.taskId) {
+    return false;
+  }
+  if (filters.parentTaskId && getEventField(event, "parentTaskId") !== filters.parentTaskId) {
     return false;
   }
   if (filters.status && getEventField(event, "status") !== filters.status) {
@@ -319,6 +476,7 @@ function buildTaskGroups(events) {
         assignedTo: getEventField(event, "assignedTo") || null,
         latestStatus: getEventField(event, "status") || "unknown",
         priority: getEventField(event, "priority") || null,
+        parentTaskId: getEventField(event, "parentTaskId") || null,
         dependsOn: normalizeStringList(getEventField(event, "dependsOn")),
         updatedAt: event.timestamp || null,
         events: [],
@@ -330,6 +488,7 @@ function buildTaskGroups(events) {
     group.assignedTo = getEventField(event, "assignedTo") || group.assignedTo;
     group.latestStatus = getEventField(event, "status") || group.latestStatus;
     group.priority = getEventField(event, "priority") || group.priority;
+    group.parentTaskId = getEventField(event, "parentTaskId") || group.parentTaskId;
     group.dependsOn = normalizeStringList(getEventField(event, "dependsOn")).length > 0
       ? normalizeStringList(getEventField(event, "dependsOn"))
       : group.dependsOn;
@@ -369,6 +528,7 @@ async function buildMonitorResponse(rawFilters = {}) {
       typeFilter: filters.typeFilter || null,
       assignedTo: filters.assignedTo || null,
       taskId: filters.taskId || null,
+      parentTaskId: filters.parentTaskId || null,
       status: filters.status || null,
       correlationId: filters.correlationId || null,
       since: filters.since || null,

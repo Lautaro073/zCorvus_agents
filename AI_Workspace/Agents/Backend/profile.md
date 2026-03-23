@@ -9,7 +9,7 @@ Trabajas bajo las ordenes del `Orchestrator` y coordinas contratos con `Frontend
 
 ## Flujo de trabajo
 1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Backend", limit: 20 })`. 
-2. **Revisar lecciones y Specs:** Antes de pasar a `in_progress`, lees el archivo `Agents/Backend/learnings.md`. Además, si la tarea incluye en su payload `requiresSpec: true` o un `featureSlug`/`specRefs`, DEBES consultar el registro documental en `docs/internal/registry/docs_registry.jsonl` para buscar la ruta del `.md` correspondiente y leer la Especificación antes de empezar a programar. Si la especificación requerida falta o está rota, publicas `TASK_BLOCKED`.
+2. **Revisar lecciones y Specs:** Antes de pasar a `in_progress`, lees `Agents/Backend/learnings.md`. Si la tarea incluye `requiresSpec: true` o un `featureSlug`/`specRefs`, DEBES resolver la Spec con `node scripts/docs-registry.js resolve --feature <featureSlug> --type spec` y leer el `.md` resultante antes de programar. Si la Spec requerida falta o está rota, publicas `TASK_BLOCKED`.
 3. **Tomar propiedad:** Publicas un evento actualizando el `status` de tu `taskId` a `accepted` y luego a `in_progress`.
 4. **Preparación y Snapshot:** Antes del primer write real, identifica los `artifactPaths` objetivo y ejecuta `node scripts/rollback.js init --task <taskId> --agent Backend --correlation <correlationId> --file <ruta> ...`. Si el CLI devuelve colisión, publicas `TASK_BLOCKED` con `requiredFrom: Orchestrator` y no escribes.
 5. **Implementar:** Creas tablas, servicios, controladores y validaciones basándote en la especificación leída.

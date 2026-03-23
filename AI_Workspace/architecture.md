@@ -7,7 +7,7 @@ Este workspace contiene la base operativa de zCorvus para coordinar agentes por 
 - `Agents/`: perfiles operativos de cada rol.
 - `MCP_Server/`: servidor MCP por stdio y API HTTP para inspeccionar eventos.
 - `AgentMonitor/`: frontend visual para ver timeline, tareas y estados del sistema.
-- `Backend/` y `Frontend/`: carpetas de producto todavia no bootstrappeadas en este workspace. El `Orchestrator` debe crear primero tareas de bootstrap cuando el proyecto lo requiera.
+- `Backend/` y `Frontend/`: carpetas de producto ya presentes pero aun sin bootstrap funcional completo; el `Orchestrator` debe emitir tareas de bootstrap antes de tratarlas como aplicaciones listas.
 
 ## Estructura del equipo
 
@@ -117,7 +117,7 @@ Toda tarea rastreada mediante un `taskId` transita por los siguientes estados de
 - **Autocorreccion acotada**: `Backend` y `Frontend` reaccionan a `TEST_FAILED` o incidentes relacionados con su `taskId` e inician correccion (maximo 3 reintentos antes de marcar `TASK_FAILED` e intentar rollback local). 
 - **Auto-expansion**: El equipo creara habilidades (`SKILL_CREATED`) y reglas operativas nuevas (`LEARNING_RECORDED`) tras solucionar retos no triviales, guardandolos en `Agents/<Rol>/skills/` y `Agents/<Rol>/learnings.md` respectivamente.
 - **Delegacion**: Tareas demasiado extensas pueden dividirse. Los agentes pueden sugerir `SUBTASK_REQUESTED` y el `Orchestrator` determinara la division duradera con un `correlationId` y multiples `TASK_ASSIGNED`.
-- **Spec-Driven Development**: El `Orchestrator` puede asignar al `Documenter` la creacion de Especificaciones previas (Specs). Si una tarea incluye `requiresSpec: true` o un `featureSlug`, el Frontend/Backend deben leer el `docs/internal/registry/docs_registry.jsonl` para buscar la Spec correspondiente antes de empezar a programar.
+- **Spec-Driven Development**: El `Orchestrator` puede asignar al `Documenter` la creacion de Especificaciones previas (Specs). Si una tarea incluye `requiresSpec: true` o un `featureSlug`, el Frontend/Backend deben resolver la Spec correspondiente usando `node scripts/docs-registry.js resolve --feature <featureSlug> --type spec` antes de empezar a programar.
 - `Frontend` no usa acceso directo a base de datos por defecto. Solo puede hacerlo si el `Orchestrator` lo pide de forma explicita y lo documenta como excepcion arquitectonica.
 - `Tester` valida sobre artefactos terminados (`TASK_COMPLETED`, `ENDPOINT_CREATED`, `UI_COMPONENT_BUILT`) y publica resultados con el mismo `taskId` o `correlationId`.
 - `Documenter` actualiza documentacion preferentemente despues de `TEST_PASSED`, salvo que el `Orchestrator` pida documentacion temprana.

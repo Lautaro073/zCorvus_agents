@@ -1,0 +1,39 @@
+name: AI Workspace CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: MCP_Server/package-lock.json
+
+      - name: Install MCP server dependencies
+        working-directory: MCP_Server
+        run: npm ci
+
+      - name: Run syntax checks
+        working-directory: MCP_Server
+        run: npm run check
+
+      - name: Run rollback runtime tests
+        run: node --test scripts/rollback.test.mjs
+
+      - name: Run docs registry tests
+        run: node --test scripts/docs-registry.test.mjs
