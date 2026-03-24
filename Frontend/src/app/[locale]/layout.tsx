@@ -36,20 +36,28 @@ interface LocaleLayoutProps {
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
 
+  // Se cargan namespaces globales. Nota de performance: Esto obliga a hidratar common, home, etc. en toda la app.
   const messages = await getMessages();
+  
+  // Leer cookies vuelve el layout dinámico. Esto es un trade-off aceptado para evitar Flash of Unstyled Content (FOUC).
   const prefs = await getServerPreferences();
 
   return (
     <html lang={locale} className={prefs.theme}>
       <body className={`${kameron.variable} ${kadwa.variable} antialiased h-screen transition-all duration-300`}>
         <div className="h-full max-w-[1920px] mx-auto py-6 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12">
-          <Script
-            src="//unpkg.com/react-scan/dist/auto.global.js"
-            strategy="beforeInteractive"
-          />
+          {process.env.NODE_ENV === 'development' && (
+            <Script
+              src="//unpkg.com/react-scan/dist/auto.global.js"
+              strategy="beforeInteractive"
+            />
+          )}
+          {/* Provider Tree: Boundaries bien definidos */}
           <NextIntlClientProvider locale={locale} messages={messages}>
+            {/* AuthContext debe envolver a las rutas protegidas, actualmente global para layout de user */}
             <AuthProvider>
               <ViewTransition>
+                {/* UIStore mantiene estado visual (capas, tema, iconos locales) */}
                 <UIStoreProvider initialState={prefs}>
                   {children}
                   <Toaster />
