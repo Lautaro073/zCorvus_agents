@@ -10,7 +10,7 @@ import {
 
 import { Link } from "@/i18n/navigation";
 import { ZIcon } from "@zcorvus/z-icons/react";
-import { IconGrid, IconCategoriesInfo, IconContentData, IconGroup } from "@/features/icons-explorer";
+import { IconGrid, IconCategoriesInfo, getIconContentData, IconGroup } from "@/features/icons-explorer";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store";
 import { IconCategory, IconSet } from "@/types/icons/icons.types";
@@ -25,6 +25,7 @@ export default function IconsTypeIdPage({ params }: IconsTypeIdPageProps) {
   const setLayerDynamic = useUIStore((e) => e.setLayerDynamic);
 
   const { type, id } = use(params);
+  const IconContentData = use(getIconContentData());
 
   const data: IconGroup = {
     name: id,

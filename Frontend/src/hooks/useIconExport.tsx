@@ -1,9 +1,9 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { MouseEvent } from "react";
 
-import { IconsSVG } from "@/features/icons-explorer";
-import type { IconTypeInfo } from "@/types/icons/icons.types";
+import { getIconsSVG } from "@/features/icons-explorer";
+import type { IconTypeInfo, IconSet } from "@/types/icons/icons.types";
 
 export type IconExportState = "react" | "svg" | "html";
 
@@ -13,18 +13,27 @@ interface UseIconExportArgs {
   icon: IconTypeInfo;
   state: IconExportState;
 }
+
 const useIconExport = ({ icon, state }: UseIconExportArgs) => {
   const isFontAwesome = icon.type === 'fa-solid' || icon.type === 'fa-regular';
   
-  const svgMarkup = useMemo(() => {
-    if (isFontAwesome) {
-      const iconDef = IconsSVG[icon.type]?.[icon.name];
-      if (!iconDef) return "";
-      // Convertir FontAwesome IconDefinition a SVG string
-      const [width, height, , , path] = iconDef.icon;
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><path d="${Array.isArray(path) ? path.join(' ') : path}"/></svg>`;
-    }
-    return IconsSVG[icon.type]?.[icon.variant]?.[icon.name] ?? "";
+  const [svgMarkup, setSvgMarkup] = useState<string>("");
+
+  useEffect(() => {
+    let mounted = true;
+    getIconsSVG(icon.type as IconSet).then((iconsMap: any) => {
+      if (!mounted || !iconsMap) return;
+      if (isFontAwesome) {
+        const iconDef = iconsMap[icon.name];
+        if (!iconDef) return;
+        const [width, height, , , path] = iconDef.icon;
+        setSvgMarkup(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><path d="${Array.isArray(path) ? path.join(' ') : path}"/></svg>`);
+      } else {
+        const variantMap = iconsMap[icon.variant || ""] || iconsMap;
+        setSvgMarkup(variantMap?.[icon.name] ?? "");
+      }
+    });
+    return () => { mounted = false; };
   }, [icon, isFontAwesome]);
 
   const reactSnippet = useMemo(() => {

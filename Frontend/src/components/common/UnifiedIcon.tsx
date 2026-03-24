@@ -1,10 +1,12 @@
 "use client";
 
 import { ZIcon } from '@zcorvus/z-icons/react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconTypeInfo } from '@/types/icons/icons.types';
-import { faSolidIcons, faRegularIcons } from '@/lib/fontawesome';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const FASolidRenderer = dynamic(() => import('./FASolidRenderer'), { ssr: false });
+const FARegularRenderer = dynamic(() => import('./FARegularRenderer'), { ssr: false });
 
 interface UnifiedIconProps extends Omit<IconTypeInfo, 'variant'> {
   variant?: string;
@@ -13,17 +15,13 @@ interface UnifiedIconProps extends Omit<IconTypeInfo, 'variant'> {
 }
 
 export const UnifiedIcon = ({ type, name, variant, className, size }: UnifiedIconProps) => {
-  // Font Awesome icons
+  // Font Awesome icons lazily loaded
   if (type === 'fa-solid') {
-    const icon = faSolidIcons[name as string];
-    if (!icon) return null;
-    return <FontAwesomeIcon icon={icon} className={cn(className)} style={{ width: size, height: size }} />;
+    return <FASolidRenderer name={name as string} className={className} size={size} />;
   }
 
   if (type === 'fa-regular') {
-    const icon = faRegularIcons[name as string];
-    if (!icon) return null;
-    return <FontAwesomeIcon icon={icon} className={cn(className)} style={{ width: size, height: size }} />;
+    return <FARegularRenderer name={name as string} className={className} size={size} />;
   }
 
   // ZCorvus icons (core, neo, mina)

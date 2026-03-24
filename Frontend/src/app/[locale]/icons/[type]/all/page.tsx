@@ -10,10 +10,11 @@ import {
 
 import { Link } from "@/i18n/navigation";
 import { ZIcon } from "@zcorvus/z-icons/react";
-import { IconGrid, IconGroup, IconCategories, IconCategoriesInfo, IconContentData } from "@/features/icons-explorer";
+import { IconGrid, IconGroup, IconCategories, IconCategoriesInfo, getIconContentData } from "@/features/icons-explorer";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store";
 import { IconCategory } from "@/types/icons/icons.types";
+
 interface IconsTypeAllPageProps {
   params: Promise<{
     type: IconCategory;
@@ -25,6 +26,9 @@ export default function IconsTypeAllPage({ params }: IconsTypeAllPageProps) {
   const setLayerDynamic = useUIStore((e) => e.setLayerDynamic);
 
   const { type } = use(params);
+
+  // Cargamos los datos estáticos pero con promesas para aislar chunks (como fa-solid names)
+  const IconContentData = use(getIconContentData());
 
   const currentGroup = IconCategories[type];
 
