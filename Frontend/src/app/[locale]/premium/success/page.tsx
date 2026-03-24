@@ -14,7 +14,7 @@ import Cookies from "js-cookie";
 export default function SuccessPage() {
     const t = useTranslations('premium');
     const router = useRouter();
-    const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading, refreshSession } = useAuth();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
     const [npmToken, setNpmToken] = useState<string | null>(null);
@@ -42,17 +42,17 @@ export default function SuccessPage() {
                     return;
                 }
 
-                // Intentar obtener el token NPM con reintentos
-                const maxRetries = 10; // 10 intentos = ~30 segundos
+                // Intentar obtener el token NPM de forma inteligente
+                // 1. Refrescamos sesion para que el backend reconozca el nuevo rol si acaba de generarse
+                await refreshSession();
+                
+                // 2. Pedir el token (hasta 3 intentos cortos si Stripe tardó en procesar)
                 let attempts = 0;
-
-                while (attempts < maxRetries) {
+                while (attempts < 3) {
                     attempts++;
                     setRetryCount(attempts);
-
                     try {
                         const tokenData = await getUserToken();
-
                         if (tokenData && typeof tokenData.token === 'string' && tokenData.token.length > 0) {
                             setNpmToken(tokenData.token);
                             localStorage.setItem('zcorvus_npm_token', tokenData.token);
@@ -60,18 +60,15 @@ export default function SuccessPage() {
                             toast.success(t('success.tokenGenerated') || 'Token generado exitosamente');
                             return;
                         }
-                    } catch (err) {
-                        // Error al obtener token
-                    }
-
-                    // Esperar 3 segundos antes del siguiente intento
-                    if (attempts < maxRetries) {
-                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    } catch (err) {}
+                    
+                    if (attempts < 3) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
                     }
                 }
 
-                // Si después de todos los intentos no hay token
-                toast.error(t('success.tokenNotFound') || 'No se pudo generar el token. Contacta soporte.');
+                // Si no se pudo obtener, reportarlo amablemente
+                toast.error(t('success.tokenNotFound') || 'No se pudo obtener el token en este momento.');
                 setLoading(false);
             } catch (error) {
                 toast.error(t('errors.unknown') || 'Error inesperado');
@@ -80,7 +77,7 @@ export default function SuccessPage() {
         }
 
         fetchToken();
-    }, [router, t, isAuthenticated, user, authLoading, hasCheckedAuth]);
+    }, [router, t, isAuthenticated, user, authLoading, hasCheckedAuth, refreshSession]);
 
     const copyToken = () => {
         if (npmToken) {
