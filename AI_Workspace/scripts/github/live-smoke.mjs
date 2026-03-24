@@ -101,9 +101,39 @@ async function main() {
     labels,
   });
 
+  await appendGithubEvent(workspaceRoot, {
+    agent: args.agent,
+    type: "GITHUB_ISSUE_CREATED",
+    payload: {
+      taskId: taskContext.taskId,
+      assignedTo: taskContext.assignedTo,
+      status: taskContext.latestStatus || "completed",
+      correlationId: taskContext.correlationId,
+      parentTaskId: taskContext.parentTaskId,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+      message: `Smoke issue creada para ${taskContext.taskId}`,
+    },
+  });
+
   const branchName = makeSmokeBranch(args.agent, args.task);
   const baseSha = await getBaseSha(remote, token, args.base);
   await createBranch(remote, token, branchName, baseSha);
+
+  await appendGithubEvent(workspaceRoot, {
+    agent: args.agent,
+    type: "GITHUB_BRANCH_CREATED",
+    payload: {
+      taskId: taskContext.taskId,
+      assignedTo: taskContext.assignedTo,
+      status: taskContext.latestStatus || "completed",
+      correlationId: taskContext.correlationId,
+      parentTaskId: taskContext.parentTaskId,
+      branchName,
+      baseBranch: args.base,
+      message: `Smoke branch creada para ${taskContext.taskId}`,
+    },
+  });
 
   const smokeFilePath = path.posix.join("report", "github-smoke", `${branchName}.md`);
   const smokeFileContent = [
@@ -123,36 +153,6 @@ async function main() {
     base: args.base,
     body: `${buildPrBody(taskContext, branchName)}\n\n---\nSmoke test real del flujo issue -> branch -> commit -> PR.`,
     draft: Boolean(args.draft),
-  });
-
-  await appendGithubEvent(workspaceRoot, {
-    agent: args.agent,
-    type: "GITHUB_ISSUE_CREATED",
-    payload: {
-      taskId: taskContext.taskId,
-      assignedTo: taskContext.assignedTo,
-      status: taskContext.latestStatus || "completed",
-      correlationId: taskContext.correlationId,
-      parentTaskId: taskContext.parentTaskId,
-      issueNumber: issue.number,
-      issueUrl: issue.html_url,
-      message: `Smoke issue creada para ${taskContext.taskId}`,
-    },
-  });
-
-  await appendGithubEvent(workspaceRoot, {
-    agent: args.agent,
-    type: "GITHUB_BRANCH_CREATED",
-    payload: {
-      taskId: taskContext.taskId,
-      assignedTo: taskContext.assignedTo,
-      status: taskContext.latestStatus || "completed",
-      correlationId: taskContext.correlationId,
-      parentTaskId: taskContext.parentTaskId,
-      branchName,
-      baseBranch: args.base,
-      message: `Smoke branch creada para ${taskContext.taskId}`,
-    },
   });
 
   await appendGithubEvent(workspaceRoot, {

@@ -25,7 +25,12 @@ const EVENT_LABELS = {
   TASK_IN_PROGRESS: "Tarea en progreso",
   TASK_BLOCKED: "Tarea bloqueada",
   TASK_COMPLETED: "Tarea completada",
+  TASK_FAILED: "Tarea fallida",
   TASK_CANCELLED: "Tarea cancelada",
+  SUBTASK_REQUESTED: "Subtarea solicitada",
+  PLAN_PROPOSED: "Plan propuesto",
+  SKILL_CREATED: "Skill creada",
+  LEARNING_RECORDED: "Aprendizaje registrado",
   ENDPOINT_CREATED: "Endpoint creado",
   UI_COMPONENT_BUILT: "Componente UI construido",
   SCHEMA_UPDATED: "Esquema actualizado",
@@ -35,6 +40,9 @@ const EVENT_LABELS = {
   INCIDENT_OPENED: "Incidente abierto",
   INCIDENT_RESOLVED: "Incidente resuelto",
   DOC_UPDATED: "Documentacion actualizada",
+  GITHUB_ISSUE_CREATED: "Issue de GitHub creada",
+  GITHUB_BRANCH_CREATED: "Branch de GitHub creada",
+  GITHUB_PR_OPENED: "Pull request abierta",
   ERROR: "Error operativo",
 };
 
@@ -50,9 +58,16 @@ const AGENT_VISUALS = {
 
 const FIELD_LABELS = {
   taskId: "ID tarea",
+  parentTaskId: "Tarea padre",
   assignedTo: "Asignado a",
   priority: "Prioridad",
   correlationId: "Correlacion",
+  featureSlug: "Feature",
+  docType: "Tipo doc",
+  branchName: "Branch",
+  issueNumber: "Issue",
+  prNumber: "PR",
+  rollbackPath: "Rollback",
 };
 
 const SOCKET_STATE_LABELS = {
@@ -103,6 +118,7 @@ const elements = {
   statusFilter: document.getElementById("statusFilter"),
   assignedToFilter: document.getElementById("assignedToFilter"),
   taskIdFilter: document.getElementById("taskIdFilter"),
+  parentTaskIdFilter: document.getElementById("parentTaskIdFilter"),
   correlationIdFilter: document.getElementById("correlationIdFilter"),
   sinceFilter: document.getElementById("sinceFilter"),
   limitFilter: document.getElementById("limitFilter"),
@@ -287,6 +303,9 @@ function humanizeEventType(value) {
 function humanizeFieldValue(key, value) {
   if (key === "priority") {
     return humanizePriority(value);
+  }
+  if (key === "issueNumber" || key === "prNumber") {
+    return `#${value}`;
   }
 
   return value;
@@ -525,6 +544,22 @@ function buildTaskNotes(task) {
   if (Array.isArray(task?.dependsOn) && task.dependsOn.length > 0) {
     lines.push(`### Dependencias\n${task.dependsOn.map((item) => `- ${item}`).join("\n")}`);
   }
+  if (latestEvent?.payload?.featureSlug) {
+    lines.push(`### Feature\n- ${latestEvent.payload.featureSlug}`);
+  }
+  if (Array.isArray(latestEvent?.payload?.specRefs) && latestEvent.payload.specRefs.length > 0) {
+    lines.push(`### Specs relacionadas\n${latestEvent.payload.specRefs.map((item) => `- ${item}`).join("\n")}`);
+  }
+  if (latestEvent?.payload?.rolledBack || latestEvent?.payload?.rollbackBlocked) {
+    lines.push(`### Estado de rollback\n- rolledBack: ${String(Boolean(latestEvent.payload.rolledBack))}\n- rollbackBlocked: ${String(Boolean(latestEvent.payload.rollbackBlocked))}${Array.isArray(latestEvent.payload.rollbackConflicts) && latestEvent.payload.rollbackConflicts.length > 0 ? `\n- Conflictos:\n${latestEvent.payload.rollbackConflicts.map((item) => `  - ${item}`).join("\n")}` : ""}`);
+  }
+  if (latestEvent?.payload?.branchName || latestEvent?.payload?.issueUrl || latestEvent?.payload?.prUrl) {
+    lines.push(`### GitHub\n${[
+      latestEvent.payload.branchName ? `- Branch: ${latestEvent.payload.branchName}` : null,
+      latestEvent.payload.issueUrl ? `- Issue: ${latestEvent.payload.issueUrl}` : null,
+      latestEvent.payload.prUrl ? `- PR: ${latestEvent.payload.prUrl}` : null,
+    ].filter(Boolean).join("\n")}`);
+  }
 
   return lines.join("\n\n");
 }
@@ -540,6 +575,23 @@ function buildEventNotes(event) {
   }
   if (Array.isArray(event?.payload?.acceptanceCriteria) && event.payload.acceptanceCriteria.length > 0) {
     sections.push(`### Criterios de aceptacion\n${event.payload.acceptanceCriteria.map((item) => `- ${item}`).join("\n")}`);
+  }
+  if (event?.payload?.featureSlug || event?.payload?.docType) {
+    sections.push(`### Contexto documental\n${[
+      event.payload.featureSlug ? `- Feature: ${event.payload.featureSlug}` : null,
+      event.payload.docType ? `- Tipo doc: ${event.payload.docType}` : null,
+      event.payload.path ? `- Ruta: ${event.payload.path}` : null,
+    ].filter(Boolean).join("\n")}`);
+  }
+  if (event?.payload?.issueUrl || event?.payload?.prUrl || event?.payload?.branchName) {
+    sections.push(`### GitHub\n${[
+      event.payload.issueUrl ? `- Issue: ${event.payload.issueUrl}` : null,
+      event.payload.prUrl ? `- PR: ${event.payload.prUrl}` : null,
+      event.payload.branchName ? `- Branch: ${event.payload.branchName}` : null,
+    ].filter(Boolean).join("\n")}`);
+  }
+  if (event?.payload?.rolledBack || event?.payload?.rollbackBlocked) {
+    sections.push(`### Rollback\n- rolledBack: ${String(Boolean(event.payload.rolledBack))}\n- rollbackBlocked: ${String(Boolean(event.payload.rollbackBlocked))}${Array.isArray(event.payload.rollbackConflicts) && event.payload.rollbackConflicts.length > 0 ? `\n- Conflictos:\n${event.payload.rollbackConflicts.map((item) => `  - ${item}`).join("\n")}` : ""}`);
   }
 
   return sections.join("\n\n");
@@ -561,11 +613,53 @@ function compactPayloadPreview(event) {
     return preferred[0];
   }
 
+  if (event?.type === "DOC_UPDATED") {
+    return [
+      payload.docType ? `Documento ${payload.docType}` : null,
+      payload.featureSlug ? `feature ${payload.featureSlug}` : null,
+      payload.path || null,
+    ].filter(Boolean).join(" | ") || "Documento actualizado.";
+  }
+
+  if (event?.type === "PLAN_PROPOSED") {
+    return `Plan propuesto con ${Array.isArray(payload.proposedTasks) ? payload.proposedTasks.length : 0} tarea(s) para ejecutar.`;
+  }
+
+  if (event?.type === "SKILL_CREATED") {
+    return `Skill ${payload.skillName || payload.path || "nueva"} publicada para reutilizacion.`;
+  }
+
+  if (event?.type === "LEARNING_RECORDED") {
+    return payload.message || "Nuevo aprendizaje registrado para el agente.";
+  }
+
+  if (event?.type === "GITHUB_ISSUE_CREATED") {
+    return `Issue #${payload.issueNumber || "?"} creada para la tarea en GitHub.`;
+  }
+
+  if (event?.type === "GITHUB_BRANCH_CREATED") {
+    return `Branch ${payload.branchName || "sin-branch"} creada sobre ${payload.baseBranch || "main"}.`;
+  }
+
+  if (event?.type === "GITHUB_PR_OPENED") {
+    return `PR #${payload.prNumber || "?"} abierta desde ${payload.branchName || "sin-branch"}.`;
+  }
+
+  if (payload.rollbackBlocked) {
+    return `Rollback bloqueado${Array.isArray(payload.rollbackConflicts) && payload.rollbackConflicts.length > 0 ? ` en ${payload.rollbackConflicts.length} archivo(s)` : ""}.`;
+  }
+
+  if (payload.rolledBack) {
+    return `Rollback completado${payload.rollbackPath ? ` desde ${payload.rollbackPath}` : ""}.`;
+  }
+
   const fieldEntries = [
     ["taskId", eventField(event, "taskId")],
+    ["parentTaskId", eventField(event, "parentTaskId")],
     ["assignedTo", eventField(event, "assignedTo")],
     ["status", humanizeStatus(eventField(event, "status"))],
     ["priority", humanizePriority(eventField(event, "priority"))],
+    ["featureSlug", eventField(event, "featureSlug")],
   ].filter(([, value]) => value && value !== "Sin estado" && value !== "No definida");
 
   if (fieldEntries.length > 0) {
@@ -700,6 +794,7 @@ function readFiltersFromForm() {
     status: formData.get("status") || "",
     assignedTo: formData.get("assignedTo") || "",
     taskId: formData.get("taskId") || "",
+    parentTaskId: formData.get("parentTaskId") || "",
     correlationId: formData.get("correlationId") || "",
     since: normalizeDateTimeLocal(formData.get("since")),
     limit: formData.get("limit") || 200,
@@ -714,6 +809,7 @@ function syncFormWithFilters() {
   elements.statusFilter.value = state.filters.status || "";
   elements.assignedToFilter.value = state.filters.assignedTo || "";
   elements.taskIdFilter.value = state.filters.taskId || "";
+  elements.parentTaskIdFilter.value = state.filters.parentTaskId || "";
   elements.correlationIdFilter.value = state.filters.correlationId || "";
   elements.sinceFilter.value = toDateTimeLocalInput(state.filters.since);
   elements.limitFilter.value = state.filters.limit || 200;
@@ -732,9 +828,41 @@ function activeFilterEntries() {
     state.filters.status ? { label: "Estado", value: humanizeStatus(state.filters.status) } : null,
     state.filters.assignedTo ? { label: "Responsable", value: state.filters.assignedTo } : null,
     state.filters.taskId ? { label: "Tarea", value: state.filters.taskId } : null,
+    state.filters.parentTaskId ? { label: "Tarea padre", value: state.filters.parentTaskId } : null,
     state.filters.correlationId ? { label: "Correlacion", value: state.filters.correlationId } : null,
     state.filters.since ? { label: "Desde", value: formatDateTime(state.filters.since) } : null,
   ].filter(Boolean);
+}
+
+function openExternalLink(url) {
+  if (!url) {
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function eventExternalActions(event) {
+  const actions = [];
+  const issueUrl = eventField(event, "issueUrl");
+  const prUrl = eventField(event, "prUrl");
+  const branchName = eventField(event, "branchName");
+  const pathValue = eventField(event, "path");
+
+  if (issueUrl) {
+    actions.push({ label: "Abrir issue", onClick: () => openExternalLink(issueUrl) });
+  }
+  if (prUrl) {
+    actions.push({ label: "Abrir PR", onClick: () => openExternalLink(prUrl) });
+  }
+  if (branchName) {
+    actions.push({ label: "Filtrar branch", onClick: () => applyFilterPatch({ typeFilter: "GITHUB_BRANCH_CREATED", taskId: eventField(event, "taskId") || "" }) });
+  }
+  if (pathValue && typeof pathValue === "string") {
+    actions.push({ label: "Filtrar doc", onClick: () => applyFilterPatch({ typeFilter: event.type || "DOC_UPDATED" }) });
+  }
+
+  return actions;
 }
 
 function renderActiveFilters() {
@@ -897,6 +1025,14 @@ function eventLevel(event) {
 
 function criticalEventInfo(event) {
   const status = eventField(event, "status");
+
+  if (eventField(event, "rollbackBlocked")) {
+    return { level: "danger", label: "Rollback bloqueado" };
+  }
+
+  if (eventField(event, "rolledBack")) {
+    return { level: "warning", label: "Rollback ejecutado" };
+  }
 
   if (event.type === "TEST_FAILED") {
     return { level: "danger", label: "Prueba fallida" };
@@ -1375,6 +1511,7 @@ function clearFiltersPatch() {
     status: "",
     assignedTo: "",
     taskId: "",
+    parentTaskId: "",
     correlationId: "",
     since: "",
     limit: state.filters.limit || 200,
@@ -1462,15 +1599,20 @@ function openEventDetail(event, options = {}) {
       { label: "Tipo", value: humanizeEventType(event.type) },
       { label: "Estado", value: humanizeStatus(eventField(event, "status")) },
       { label: "ID tarea", value: eventField(event, "taskId") || "Sin tarea" },
+      { label: "Tarea padre", value: eventField(event, "parentTaskId") || "Sin tarea padre" },
       { label: "Asignado a", value: eventField(event, "assignedTo") || "Sin asignacion" },
       { label: "Prioridad", value: humanizePriority(eventField(event, "priority")) },
       { label: "Correlacion", value: eventField(event, "correlationId") || "Sin correlacion" },
+      { label: "Feature", value: eventField(event, "featureSlug") || "Sin feature" },
+      { label: "Tipo doc", value: eventField(event, "docType") || "Sin tipo doc" },
       { label: "Timestamp", value: formatDateTime(event.timestamp) },
     ],
     actions: [
       eventField(event, "taskId") ? { label: "Filtrar tarea", onClick: () => applyFilterPatch({ taskId: eventField(event, "taskId") }) } : null,
+      eventField(event, "parentTaskId") ? { label: "Filtrar padre", onClick: () => applyFilterPatch({ parentTaskId: eventField(event, "parentTaskId") }) } : null,
       event.agent ? { label: "Filtrar agente", onClick: () => applyFilterPatch({ agentFilter: event.agent }) } : null,
       eventField(event, "status") ? { label: "Filtrar estado", onClick: () => applyFilterPatch({ status: eventField(event, "status") }) } : null,
+      ...eventExternalActions(event),
       { label: "Exportar bloque", onClick: () => exportSelection(`evento-${event.type || "detalle"}`, event) },
       { label: "Limpiar filtros", onClick: () => applyFilterPatch(clearFiltersPatch()) },
     ],
@@ -1505,10 +1647,13 @@ function openTaskDetail(task, options = {}) {
       { label: "Responsable", value: task.assignedTo || "Sin asignacion" },
       { label: "Eventos", value: pluralize(task.events.length, "evento", "eventos") },
       durationLabel ? { label: "Duracion", value: durationLabel } : null,
+      task.parentTaskId ? { label: "Tarea padre", value: task.parentTaskId } : null,
       { label: "Dependencias", value: task.dependsOn?.length ? pluralize(task.dependsOn.length, "dependencia", "dependencias") : "Sin dependencias" },
     ],
     meta: [
       { label: "Prioridad", value: humanizePriority(task.priority) },
+      { label: "Feature", value: taskField(task, "featureSlug") || "Sin feature" },
+      { label: "Tipo doc", value: taskField(task, "docType") || "Sin tipo doc" },
       { label: "Arranco con", value: firstEvent ? humanizeEventType(firstEvent.type) : "Sin evento inicial" },
       { label: "Ultimo movimiento", value: lastEvent ? humanizeEventType(lastEvent.type) : "Sin movimiento" },
       { label: "Ultimo actor", value: lastEvent?.agent || "Sin agente" },
@@ -1516,16 +1661,21 @@ function openTaskDetail(task, options = {}) {
     ],
     actions: [
       { label: "Filtrar tarea", onClick: () => applyFilterPatch({ taskId: task.taskId }) },
+      task.parentTaskId ? { label: "Filtrar padre", onClick: () => applyFilterPatch({ parentTaskId: task.parentTaskId }) } : null,
       task.assignedTo ? { label: "Filtrar responsable", onClick: () => applyFilterPatch({ assignedTo: task.assignedTo }) } : null,
       task.latestStatus ? { label: "Filtrar estado", onClick: () => applyFilterPatch({ status: task.latestStatus }) } : null,
+      ...eventExternalActions(lastEvent || firstEvent || {}),
       { label: "Exportar bloque", onClick: () => exportSelection(`tarea-${task.taskId}`, task) },
     ],
     historyItems: buildHistoryItems(task.events.slice().reverse()),
     payload: {
       taskId: task.taskId,
+      parentTaskId: task.parentTaskId,
       assignedTo: task.assignedTo,
       latestStatus: task.latestStatus,
       priority: task.priority,
+      featureSlug: taskField(task, "featureSlug"),
+      docType: taskField(task, "docType"),
       dependsOn: task.dependsOn,
       updatedAt: task.updatedAt,
       events: task.events.slice().reverse(),
@@ -1664,6 +1814,7 @@ function renderCriticalSignals(events) {
     const critical = criticalEventInfo(event);
     const node = elements.criticalItemTemplate.content.firstElementChild.cloneNode(true);
     const taskId = eventField(event, "taskId");
+    const parentTaskId = eventField(event, "parentTaskId");
     const assignedTo = eventField(event, "assignedTo");
 
     node.dataset.level = critical.level;
@@ -1675,6 +1826,7 @@ function renderCriticalSignals(events) {
     node.querySelector(".signal-body").textContent = `${event.agent || "Sin agente"} reporto un evento que requiere atencion.`;
     node.querySelector(".signal-meta").textContent = [
       taskId ? `Tarea ${taskId}` : null,
+      parentTaskId ? `Padre ${parentTaskId}` : null,
       assignedTo ? `Asignado a ${assignedTo}` : null,
       eventField(event, "status") ? `Estado ${humanizeStatus(eventField(event, "status"))}` : null,
     ].filter(Boolean).join(" | ") || "Sin contexto adicional";
@@ -1863,9 +2015,12 @@ function renderTimeline(events) {
 
       const fields = [
         ["taskId", eventField(event, "taskId")],
+        ["parentTaskId", eventField(event, "parentTaskId")],
         ["assignedTo", eventField(event, "assignedTo")],
         ["priority", eventField(event, "priority")],
         ["correlationId", eventField(event, "correlationId")],
+        ["featureSlug", eventField(event, "featureSlug")],
+        ["docType", eventField(event, "docType")],
       ].filter(([, value]) => value);
 
       const fieldsNode = node.querySelector(".event-fields");
@@ -2189,6 +2344,7 @@ function clearAllFilters() {
     status: "",
     assignedTo: "",
     taskId: "",
+    parentTaskId: "",
     correlationId: "",
     since: "",
     limit: 200,

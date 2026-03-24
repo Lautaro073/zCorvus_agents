@@ -24,7 +24,7 @@ echo.
 :: PROMPT INICIAL (V1)
 :: Nota: Una vez que me pases el ID de la sesion, reemplazaremos esta linea
 :: por el comando para retomar la sesion directamente.
-opencode -s ses_2e62c1d07ffe2xQws6lm0Ld7bK
+opencode -s ses_2e1fa0eacffeGlHp22WXJUb7m3
 echo.
 echo Sesion finalizada. Cierra esta ventana cuando desees.
 pause > nul

@@ -99,6 +99,22 @@ async function main() {
 
   const existing = await findExistingPr(remote, token, branchName);
   if (existing) {
+    await appendGithubEvent(workspaceRoot, {
+      agent,
+      type: "GITHUB_PR_OPENED",
+      payload: {
+        taskId: args.task,
+        assignedTo: taskContext.assignedTo,
+        status: taskContext.latestStatus || "completed",
+        correlationId: taskContext.correlationId,
+        parentTaskId: taskContext.parentTaskId,
+        branchName,
+        baseBranch: args.base,
+        prNumber: existing.number,
+        prUrl: existing.html_url,
+        message: `Pull request reutilizada para ${args.task}`,
+      },
+    });
     process.stdout.write(`${JSON.stringify({ ok: true, reused: true, number: existing.number, url: existing.html_url }, null, 2)}\n`);
     return;
   }
