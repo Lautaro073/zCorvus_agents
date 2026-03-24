@@ -2,6 +2,7 @@
 
 # dependencies
 ./node_modules*
+**/node_modules/
 /handoff
 /report
 /.pnp
@@ -47,6 +48,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .agents
+.runtime/
+MCP_Server/*.log
+MCP_Server/monitor-*.log
+MCP_Server/rollback-*.log
 
 # md
 README-BACKEND.md

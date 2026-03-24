@@ -10,6 +10,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { KNOWN_EVENT_TYPES, validateEventPayload } from "./lib/event-contract.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,30 +28,6 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
 };
 
-const TASK_STATUSES = new Set(["assigned", "accepted", "in_progress", "blocked", "completed", "failed", "cancelled"]);
-const TASK_EVENT_TYPES = new Set(["TASK_ASSIGNED", "TASK_ACCEPTED", "TASK_IN_PROGRESS", "TASK_BLOCKED", "TASK_COMPLETED", "TASK_FAILED", "TASK_CANCELLED"]);
-const KNOWN_EVENT_TYPES = new Set([
-  "TASK_ASSIGNED",
-  "TASK_ACCEPTED",
-  "TASK_IN_PROGRESS",
-  "TASK_BLOCKED",
-  "TASK_COMPLETED",
-  "TASK_FAILED",
-  "TASK_CANCELLED",
-  "SUBTASK_REQUESTED",
-  "PLAN_PROPOSED",
-  "SKILL_CREATED",
-  "LEARNING_RECORDED",
-  "ENDPOINT_CREATED",
-  "UI_COMPONENT_BUILT",
-  "SCHEMA_UPDATED",
-  "ARTIFACT_PUBLISHED",
-  "TEST_PASSED",
-  "TEST_FAILED",
-  "INCIDENT_OPENED",
-  "INCIDENT_RESOLVED",
-  "DOC_UPDATED",
-]);
 
 const tools = [
   {
@@ -126,23 +103,6 @@ function assertPlainObject(value, fieldName) {
   return value;
 }
 
-function assertStatus(value, fieldName = "payload.status") {
-  const normalized = assertNonEmptyString(value, fieldName);
-  if (!TASK_STATUSES.has(normalized)) {
-    throw new Error(`'${fieldName}' must be one of: ${Array.from(TASK_STATUSES).join(", ")}.`);
-  }
-
-  return normalized;
-}
-
-function assertArray(value, fieldName) {
-  if (!Array.isArray(value)) {
-    throw new Error(`'${fieldName}' must be an array.`);
-  }
-
-  return value;
-}
-
 function normalizeBoolean(value) {
   return typeof value === "boolean" ? value : undefined;
 }
@@ -151,80 +111,6 @@ function normalizeInteger(value) {
   return Number.isInteger(value) ? value : undefined;
 }
 
-function validatePlannedTask(task, index) {
-  const label = `payload.proposedTasks[${index}]`;
-  assertPlainObject(task, label);
-  assertNonEmptyString(task.taskId, `${label}.taskId`);
-  assertNonEmptyString(task.assignedTo, `${label}.assignedTo`);
-  assertArray(task.dependsOn ?? [], `${label}.dependsOn`);
-  assertNonEmptyString(task.description, `${label}.description`);
-  assertArray(task.acceptanceCriteria ?? [], `${label}.acceptanceCriteria`);
-}
-
-function validateEventPayload(type, payload) {
-  if (TASK_EVENT_TYPES.has(type)) {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertNonEmptyString(payload.assignedTo, "payload.assignedTo");
-    assertStatus(payload.status, "payload.status");
-  }
-
-  if (type === "TASK_ASSIGNED") {
-    if (!normalizeString(payload.description) && !normalizeString(payload.message)) {
-      throw new Error("'payload.description' or 'payload.message' is required for TASK_ASSIGNED.");
-    }
-  }
-
-  if (type === "PLAN_PROPOSED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertNonEmptyString(payload.assignedTo, "payload.assignedTo");
-    assertStatus(payload.status, "payload.status");
-    assertNonEmptyString(payload.correlationId, "payload.correlationId");
-    const proposedTasks = assertArray(payload.proposedTasks, "payload.proposedTasks");
-    proposedTasks.forEach((task, index) => validatePlannedTask(task, index));
-  }
-
-  if (type === "SUBTASK_REQUESTED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertStatus(payload.status, "payload.status");
-    assertNonEmptyString(payload.message, "payload.message");
-    assertArray(payload.suggestedSubtasks ?? [], "payload.suggestedSubtasks");
-  }
-
-  if (type === "DOC_UPDATED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertStatus(payload.status, "payload.status");
-    if (!normalizeString(payload.path) && normalizeStringList(payload.artifactPaths).length === 0) {
-      throw new Error("DOC_UPDATED requires 'payload.path' or 'payload.artifactPaths'.");
-    }
-  }
-
-  if (type === "ENDPOINT_CREATED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertNonEmptyString(payload.path, "payload.path");
-    assertNonEmptyString(payload.method, "payload.method");
-  }
-
-  if (type === "UI_COMPONENT_BUILT") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertNonEmptyString(payload.path, "payload.path");
-  }
-
-  if (type === "SKILL_CREATED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    if (!normalizeString(payload.path) && !normalizeString(payload.skillName)) {
-      throw new Error("SKILL_CREATED requires 'payload.path' or 'payload.skillName'.");
-    }
-  }
-
-  if (type === "LEARNING_RECORDED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-    assertNonEmptyString(payload.message, "payload.message");
-  }
-
-  if (type === "TEST_PASSED" || type === "TEST_FAILED" || type === "INCIDENT_OPENED" || type === "INCIDENT_RESOLVED") {
-    assertNonEmptyString(payload.taskId, "payload.taskId");
-  }
-}
 
 function getEventField(event, fieldName) {
   const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};

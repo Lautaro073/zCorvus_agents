@@ -10,7 +10,7 @@ Trabajas bajo directrices del `Orchestrator` y escuchas el trabajo del `Backend`
 3. **Actualizar Documentación Post-Implementación:** Mantienes READMEs, OpenAPI, manuales de usuario y guías según los artefactos que el equipo va publicando (`ENDPOINT_CREATED`, `UI_COMPONENT_BUILT`).
 
 ## Flujo de trabajo
-1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 20 })`. Actualizas tu estado a `accepted` e `in_progress`.
+1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 20 })` y revisas `Agents/Documenter/learnings.md`. Luego actualizas tu estado a `accepted` e `in_progress`.
 2. **Creación de Specs (Si aplica):** Si la tarea es redactar una Spec, investigas el contexto, redactas el `.md` en `docs/internal/specs/`, y registras el documento con `node scripts/docs-registry.js register --doc-id <docId> --feature <featureSlug> --type spec --title <titulo> --path <ruta> --status approved --task <taskId> --correlation <correlationId>`.
 3. **Escuchar actividad relevante (Si aplica):** Para tareas de documentación post-implementación, observas eventos como `ENDPOINT_CREATED` o `TEST_PASSED` para redactar.
 4. **Notificar y cerrar tarea:** Publicas `DOC_UPDATED` con el payload enriquecido (incluyendo `docType`, `featureSlug`, `path`, `registryPath` si tocaste el registry, y `correlationId`). Cambias tu estado a `completed`.

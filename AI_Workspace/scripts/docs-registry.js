@@ -12,13 +12,21 @@ function parseArgs(argv) {
     tags: [],
   };
 
+  const aliases = {
+    "doc-id": "docId",
+    "feature-slug": "feature",
+    "source-task": "task",
+    "correlation-id": "correlation",
+    "supersedes-doc-id": "supersedes",
+  };
+
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (!token.startsWith("--")) {
       throw new Error(`Unexpected argument '${token}'.`);
     }
 
-    const key = token.slice(2);
+    const key = aliases[token.slice(2)] || token.slice(2);
     const nextValue = argv[index + 1];
     if (!nextValue || nextValue.startsWith("--")) {
       throw new Error(`Argument '--${key}' requires a value.`);

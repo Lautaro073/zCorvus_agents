@@ -7,7 +7,7 @@ Este workspace contiene la base operativa de zCorvus para coordinar agentes por 
 - `Agents/`: perfiles operativos de cada rol.
 - `MCP_Server/`: servidor MCP por stdio y API HTTP para inspeccionar eventos.
 - `AgentMonitor/`: frontend visual para ver timeline, tareas y estados del sistema.
-- `Backend/` y `Frontend/`: carpetas de producto ya presentes pero aun sin bootstrap funcional completo; el `Orchestrator` debe emitir tareas de bootstrap antes de tratarlas como aplicaciones listas.
+- `Backend/` y `Frontend/`: aplicaciones bootstrappeadas de forma minima y listas para evolucionar con features reales. El `Orchestrator` ya no parte de carpeta vacia, sino de una base inicial ejecutable.
 
 ## Estructura del equipo
 
@@ -130,7 +130,7 @@ Toda tarea rastreada mediante un `taskId` transita por los siguientes estados de
 
 Ejemplo: "Quiero login con email y password".
 
-1. **Orchestrator** crea tareas bootstrap si faltan carpetas de producto (`Backend/`, `Frontend/`, docs, tests).
+1. **Orchestrator** verifica si la base existente alcanza o si hace falta una tarea de endurecimiento/bootstrap adicional en `Backend/`, `Frontend/`, docs o tests.
 2. Si el requerimiento es grande o ambiguo, **Orchestrator** publica `TASK_ASSIGNED` para `Planner` con una tarea de planeacion (por ejemplo `auth-plan-01`).
 3. **Planner** analiza el estado del proyecto y publica `PLAN_PROPOSED` con `proposedTasks` y `correlationId` comun.
 4. **Orchestrator** (opcionalmente) asigna al `Documenter` la creacion de una Especificación (`Spec`) previa con `TASK_ASSIGNED` indicando `requiresSpec: true`.
@@ -155,6 +155,7 @@ Lee el historial y ahora soporta filtros operativos utiles:
 - `typeFilter`
 - `assignedTo`
 - `taskId`
+- `parentTaskId`
 - `status`
 - `correlationId`
 - `since`
@@ -194,8 +195,8 @@ El monitor muestra:
    node C:/ruta/absoluta/zCorvus/AI_Workspace/MCP_Server/index.js
    ```
 
-## Siguientes pasos de bootstrap recomendados
+## Siguientes pasos recomendados
 
-- Crear las carpetas reales `Backend/`, `Frontend/` y `docs/` cuando arranque el primer feature real.
+- Endurecer los bootstraps de `Backend/` y `Frontend/` con la primera feature real del proyecto.
 - Sembrar eventos base del proyecto (`PROJECT_BOOTSTRAPPED`, stack, normas y backlog inicial).
 - Si el volumen de eventos crece, migrar de polling simple a SSE o WebSocket para el monitor.
