@@ -6,6 +6,7 @@ Subdirectorios actuales:
 
 - `registry/`: indice JSONL de documentos internos.
 - `specs/`: especificaciones internas que los agentes pueden consumir antes de implementar.
+- `guides/`: guias operativas internas para ejecutar flujos del workspace.
 
 Regla operativa:
 
