@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider } from 'next-intl';
+import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { Kameron, Kadwa } from "next/font/google";
 import { ViewTransition } from 'react'
@@ -36,9 +36,15 @@ interface LocaleLayoutProps {
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
 
-  // Se cargan namespaces globales. Nota de performance: Esto obliga a hidratar common, home, etc. en toda la app.
+  // Se cargan namespaces globales. Nota de performance: En el layout raíz, 
+  // solo enviamos el namespace 'common' al cliente para reducir el payload inicial.
+  // Otras rutas o componentes cliente que necesiten más namespaces deben usar su propio provider.
   const messages = await getMessages();
-  
+  const globalMessages = { 
+    common: (messages as any).common,
+    auth: (messages as any).auth
+  };
+
   // Leer cookies vuelve el layout dinámico. Esto es un trade-off aceptado para evitar Flash of Unstyled Content (FOUC).
   const prefs = await getServerPreferences();
 
@@ -53,7 +59,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             />
           )}
           {/* Provider Tree: Boundaries bien definidos */}
-          <NextIntlClientProvider locale={locale} messages={messages}>
+          <NextIntlClientProvider locale={locale} messages={globalMessages}>
             {/* AuthContext debe envolver a las rutas protegidas, actualmente global para layout de user */}
             <AuthProvider>
               <ViewTransition>
