@@ -22,7 +22,7 @@ export default function GlobalError({
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
       <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20">
-        <ZIcon type="mina" name="alert-triangle" className="text-red-600 dark:text-red-400" style={{ fontSize: '2rem' }} />
+        <ZIcon type="mina" name="danger-triangle" className="text-red-600 dark:text-red-400" style={{ fontSize: '2rem' }} />
       </div>
       <h2 className="text-2xl font-bold mb-4">
         {t("errors.somethingWentWrong") || "Algo salió mal"}
