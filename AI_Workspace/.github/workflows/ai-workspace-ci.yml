@@ -115,3 +115,9 @@ jobs:
 
       - name: Run MCP smoke tests
         run: node --test scripts/mcp-smoke.test.mjs
+
+      - name: Run GitHub agent flow tests
+        run: node --test scripts/github/github-agent-flow.test.mjs
+
+      - name: Run GitHub agent CLI dry-run tests
+        run: node --test scripts/github/github-cli-dryrun.test.mjs

@@ -102,6 +102,11 @@ Toda tarea rastreada mediante un `taskId` transita por los siguientes estados de
 - `SCHEMA_UPDATED`
 - `ARTIFACT_PUBLISHED`
 
+### GitHub workflow
+- `GITHUB_ISSUE_CREATED`
+- `GITHUB_BRANCH_CREATED`
+- `GITHUB_PR_OPENED`
+
 ### Calidad y documentacion
 - `TEST_PASSED`
 - `TEST_FAILED`

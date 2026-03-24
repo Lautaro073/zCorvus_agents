@@ -21,6 +21,9 @@ export const KNOWN_EVENT_TYPES = new Set([
   "INCIDENT_OPENED",
   "INCIDENT_RESOLVED",
   "DOC_UPDATED",
+  "GITHUB_ISSUE_CREATED",
+  "GITHUB_BRANCH_CREATED",
+  "GITHUB_PR_OPENED",
 ]);
 
 function normalizeString(value) {
@@ -138,6 +141,24 @@ export function validateEventPayload(type, payload) {
     if (!normalizeString(payload.path) && !normalizeString(payload.skillName)) {
       throw new Error("SKILL_CREATED requires 'payload.path' or 'payload.skillName'.");
     }
+  }
+
+  if (type === "GITHUB_ISSUE_CREATED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.issueUrl, "payload.issueUrl");
+  }
+
+  if (type === "GITHUB_BRANCH_CREATED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.branchName, "payload.branchName");
+    assertNonEmptyString(payload.baseBranch, "payload.baseBranch");
+  }
+
+  if (type === "GITHUB_PR_OPENED") {
+    assertNonEmptyString(payload.taskId, "payload.taskId");
+    assertNonEmptyString(payload.branchName, "payload.branchName");
+    assertNonEmptyString(payload.baseBranch, "payload.baseBranch");
+    assertNonEmptyString(payload.prUrl, "payload.prUrl");
   }
 
   if (type === "LEARNING_RECORDED") {
