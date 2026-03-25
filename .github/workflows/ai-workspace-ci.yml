@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  id-token: write
 
 concurrency:
   group: ai-workspace-ci-${{ github.ref }}
@@ -39,6 +41,11 @@ jobs:
       - name: Install backend dependencies
         working-directory: Backend
         run: npm ci
+
+      - name: Debug env vars
+        run: |
+          echo "TURSO_DATABASE_URL set: ${{ secrets.TURSO_DATABASE_URL != '' }}"
+          echo "TURSO_AUTH_TOKEN set: ${{ secrets.TURSO_AUTH_TOKEN != '' }}"
 
       - name: Run backend tests
         working-directory: Backend
