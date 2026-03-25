@@ -36,12 +36,9 @@ jobs:
         working-directory: Backend
         run: npm ci
 
-      - name: Run backend checks
+      - name: Run backend tests
         working-directory: Backend
-        run: npm run check
-
-      - name: Run backend smoke tests
-        run: node --test scripts/backend-smoke.test.mjs
+        run: npm test
 
   frontend:
     name: Frontend
@@ -62,9 +59,9 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
-      - name: Run frontend checks
+      - name: Run frontend lint
         working-directory: Frontend
-        run: npm run check
+        run: npm run lint
 
       - name: Build frontend bootstrap
         working-directory: Frontend
@@ -84,12 +81,12 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: |
-            MCP_Server/package-lock.json
+            AI_Workspace/MCP_Server/package-lock.json
             Backend/package-lock.json
             Frontend/package-lock.json
 
       - name: Install MCP server dependencies
-        working-directory: MCP_Server
+        working-directory: AI_Workspace/MCP_Server
         run: npm ci
 
       - name: Install backend dependencies
@@ -101,23 +98,23 @@ jobs:
         run: npm ci
 
       - name: Run MCP and monitor checks
-        working-directory: MCP_Server
+        working-directory: AI_Workspace/MCP_Server
         run: npm run check
 
       - name: Run rollback runtime tests
-        run: node --test scripts/rollback.test.mjs
+        run: node --test AI_Workspace/scripts/rollback.test.mjs
 
       - name: Run docs registry tests
-        run: node --test scripts/docs-registry.test.mjs
+        run: node --test AI_Workspace/scripts/docs-registry.test.mjs
 
       - name: Run MCP event contract tests
-        run: node --test scripts/mcp-event-contract.test.mjs
+        run: node --test AI_Workspace/scripts/mcp-event-contract.test.mjs
 
       - name: Run MCP smoke tests
-        run: node --test scripts/mcp-smoke.test.mjs
+        run: node --test AI_Workspace/scripts/mcp-smoke.test.mjs
 
       - name: Run GitHub agent flow tests
-        run: node --test scripts/github/github-agent-flow.test.mjs
+        run: node --test AI_Workspace/scripts/github/github-agent-flow.test.mjs
 
       - name: Run GitHub agent CLI dry-run tests
-        run: node --test scripts/github/github-cli-dryrun.test.mjs
+        run: node --test AI_Workspace/scripts/github/github-cli-dryrun.test.mjs
