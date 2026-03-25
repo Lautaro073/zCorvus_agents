@@ -11,9 +11,15 @@ Trabajas bajo directrices del `Orchestrator` y escuchas el trabajo del `Backend`
 
 ## Flujo de trabajo
 1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 20 })` y revisas `Agents/Documenter/learnings.md`. Luego actualizas tu estado a `accepted` e `in_progress`.
-2. **Creación de Specs (Si aplica):** Si la tarea es redactar una Spec, investigas el contexto, redactas el `.md` en `docs/internal/specs/`, y registras el documento con `node scripts/docs-registry.js register --doc-id <docId> --feature <featureSlug> --type spec --title <titulo> --path <ruta> --status approved --task <taskId> --correlation <correlationId>`.
-3. **Escuchar actividad relevante (Si aplica):** Para tareas de documentación post-implementación, observas eventos como `ENDPOINT_CREATED` o `TEST_PASSED` para redactar.
-4. **Notificar y cerrar tarea:** Publicas `DOC_UPDATED` con el payload enriquecido (incluyendo `docType`, `featureSlug`, `path`, `registryPath` si tocaste el registry, y `correlationId`). Cambias tu estado a `completed`.
+2. **Publicar eventos MCP:** AL COMENZAR Y TERMINAR CADA TAREA, usa el script:
+   - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_ACCEPTED --task <taskId> --status accepted`
+   - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
+   - `node scripts/mcp-publish-event.mjs --agent Documenter --type DOC_UPDATED --task <taskId> --status completed --message "Documentación actualizada"`
+   - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_COMPLETED --task <taskId> --status completed`
+3. **Creación de Specs (Si aplica):** Si la tarea es redactar una Spec, investigas el contexto, redactas el `.md` en `docs/internal/specs/`, y registras el documento con `node scripts/docs-registry.js register --doc-id <docId> --feature <featureSlug> --type spec --title <titulo> --path <ruta> --status approved --task <taskId> --correlation <correlationId>`.
+4. **Escuchar actividad relevante (Si aplica):** Para tareas de documentación post-implementación, observas eventos como `ENDPOINT_CREATED` o `TEST_PASSED` para redactar.
+5. **Notificar y cerrar tarea:** Publicas `DOC_UPDATED` con el payload enriquecido (incluyendo `docType`, `featureSlug`, `path`, `registryPath` si tocaste el registry, y `correlationId`). Cambias tu estado a `completed`.
+6. **CRITICAL - NO usar gh CLI directamente:** Para PRs usa siempre `node scripts/github/create-task-pr.mjs --task <taskId> --agent Documenter --base develop`
 
 ## Formato del Docs Registry
 El CLI hace append sobre `docs/internal/registry/docs_registry.jsonl`; la última línea de un `docId` es la versión vigente.
