@@ -169,3 +169,64 @@ Planner debe salir de esta spec con un plan que, como minimo, cubra:
 - estrategia de auth y data fetching,
 - costo de i18n,
 - verificacion final y cierre documental.
+
+## Estado final de implementacion
+
+Las siguientes mejoras fueron ejecutadas en la rama `agents/orchestrator/frontend-perf-program-01` (PR #6) y fusionadas a `main`:
+
+### Etapa 1 — Foundation y shell global
+
+**Archivos afectados:**
+- `Frontend/src/app/[locale]/layout.tsx`
+- `Frontend/src/lib/server/preferences.ts`
+
+**Cambios realizados:**
+- `react-scan` ahora solo se inyecta cuando `process.env.NODE_ENV === 'development'`, eliminando第三方 runtime en produccion.
+- Se agregaron `loading.tsx` y `error.tsx` como boundaries de carga y error para toda la app localizada.
+- Se documento el trade-off de `getServerPreferences()` (SSR dinamico por cookies) en el archivo mismo.
+
+### Etapa 2 — Catalogo de iconos y bundles
+
+**Archivos afectados:**
+- `Frontend/src/features/icons-explorer/constants/icon.constants.ts`
+- `Frontend/src/lib/fontawesome/index.ts`, `solid.ts`, `regular.ts`, `utils.ts`
+- `Frontend/src/components/common/UnifiedIcon.tsx`
+- `Frontend/src/components/common/FASolidRenderer.tsx`
+- `Frontend/src/components/common/FARegularRenderer.tsx`
+- `Frontend/src/hooks/useIconExport.tsx`
+- `Frontend/src/app/[locale]/icons/[type]/all/page.tsx`
+- `Frontend/src/app/[locale]/icons/[type]/[id]/page.tsx`
+
+**Cambios realizados:**
+- `IconContentData` dejo de ser una constante estatica y ahora es una funcion asincrona `getIconContentData()` que importa dinamicamente `faSolidIconNames` y `faRegularIconNames`.
+- Los renderers de Font Awesome (`FASolidRenderer`, `FARegularRenderer`) ahora usan `next/dynamic` con `ssr: false` para carga diferida.
+- `IconsSVG` fue reemplazado por `getIconsSVG()`, una funcion asincrona que retorna los SVG bajo demanda.
+- Las paginas de iconos ahora usan `use(getIconContentData())` para esperar los datos de forma aislada.
+
+### Etapa 3 — Auth unificada y flujo premium
+
+**Archivos afectados:**
+- `Frontend/src/contexts/AuthContext.tsx`
+- `Frontend/src/app/[locale]/premium/success/page.tsx`
+
+**Cambios realizados:**
+- `AuthContext` ahora delega todos los llamados HTTP (login, register, logout, refresh) a las funciones de `backend.ts` en vez de hacer `fetch` inline.
+- Se agrego el metodo `refreshSession()` a `AuthContext` para uso por premium success.
+- El polling de `/premium/success` paso de `10 intentos × 3 segundos = 30 segundos` a `3 intentos × 1.5 segundos = 4.5 segundos`, con llamada a `refreshSession()` antes de pedir el token.
+
+### Etapa 4 — i18n por ruta
+
+**Archivos afectados:**
+- `Frontend/src/app/[locale]/layout.tsx`
+- `Frontend/src/app/[locale]/premium/layout.tsx` (nuevo)
+
+**Cambios realizados:**
+- El `NextIntlClientProvider` del layout raiz ahora solo envia `{ common, auth }` en vez de todos los namespaces.
+- Se creo `premium/layout.tsx` con un `NextIntlClientProvider` aislado que solo carga el namespace `premium`.
+- `auth/layout.tsx` sigue siendo client component por su dependencia de animaciones.
+
+### Verificacion
+
+- `npm run build` compila sin errores ni advertencias relacionadas a los cambios.
+- `npx prisma generate` fue ejecutado en `Frontend/` para generar el cliente de Prisma.
+- Los paquetes de Font Awesome fueron instalados correctamente en `Frontend/package.json`.

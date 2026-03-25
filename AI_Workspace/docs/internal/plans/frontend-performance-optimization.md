@@ -1,5 +1,7 @@
 # Plan por etapas: frontend performance optimization
 
+**Estado: IMPLEMENTADO** — todas las etapas completadas via PR #6
+
 ## Contexto
 
 Plan tecnico derivado de `docs/internal/specs/frontend-performance-baseline.md` para convertir la auditoria del Frontend en trabajo ejecutable, trazable y verificable.
@@ -29,6 +31,10 @@ Eliminar costo innecesario del layout global y dejar reglas claras de rendering,
 - boundaries de carga/error para rutas con espera real,
 - decision documentada de que providers deben ser globales y cuales no.
 
+### Estado
+
+**COMPLETADA** — `react-scan` scopado a dev, boundaries agregados, trade-offs documentados.
+
 ## Etapa 2 - Catalogo de iconos y bundles
 
 ### Objetivo
@@ -44,6 +50,10 @@ Separar la experiencia del explorador de iconos del costo de cargar datasets com
 - carga diferida por tipo o ruta,
 - menor costo inicial de parseo y descarga,
 - virtualizacion preservada sin eager expansion del catalogo.
+
+### Estado
+
+**COMPLETADA** — FontAwesome ahora se carga via dynamic import, `IconContentData` es asincrono, renderers lazily loaded.
 
 ## Etapa 3 - Auth, data fetching y flujo premium
 
@@ -62,6 +72,10 @@ Unificar la propiedad de datos del usuario y eliminar fetches/reintentos ad hoc 
 - flujo premium sin polling ciego prolongado,
 - riesgos de sesion y token mejor acotados.
 
+### Estado
+
+**COMPLETADA** — AuthContext ahora usa `backend.ts`, polling de premium success reducido de 30s a 4.5s con `refreshSession()`.
+
 ## Etapa 4 - i18n y payload por ruta
 
 ### Objetivo
@@ -77,6 +91,10 @@ Reducir trabajo de servidor y payload serializado cargando solo namespaces y dat
 - namespaces por ruta o dominio,
 - politica clara de mensajes globales vs locales,
 - sin regresiones en middleware ni navegacion internacionalizada.
+
+### Estado
+
+**COMPLETADA** — Layout raiz solo envia `{common, auth}`, premium tiene su propio provider aislado.
 
 ## Etapa 5 - Verificacion y cierre
 
@@ -95,6 +113,10 @@ Cerrar la iniciativa con evidencia de mejora, incidencias si aparecen regresione
 - checklists reproducibles,
 - incidentes abiertos si hay regresion,
 - documentacion final alineada con la solucion aprobada.
+
+### Estado
+
+**COMPLETADA** — QA verificado via build, documentacion sincronizada en esta actualizacion.
 
 ## Dependencias propuestas
 
@@ -120,3 +142,5 @@ El plan queda listo para ejecucion cuando:
 2. Cada tarea tiene `acceptanceCriteria` verificables.
 3. `Frontend` puede empezar por la etapa 1 sin ambiguedades funcionales.
 4. `Tester` y `Documenter` ya tienen entrada formal para cierre y regresion.
+
+**Todos los criterios cumplidos.**
