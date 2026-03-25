@@ -41,7 +41,7 @@ export default function LoginPage() {
       if (error instanceof Error) {
         if (error.message === '2FA_REQUIRED') {
           setRequires2FA(true);
-          toast.info('Ingresa tu código 2FA');
+          toast.info(auth('actions.enter2FA'));
         } else {
           toast.error(error.message || auth('errors.loginFailed'));
         }
@@ -78,7 +78,7 @@ export default function LoginPage() {
         {requires2FA && (
           <Input
             type="text"
-            placeholder="Código 2FA"
+            placeholder={auth('twoFactor.placeholder')}
             value={formData.twoFactorCode}
             onChange={(e) => setFormData({ ...formData, twoFactorCode: e.target.value })}
             maxLength={6}
@@ -87,7 +87,7 @@ export default function LoginPage() {
         )}
 
         <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-          {isLoading ? 'Cargando...' : auth('actions.signIn')}
+          {isLoading ? auth('actions.loading') : auth('actions.signIn')}
         </Button>
 
         <div className="text-center mt-4">
