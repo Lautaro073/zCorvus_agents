@@ -20,6 +20,10 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -36,9 +40,9 @@ jobs:
         working-directory: Backend
         run: npm ci
 
-      - name: Run backend lint
+      - name: Run backend tests
         working-directory: Backend
-        run: npm run lint || true
+        run: npm test
 
   frontend:
     name: Frontend
@@ -61,11 +65,11 @@ jobs:
 
       - name: Run frontend lint
         working-directory: Frontend
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Build frontend bootstrap
         working-directory: Frontend
-        run: npm run build || true
+        run: npm run build
 
   workspace:
     name: Workspace
