@@ -178,7 +178,7 @@ export default function SuccessPage() {
                             </h3>
                             <ol className="list-decimal list-inside space-y-3 text-sm">
                                 <li className="text-muted-foreground">
-                                    <strong className="text-foreground">Opción 1:</strong> Haz click en "Descargar .npmrc" y coloca el archivo en la raíz de tu proyecto
+                                    <strong className="text-foreground">Opci&oacute;n 1:</strong> Haz click en &quot;Descargar .npmrc&quot; y coloca el archivo en la ra&iacute;z de tu proyecto
                                 </li>
                                 <li className="text-muted-foreground">
                                     <strong className="text-foreground">Opción 2:</strong> Crea manualmente un archivo <code className="bg-muted px-1 py-0.5 rounded">.npmrc</code> en la raíz de tu proyecto con este contenido:
