@@ -186,6 +186,22 @@ export function buildIssueTitle(taskContext, agent) {
   return `${prefix} ${taskContext.taskId} - ${taskContext.description || "Seguimiento de tarea"}`;
 }
 
+function compactSummary(value, maxLength = 72) {
+  const normalized = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return "actualizacion";
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
 export function buildIssueBody(taskContext) {
   const code = (value) => `\`${value}\``;
   return [
@@ -213,7 +229,8 @@ export function buildIssueBody(taskContext) {
 
 export function buildPrTitle(taskContext, agent) {
   const prefix = agent ? `[${agent}]` : "[Task]";
-  return `${prefix} ${taskContext.taskId}: ${taskContext.description || "actualizacion"}`;
+  const summary = compactSummary(taskContext.description || "actualizacion");
+  return `${prefix} ${taskContext.taskId} - ${summary}`;
 }
 
 export function buildPrBody(taskContext, branchName) {
