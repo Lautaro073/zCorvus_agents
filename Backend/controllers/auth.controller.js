@@ -23,11 +23,9 @@ const register = async (req, res, next) => {
             return errorResponse(res, 'Username already taken', 400);
         }
 
-        // Permitir especificar el rol en el registro
         // Por defecto es 'user' (ID 2) si no se especifica
-        // Puede ser Admin (ID 1) si se proporciona roles_id: 1
-        // Pro (ID 3) normalmente se asigna mediante Stripe, pero también se permite aquí
-        const roleId = roles_id || 2;
+        // Se ignora cualquier roles_id enviado en el body para prevenir escalamiento de privilegios
+        const roleId = 2;
 
         // Crear usuario
         const userId = await User.create({

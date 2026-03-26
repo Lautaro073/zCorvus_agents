@@ -12,18 +12,17 @@ const getMyTokens = async (req, res, next) => {
         // Obtener usuario con información de rol
         const user = await User.findById(userId);
 
-        // ⚠️ TEMPORALMENTE DESACTIVADO - 2FA requirement for Pro users
         // Si es usuario Pro (role 3), DEBE tener 2FA habilitado
-        // if (user.roles_id === 3) {
-        //     if (!user.two_factor_enabled) {
-        //         return res.status(403).json({
-        //             success: false,
-        //             message: 'Pro users must enable 2FA to access their tokens',
-        //             requires2FA: true,
-        //             setupUrl: '/api/auth/2fa/setup'
-        //         });
-        //     }
-        // }
+        if (user.roles_id === 3) {
+            if (!user.two_factor_enabled) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Pro users must enable 2FA to access their tokens',
+                    requires2FA: true,
+                    setupUrl: '/api/auth/2fa/setup'
+                });
+            }
+        }
 
         // Obtener token del usuario si tiene
         if (!user.token_id) {
