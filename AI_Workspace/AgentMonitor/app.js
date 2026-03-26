@@ -512,6 +512,36 @@ function lastTaskEventByType(task, eventType) {
   return task?.events?.slice().reverse().find((event) => event.type === eventType) || null;
 }
 
+const TASK_TERMINAL_EVENT_TYPES = new Set(["TASK_COMPLETED", "TASK_CANCELLED", "TASK_BLOCKED", "TASK_FAILED", "TEST_PASSED", "TEST_FAILED"]);
+
+function evaluateTaskTraceability(task) {
+  const events = Array.isArray(task?.events) ? task.events : [];
+  const hasAssigned = events.some((event) => event.type === "TASK_ASSIGNED");
+  const hasAccepted = events.some((event) => event.type === "TASK_ACCEPTED");
+  const hasInProgress = events.some((event) => event.type === "TASK_IN_PROGRESS");
+  const terminalEvents = events.filter((event) => TASK_TERMINAL_EVENT_TYPES.has(event.type));
+  const issues = [];
+
+  if (hasAccepted && !hasAssigned) {
+    issues.push("TASK_ACCEPTED sin TASK_ASSIGNED previo.");
+  }
+  if (hasInProgress && !hasAccepted) {
+    issues.push("TASK_IN_PROGRESS sin TASK_ACCEPTED previo.");
+  }
+  if (terminalEvents.length > 0 && !hasInProgress) {
+    issues.push("Evento terminal sin TASK_IN_PROGRESS previo.");
+  }
+  if (terminalEvents.length > 1) {
+    issues.push(`Se detectaron ${terminalEvents.length} terminales para la misma tarea.`);
+  }
+
+  return {
+    hasIssues: issues.length > 0,
+    issues,
+    terminalCount: terminalEvents.length,
+  };
+}
+
 function formatDuration(durationMs) {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
     return null;
@@ -2111,6 +2141,7 @@ function enrichTasks(tasks) {
   return tasks.map((task) => {
     const latestEvent = task.events?.[task.events.length - 1] || null;
     const latestDescription = latestEvent?.payload?.description || latestEvent?.payload?.message || null;
+    const traceability = evaluateTaskTraceability(task);
 
     return {
       ...task,
@@ -2118,6 +2149,7 @@ function enrichTasks(tasks) {
       durationMs: taskDurationMs(task),
       durationLabel: formatDuration(taskDurationMs(task)),
       summary: latestDescription || compactPayloadPreview(latestEvent || { payload: {}, type: task.latestStatus, agent: task.assignedTo }),
+      traceability,
       children: [],
     };
   });
@@ -2155,7 +2187,7 @@ function renderTaskNode(task, parent, depth = 0) {
   const collapsed = state.collapsedTaskIds.has(task.taskId);
 
   node.dataset.status = task.latestStatus || "unknown";
-  node.dataset.level = statusLevel(task.latestStatus);
+  node.dataset.level = task.traceability?.hasIssues ? "danger" : statusLevel(task.latestStatus);
   node.style.setProperty("--task-depth", String(depth));
   node.classList.toggle("task-group-child", depth > 0);
 
@@ -2204,6 +2236,14 @@ function renderTaskNode(task, parent, depth = 0) {
       ${failedEvents > 0 ? `<span class="task-metric-chip risks"><i class="ti ti-alert-triangle"></i>${failedEvents}</span>` : ""}
       <span class="task-metric-chip">${totalEvents} eventos</span>
     `;
+
+    if (task.traceability?.hasIssues) {
+      const traceabilityChip = document.createElement("span");
+      traceabilityChip.className = "task-metric-chip risks";
+      traceabilityChip.innerHTML = `<i class="ti ti-shield-x"></i>${task.traceability.issues.length}`;
+      traceabilityChip.title = task.traceability.issues.join("\n");
+      metricsRow.append(traceabilityChip);
+    }
   }
 
   if (hasChildren) {
