@@ -41,13 +41,13 @@ Tienes habilidades de PR Review para aprobar y hacer merge de código automátic
 ### Decision Matrix:
 | CI Status | Action |
 |-----------|--------|
-| ✅ success | Aprobar → Mergear |
-| ❌ failure | Reportar error, no mergear |
+| ✅ success (checks relevantes al scope) | Aprobar → Mergear |
+| ❌ failure (checks relevantes al scope) | Reportar error, no mergear |
 | ⏳ pending | Esperar |
 
 ### Reglas de Merge:
 - Solo merge a `develop`, NUNCA a `main`
-- CI debe pasar antes de merge
+- CI debe pasar antes de merge (scope-aware: solo checks relevantes a la tarea)
 - Si CI falla → publicar INCIDENT_OPENED
 
 ## Skills Instaladas
