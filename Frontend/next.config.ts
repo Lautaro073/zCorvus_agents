@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true
   },
-  serverExternalPackages: ["libsql", "@libsql/client", "@prisma/adapter-libsql"],
+  serverExternalPackages: ["libsql", "@libsql/client"],
 };
 
 const withNextIntl = createNextIntlPlugin();

@@ -11,7 +11,7 @@ Este workspace contiene la base operativa de zCorvus para coordinar agentes por 
 
 ## Estructura del equipo
 
-El equipo queda dividido en 7 roles:
+El equipo queda dividido en 8 roles:
 
 1. **`Orchestrator`**: Project Manager. Define arquitectura de muy alto nivel; para epics, cambios transversales o requerimientos ambiguos delega la planeacion detallada al `Planner`, y para trabajo pequeno puede planificar directo. Aprueba tareas, dependencias, prioridad, y asigna tareas atomicas a todo el equipo.
 2. **`Planner`**: Subordinado del `Orchestrator`. Analiza requerimientos de alto nivel y disenha el plan de ejecucion detallado (tareas atomicas, dependencias y criterios de aceptacion) para que el `Orchestrator` lo apruebe y lo convierta en tareas oficiales.
@@ -20,6 +20,7 @@ El equipo queda dividido en 7 roles:
 5. **`Tester`**: Valida artefactos, publica resultados y abre incidentes. Recibe tareas formales y reacciona a eventos, no es solo un watcher puro.
 6. **`Documenter`**: Mantiene README, OpenAPI y manuales sincronizados. Recibe tareas formales y reacciona a eventos, no es solo un watcher puro.
 7. **`Observer`**: Mantiene `AgentMonitor/` y la observabilidad del sistema. No entrega funcionalidad de producto; recibe tareas formales para mejorar la monitorizacion y reacciona a eventos de estado, no es un watcher puro.
+8. **`AI_Workspace_Optimizer`**: Optimiza rendimiento/costo del AI Workspace y tambien ejecuta cambios internos del proyecto cuando el usuario lo solicita y el `Orchestrator` lo asigna. Si detecta trabajo grande o ambiguo, solicita por evento (`SUBTASK_REQUESTED`) que el `Orchestrator` delegue en `Planner` y/o `Documenter`.
 
 ## Contrato canonico de eventos
 
@@ -129,6 +130,8 @@ Toda tarea rastreada mediante un `taskId` transita por los siguientes estados de
 - `Observer` no reasigna trabajo ni modifica codigo de producto; solo hace visible el estado del sistema y mejora la observabilidad.
 - `Planner` no asigna trabajo al equipo. Solo propone `PLAN_PROPOSED`; la aprobacion del plan queda reflejada cuando el `Orchestrator` emite los `TASK_ASSIGNED` resultantes.
 - `Planner` es opcional: debe usarse para epics, trabajo transversal o requerimientos ambiguos; para fixes o tareas pequenas el `Orchestrator` puede saltarselo.
+- El `Orchestrator` puede usar `AI_Workspace_Optimizer` como ejecutor principal para cambios internos del AI Workspace solicitados por el usuario.
+- `AI_Workspace_Optimizer` no asigna tareas directamente a `Planner` ni `Documenter`; cuando necesita apoyo, debe solicitarlo al `Orchestrator` con `SUBTASK_REQUESTED`.
 - Todo `PLAN_PROPOSED` debe mantener el `taskId` de la tarea de planeacion y un `correlationId` comun; cada item de `proposedTasks` debe incluir como minimo `taskId`, `assignedTo`, `dependsOn`, `description` y `acceptanceCriteria`.
 
 ## Flujo recomendado de un requerimiento

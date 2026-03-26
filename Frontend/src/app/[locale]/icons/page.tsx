@@ -26,7 +26,7 @@ export default async function IconsLocalePage() {
         </div>
       </Link>
       <section className="flex flex-col gap-4">
-        <Link href="/icons/local/all" style={{ viewTransitionName: "title-type" }} className="text-muted-foreground hover:text-foreground transition-colors duration-300">LOCAL / ALL</Link>
+        <Link href="/icons/local/all" style={{ viewTransitionName: "title-type" }} className="text-muted-foreground hover:text-foreground transition-colors duration-300">{home('icons.local.title')}</Link>
         <ul className="flex flex-wrap gap-4">
           {IconCategories.local.map((set) => {
             const { label, subLabel } = IconCategoriesInfo[set];
@@ -37,14 +37,14 @@ export default async function IconsLocalePage() {
                   <span className="text-4xl capitalize text-secondary-foreground">{label}</span>
                   <span className="text-4xl capitalize text-muted-foreground">{subLabel}</span>
                 </Link>
-                <p className="text-muted-foreground">Classic icons specialized for organizations</p>
+                <p className="text-muted-foreground">{home('icons.local.description')}</p>
               </li>
             )
           })}
         </ul>
       </section>
       <section className="flex flex-col gap-4">
-        <Link href="/icons/external/all" className="text-muted-foreground hover:text-foreground transition-colors duration-300">EXTERNAL / ALL</Link>
+        <Link href="/icons/external/all" className="text-muted-foreground hover:text-foreground transition-colors duration-300">{home('icons.external.title')}</Link>
 
         <ul className="flex flex-wrap gap-4">
           {IconCategories.external.map((set) => {
@@ -56,14 +56,14 @@ export default async function IconsLocalePage() {
                   <span className="text-4xl capitalize text-secondary-foreground">{label}</span>
                   <span className="text-4xl capitalize text-muted-foreground">{subLabel}</span>
                 </Link>
-                <p className="text-muted-foreground">Praveen Juge Icons License MIT</p>
+                <p className="text-muted-foreground">{home('icons.external.description')}</p>
               </li>
             )
           })}
         </ul>
       </section>
       <section className="flex flex-col gap-4">
-        <Link href="/icons/premium/all" className="text-muted-foreground hover:text-foreground transition-colors duration-300">PREMIUM / ALL</Link>
+        <Link href="/icons/premium/all" className="text-muted-foreground hover:text-foreground transition-colors duration-300">{home('icons.premium.title')}</Link>
 
         <ul className="flex flex-wrap gap-4">
           {IconCategories.premium.map((set) => {
@@ -75,7 +75,7 @@ export default async function IconsLocalePage() {
                   <span className="text-4xl capitalize text-secondary-foreground">{label}</span>
                   <span className="text-4xl capitalize text-muted-foreground">{subLabel}</span>
                 </Link>
-                <p className="text-muted-foreground">Font Awesome Premium Icons</p>
+                <p className="text-muted-foreground">{home('icons.premium.description')}</p>
               </li>
             )
           })}
