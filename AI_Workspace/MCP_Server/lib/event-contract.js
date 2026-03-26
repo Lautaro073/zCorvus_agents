@@ -1,5 +1,20 @@
 export const TASK_STATUSES = new Set(["assigned", "accepted", "in_progress", "blocked", "completed", "failed", "cancelled"]);
 export const TASK_EVENT_TYPES = new Set(["TASK_ASSIGNED", "TASK_ACCEPTED", "TASK_IN_PROGRESS", "TASK_BLOCKED", "TASK_COMPLETED", "TASK_FAILED", "TASK_CANCELLED"]);
+export const TASK_TERMINAL_EVENT_TYPES = new Set(["TASK_COMPLETED", "TASK_CANCELLED", "TASK_BLOCKED", "TASK_FAILED", "TEST_PASSED", "TEST_FAILED"]);
+export const TASK_EVENT_STATUS_BY_TYPE = Object.freeze({
+  TASK_ASSIGNED: "assigned",
+  TASK_ACCEPTED: "accepted",
+  TASK_IN_PROGRESS: "in_progress",
+  TASK_BLOCKED: "blocked",
+  TASK_COMPLETED: "completed",
+  TASK_FAILED: "failed",
+  TASK_CANCELLED: "cancelled",
+});
+const TASK_SEQUENCE_ORDER = Object.freeze({
+  TASK_ASSIGNED: 0,
+  TASK_ACCEPTED: 1,
+  TASK_IN_PROGRESS: 2,
+});
 export const KNOWN_EVENT_TYPES = new Set([
   "TASK_ASSIGNED",
   "TASK_ACCEPTED",
@@ -28,6 +43,15 @@ export const KNOWN_EVENT_TYPES = new Set([
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getEventField(event, fieldName) {
+  if (!event || typeof event !== "object") {
+    return undefined;
+  }
+
+  const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
+  return event[fieldName] ?? payload[fieldName];
 }
 
 function assertNonEmptyString(value, fieldName) {
@@ -79,6 +103,12 @@ export function validateEventPayload(type, payload) {
     assertNonEmptyString(payload.taskId, "payload.taskId");
     assertNonEmptyString(payload.assignedTo, "payload.assignedTo");
     assertStatus(payload.status, "payload.status");
+    assertNonEmptyString(payload.correlationId, "payload.correlationId");
+
+    const expectedStatus = TASK_EVENT_STATUS_BY_TYPE[type];
+    if (expectedStatus && payload.status !== expectedStatus) {
+      throw new Error(`'payload.status' must be '${expectedStatus}' for ${type}.`);
+    }
   }
 
   if (type === "TASK_ASSIGNED") {
@@ -171,5 +201,67 @@ export function validateEventPayload(type, payload) {
     if ((type === "TEST_FAILED" || type === "INCIDENT_OPENED") && !normalizeString(payload.message) && !normalizeString(payload.rootCause)) {
       throw new Error(`${type} requires 'payload.message' or 'payload.rootCause'.`);
     }
+  }
+}
+
+export function validateTaskEventSequence(type, payload, taskHistory = [], options = {}) {
+  const taskId = normalizeString(payload?.taskId);
+  if (!taskId) {
+    return;
+  }
+
+  const relevantType = TASK_EVENT_TYPES.has(type) || TASK_TERMINAL_EVENT_TYPES.has(type);
+  if (!relevantType) {
+    return;
+  }
+
+  const allowSequenceOverride = Boolean(options.allowSequenceOverride);
+  const taskEvents = Array.isArray(taskHistory)
+    ? taskHistory.filter((event) => normalizeString(getEventField(event, "taskId")) === taskId)
+    : [];
+
+  const terminalEvents = taskEvents.filter((event) => TASK_TERMINAL_EVENT_TYPES.has(event.type));
+  const lastTerminal = terminalEvents[terminalEvents.length - 1] || null;
+  if (lastTerminal) {
+    throw new Error(`Task '${taskId}' is already terminal with '${lastTerminal.type}'. New events are rejected to prevent inconsistent terminal states.`);
+  }
+
+  const hasAssigned = taskEvents.some((event) => event.type === "TASK_ASSIGNED");
+  const hasAccepted = taskEvents.some((event) => event.type === "TASK_ACCEPTED");
+  const hasInProgress = taskEvents.some((event) => event.type === "TASK_IN_PROGRESS");
+  const lastSequenceIndex = taskEvents.reduce((accumulator, event) => {
+    const index = TASK_SEQUENCE_ORDER[event.type];
+    return Number.isInteger(index) && index > accumulator ? index : accumulator;
+  }, -1);
+
+  if (TASK_TERMINAL_EVENT_TYPES.has(type)) {
+    if (!hasInProgress && !allowSequenceOverride) {
+      throw new Error(`'${type}' requires a previous TASK_IN_PROGRESS for task '${taskId}'. Use sequence override only for controlled recovery scenarios.`);
+    }
+    return;
+  }
+
+  const currentSequenceIndex = TASK_SEQUENCE_ORDER[type];
+  if (!Number.isInteger(currentSequenceIndex)) {
+    return;
+  }
+
+  if (currentSequenceIndex === 0) {
+    if (taskEvents.length > 0 && !allowSequenceOverride) {
+      throw new Error(`TASK_ASSIGNED must be the first lifecycle event for task '${taskId}'.`);
+    }
+    return;
+  }
+
+  if (currentSequenceIndex === 1 && !hasAssigned && !allowSequenceOverride) {
+    throw new Error(`TASK_ACCEPTED requires previous TASK_ASSIGNED for task '${taskId}'.`);
+  }
+
+  if (currentSequenceIndex === 2 && !hasAccepted && !allowSequenceOverride) {
+    throw new Error(`TASK_IN_PROGRESS requires previous TASK_ACCEPTED for task '${taskId}'.`);
+  }
+
+  if (currentSequenceIndex < lastSequenceIndex && !allowSequenceOverride) {
+    throw new Error(`Lifecycle event '${type}' is out of order for task '${taskId}'.`);
   }
 }
