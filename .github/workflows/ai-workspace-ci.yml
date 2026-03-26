@@ -40,7 +40,7 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: Backend
-        run: npm i
+        run: npm ci
 
       - name: Debug env vars
         run: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: Frontend
-        run: pnpm i
+        run: npm ci
 
       - name: Run frontend lint
         working-directory: Frontend
@@ -98,15 +98,15 @@ jobs:
 
       - name: Install MCP server dependencies
         working-directory: AI_Workspace/MCP_Server
-        run: npm i
+        run: npm ci
 
       - name: Install backend dependencies
         working-directory: Backend
-        run: npm i
+        run: npm ci
 
       - name: Install frontend dependencies
         working-directory: Frontend
-        run: pnpm i
+        run: npm ci
 
       - name: Run MCP and monitor checks
         working-directory: AI_Workspace/MCP_Server
