@@ -198,6 +198,8 @@ const elements = {
   timelineItemTemplate: document.getElementById("timelineItemTemplate"),
   taskGroupTemplate: document.getElementById("taskGroupTemplate"),
   toastTemplate: document.getElementById("toastTemplate"),
+  distributionBarTemplate: document.getElementById("distributionBarTemplate"),
+  typeDistributionChart: document.getElementById("typeDistributionChart"),
 };
 
 function loadPreferences() {
@@ -379,12 +381,14 @@ function avatarMarkup(agentName) {
       <circle cx="45" cy="30" r="3.5" fill="#ffffff" />
     `,
     AI_Workspace_Optimizer: `
-      <circle cx="32" cy="32" r="18" fill="none" stroke="${visual.secondary}" stroke-width="2.5" opacity="0.45" />
-      <path d="M24 40L26 27L38 21L44 27L38 43L30 46Z" fill="rgba(255,255,255,0.04)" stroke="${visual.primary}" stroke-width="2.5" stroke-linejoin="round" />
-      <path d="M26 27L33 34" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
-      <path d="M33 34L41 29" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
-      <circle cx="30" cy="46" r="2.8" fill="${visual.secondary}" />
-      <path d="M22 46C24 44 26 44 28 46" stroke="${visual.secondary}" stroke-width="2.5" stroke-linecap="round" />
+      <circle cx="32" cy="32" r="18" fill="none" stroke="${visual.secondary}" stroke-width="2.5" opacity="0.35" />
+      <path d="M32 14L36 26L48 32L36 38L32 50L28 38L16 32L28 26Z" fill="rgba(255,255,255,0.06)" stroke="${visual.primary}" stroke-width="2.5" stroke-linejoin="round" />
+      <path d="M32 20V38" stroke="${visual.secondary}" stroke-width="2.5" stroke-linecap="round" opacity="0.8" />
+      <path d="M26 26H38" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
+      <circle cx="32" cy="32" r="4" fill="${visual.primary}" opacity="0.9" />
+      <path d="M32 50L30 44M32 50L34 44" stroke="${visual.secondary}" stroke-width="2.5" stroke-linecap="round" opacity="0.7" />
+      <circle cx="20" cy="32" r="2" fill="${visual.secondary}" opacity="0.6" />
+      <circle cx="44" cy="32" r="2" fill="${visual.secondary}" opacity="0.6" />
     `,
     Backend: `
       <rect x="17" y="16" width="30" height="10" rx="5" fill="rgba(255,255,255,0.04)" stroke="${visual.primary}" stroke-width="2.5" />
@@ -1399,6 +1403,92 @@ function renderSummary(data) {
     node.querySelector(".stat-meta").textContent = card.meta;
     elements.summaryGrid.append(node);
   });
+
+  renderTypeDistribution(data.summary.byType || {});
+}
+
+function renderTypeDistribution(typeCounts) {
+  const entries = Object.entries(typeCounts)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 8);
+
+  elements.typeDistributionChart.innerHTML = "";
+
+  if (entries.length === 0) {
+    elements.typeDistributionChart.innerHTML = '<div class="empty-state" style="width:100%;margin:0;"><strong>Sin eventos</strong><p>Los tipos de eventos apareceran aqui.</p></div>';
+    return;
+  }
+
+  const typeColors = {
+    TASK_ASSIGNED: "#7c92ff",
+    TASK_ACCEPTED: "#8b5cf6",
+    TASK_IN_PROGRESS: "#33d1ff",
+    TASK_BLOCKED: "#f59e0b",
+    TASK_COMPLETED: "#34d399",
+    TASK_FAILED: "#fb7185",
+    TASK_CANCELLED: "#94a3c6",
+    TEST_PASSED: "#34d399",
+    TEST_FAILED: "#fb7185",
+    ERROR: "#fb7185",
+    INCIDENT_OPENED: "#fb7185",
+    INCIDENT_RESOLVED: "#34d399",
+    ENDPOINT_CREATED: "#22d3ee",
+    UI_COMPONENT_BUILT: "#f472b6",
+    SCHEMA_UPDATED: "#a78bfa",
+    ARTIFACT_PUBLISHED: "#34d399",
+    DOC_UPDATED: "#cbd5e1",
+    GITHUB_ISSUE_CREATED: "#7c92ff",
+    GITHUB_BRANCH_CREATED: "#33d1ff",
+    GITHUB_PR_OPENED: "#34d399",
+    PLAN_PROPOSED: "#fbbf24",
+    SKILL_CREATED: "#a78bfa",
+    LEARNING_RECORDED: "#2dd4bf",
+  };
+
+  const typeIcons = {
+    TASK_ASSIGNED: "ti ti-user-plus",
+    TASK_ACCEPTED: "ti ti-check",
+    TASK_IN_PROGRESS: "ti ti-progress",
+    TASK_BLOCKED: "ti ti-lock",
+    TASK_COMPLETED: "ti ti-check-circle",
+    TASK_CANCELLED: "ti ti-x-circle",
+    TEST_PASSED: "ti ti-check",
+    TEST_FAILED: "ti ti-x",
+    ERROR: "ti ti-alert-triangle",
+    INCIDENT_OPENED: "ti ti-alarm",
+    INCIDENT_RESOLVED: "ti ti-shield-check",
+    ENDPOINT_CREATED: "ti ti-api",
+    UI_COMPONENT_BUILT: "ti ti-sparkles",
+    SCHEMA_UPDATED: "ti ti-database",
+    ARTIFACT_PUBLISHED: "ti ti-package",
+    DOC_UPDATED: "ti ti-file-text",
+    GITHUB_ISSUE_CREATED: "ti ti-brand-github",
+    GITHUB_BRANCH_CREATED: "ti ti-git-branch",
+    GITHUB_PR_OPENED: "ti ti-git-pull-request",
+    PLAN_PROPOSED: "ti ti-list-details",
+    SKILL_CREATED: "ti ti-book",
+    LEARNING_RECORDED: "ti ti-brain",
+  };
+
+  entries.forEach(([type, count]) => {
+    const node = elements.distributionBarTemplate.content.firstElementChild.cloneNode(true);
+    const color = typeColors[type] || "#94a3c6";
+    const iconClass = typeIcons[type] || "ti ti-dots";
+
+    node.querySelector(".distribution-bar-icon").innerHTML = `<i class="${iconClass}" style="color:${color}"></i>`;
+    node.querySelector(".distribution-bar-label").textContent = humanizeEventType(type);
+    node.querySelector(".distribution-bar-value").textContent = String(count);
+
+    node.addEventListener("click", () => applyFilterPatch({ typeFilter: type }));
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        applyFilterPatch({ typeFilter: type });
+      }
+    });
+
+    elements.typeDistributionChart.append(node);
+  });
 }
 
 function attachOpenHandler(node, callback) {
@@ -2296,6 +2386,7 @@ async function fetchEvents() {
   renderActiveFilters();
 
   renderSummary(state.currentData);
+  renderTypeDistribution(state.currentData.summary.byType || {});
   renderLiveRibbon();
   renderCriticalSignals(state.currentData.events);
   renderAgentStage(state.currentData.events);
@@ -2319,6 +2410,7 @@ async function refreshWithHandling() {
     };
     elements.lastUpdatedLabel.textContent = error.message;
     renderSummary(state.currentData);
+    renderTypeDistribution({});
     renderLiveRibbon();
     renderCriticalSignals([]);
     renderAgentStage([]);
