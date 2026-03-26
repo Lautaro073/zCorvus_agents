@@ -43,6 +43,16 @@
         <main class="workspace-main">
           <section id="summaryGrid" class="summary-grid"></section>
 
+          <section id="typeDistribution" class="type-distribution card">
+            <div class="panel-head">
+              <div>
+                <h2><i class="ti ti-chart-pie"></i><span>Distribucion de eventos</span></h2>
+                <p class="section-copy">Desglose visual por tipo de evento en el periodo seleccionado.</p>
+              </div>
+            </div>
+            <div id="typeDistributionChart" class="type-distribution-chart"></div>
+          </section>
+
           <section class="agent-stage card">
         <div class="stage-main">
           <p class="eyebrow">Agente en foco</p>
@@ -354,6 +364,16 @@
         <strong class="stat-value"></strong>
         <span class="stat-meta"></span>
       </article>
+    </template>
+
+    <template id="distributionBarTemplate">
+      <div class="distribution-bar" tabindex="0" role="button">
+        <div class="distribution-bar-icon"></div>
+        <div class="distribution-bar-content">
+          <span class="distribution-bar-label"></span>
+          <strong class="distribution-bar-value"></strong>
+        </div>
+      </div>
     </template>
 
     <template id="criticalItemTemplate">
