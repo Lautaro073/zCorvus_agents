@@ -1969,10 +1969,47 @@ function renderAgentBoards(events) {
       summary.latestEvent ? humanizeStatus(eventField(summary.latestEvent, "status")) : null,
     ].filter(Boolean).join(" | ") || "Esperando nuevos eventos";
     node.querySelector(".agent-now-spark").innerHTML = sparklineMarkup(summary.sparklineSeries, visual.primary);
-    node.querySelector(".agent-events").textContent = String(summary.total);
-    node.querySelector(".agent-tasks").textContent = String(summary.taskCount);
-    node.querySelector(".agent-risks").textContent = String(summary.risks);
-    node.querySelector(".agent-completed").textContent = String(summary.completed);
+
+    const totalOps = summary.total || 1;
+    const completionRate = summary.total > 0 ? Math.round((summary.completed / totalOps) * 100) : 0;
+    const circumference = 2 * Math.PI * 22;
+    const offset = circumference - (completionRate / 100) * circumference;
+
+    const metricsContainer = node.querySelector(".agent-metrics");
+    const eventsVal = metricsContainer.querySelector(".agent-events");
+    const tasksVal = metricsContainer.querySelector(".agent-tasks");
+    const risksVal = metricsContainer.querySelector(".agent-risks");
+    const completedVal = metricsContainer.querySelector(".agent-completed");
+
+    eventsVal.textContent = String(summary.total);
+    tasksVal.textContent = String(summary.taskCount);
+    risksVal.textContent = String(summary.risks);
+    completedVal.textContent = String(summary.completed);
+
+    const extraMetrics = node.querySelector(".agent-card-head");
+    const healthRing = document.createElement("div");
+    healthRing.className = "agent-health-ring";
+    healthRing.innerHTML = `
+      <svg viewBox="0 0 48 48">
+        <circle class="health-bg" cx="24" cy="24" r="22"></circle>
+        <circle class="health-fill ${summary.health.level}" cx="24" cy="24" r="22" 
+          stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"></circle>
+      </svg>
+      <span class="agent-health-label" style="color:${visual.primary}">${completionRate}%</span>
+    `;
+    extraMetrics.insertBefore(healthRing, extraMetrics.lastElementChild);
+
+    const metricBadges = document.createElement("div");
+    metricBadges.className = "agent-metric-badges";
+    metricBadges.innerHTML = `
+      <span class="agent-metric-badge events"><i class="ti ti-activity"></i>${summary.total}</span>
+      <span class="agent-metric-badge tasks"><i class="ti ti-list-check"></i>${summary.taskCount}</span>
+      ${summary.completed > 0 ? `<span class="agent-metric-badge completed"><i class="ti ti-check"></i>${summary.completed}</span>` : ""}
+      ${summary.inProgress > 0 ? `<span class="agent-metric-badge in-progress"><i class="ti ti-loader"></i>${summary.inProgress}</span>` : ""}
+      ${summary.risks > 0 ? `<span class="agent-metric-badge risks"><i class="ti ti-alert-triangle"></i>${summary.risks}</span>` : ""}
+    `;
+    node.querySelector(".agent-metrics").appendChild(metricBadges);
+
     node.querySelector(".agent-queue-count").textContent = pluralize(summary.recentEvents.length, "registro", "registros");
 
     const queueList = node.querySelector(".agent-queue-list");
@@ -2131,11 +2168,42 @@ function renderTaskNode(task, parent, depth = 0) {
     `Actualizada ${formatRelativeTime(task.updatedAt)}`,
   ].filter(Boolean).join(" | ");
   node.querySelector(".task-summary").textContent = task.summary;
-  node.querySelector(".task-status").textContent = humanizeStatus(task.latestStatus);
+
+  const statusEl = node.querySelector(".task-status");
+  statusEl.textContent = humanizeStatus(task.latestStatus);
+  statusEl.dataset.status = task.latestStatus || "unknown";
 
   if (task.durationLabel) {
     durationBadge.textContent = task.durationLabel;
     durationBadge.classList.remove("hidden");
+  }
+
+  const progressBar = node.querySelector(".task-progress-bar");
+  const progressFill = progressBar.querySelector(".task-progress-fill");
+  const progressLabel = node.querySelector(".task-progress-label");
+  const metricsRow = node.querySelector(".task-metrics-row");
+
+  const totalEvents = task.events.length;
+  const completedEvents = task.events.filter(e => e.type === "TASK_COMPLETED" || e.type === "TEST_PASSED").length;
+  const inProgressEvents = task.events.filter(e => e.type === "TASK_IN_PROGRESS" || e.type === "TASK_ACCEPTED").length;
+  const failedEvents = task.events.filter(e => e.type === "TASK_FAILED" || e.type === "TEST_FAILED").length;
+  const progress = totalEvents > 0 ? Math.round((completedEvents / totalEvents) * 100) : 0;
+
+  if (totalEvents > 0 && (task.latestStatus === "in_progress" || task.latestStatus === "completed" || task.latestStatus === "blocked")) {
+    progressBar.classList.remove("hidden");
+    progressFill.style.width = `${progress}%`;
+    progressFill.dataset.status = task.latestStatus;
+    progressLabel.textContent = `${progress}%`;
+  }
+
+  if (totalEvents > 0) {
+    metricsRow.classList.remove("hidden");
+    metricsRow.innerHTML = `
+      ${completedEvents > 0 ? `<span class="task-metric-chip completed"><i class="ti ti-check"></i>${completedEvents}</span>` : ""}
+      ${inProgressEvents > 0 ? `<span class="task-metric-chip in-progress"><i class="ti ti-loader"></i>${inProgressEvents}</span>` : ""}
+      ${failedEvents > 0 ? `<span class="task-metric-chip risks"><i class="ti ti-alert-triangle"></i>${failedEvents}</span>` : ""}
+      <span class="task-metric-chip">${totalEvents} eventos</span>
+    `;
   }
 
   if (hasChildren) {
