@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   InputGroup,
   InputGroupAddon,
@@ -22,6 +22,7 @@ interface IconsTypeIdPageProps {
 
 export default function IconsTypeIdPage({ params }: IconsTypeIdPageProps) {
   const locale = useLocale();
+  const common = useTranslations('common');
   const setLayerDynamic = useUIStore((e) => e.setLayerDynamic);
 
   const { type, id } = use(params);
@@ -52,7 +53,7 @@ export default function IconsTypeIdPage({ params }: IconsTypeIdPageProps) {
       <div className="flex flex-col gap-6 h-full ">
         <div className="flex items-center justify-between">
           <InputGroup className="max-w-[600px]">
-            <InputGroupInput placeholder="Search..." />
+            <InputGroupInput placeholder={common('actions.search')} />
             <InputGroupAddon>
               <ZIcon type="mina" name="search" />
             </InputGroupAddon>

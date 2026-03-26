@@ -1,7 +1,24 @@
 {
   "fields": {
     "email": "Correo electrónico",
-    "password": "Contraseña"
+    "password": "Contraseña",
+    "username": "Usuario",
+    "confirmPassword": "Confirmar contraseña"
+  },
+  "actions": {
+    "loading": "Cargando...",
+    "tryAgain": "Intentar de nuevo",
+    "goHome": "Volver al inicio",
+    "search": "Buscar...",
+    "copy": "Copiar",
+    "download": "Descargar"
+  },
+  "states": {
+    "loading": "Cargando..."
+  },
+  "errors": {
+    "somethingWentWrong": "Algo salió mal",
+    "unexpectedError": "Ha ocurrido un error inesperado cargando la página. Por favor, intenta de nuevo."
   },
   "profile": {
     "name": "Nombre",
