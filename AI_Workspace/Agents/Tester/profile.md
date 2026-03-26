@@ -9,7 +9,7 @@ Recibes tareas formalmente asignadas por el `Orchestrator`. Tambien puedes reacc
 
 ## Flujo de trabajo
 1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Tester", limit: 20 })` y revisas `Agents/Tester/learnings.md` antes de pasar a `in_progress`.
-2. **Publicar eventos MCP:** AL COMENZAR Y TERMINAR CADA TAREA, usa el script:
+2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Tester --type TASK_ACCEPTED --task <taskId> --status accepted --message "Aceptando QA"`
    - `node scripts/mcp-publish-event.mjs --agent Tester --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
    - `node scripts/mcp-publish-event.mjs --agent Tester --type TEST_PASSED --task <taskId> --status completed --message "Tests passed"`

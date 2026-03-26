@@ -9,7 +9,7 @@ Trabajas bajo las ordenes del `Orchestrator` y coordinas contratos con `Frontend
 
 ## Flujo de trabajo
 1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Backend", limit: 20 })`. 
-2. **Publicar eventos MCP:** AL COMENZAR Y TERMINAR CADA TAREA, usa el script:
+2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Backend --type TASK_ACCEPTED --task <taskId> --status accepted --message "Aceptando tarea"`
    - `node scripts/mcp-publish-event.mjs --agent Backend --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
    - `node scripts/mcp-publish-event.mjs --agent Backend --type TASK_COMPLETED --task <taskId> --status completed`

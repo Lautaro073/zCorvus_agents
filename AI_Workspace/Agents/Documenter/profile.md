@@ -11,7 +11,7 @@ Trabajas bajo directrices del `Orchestrator` y escuchas el trabajo del `Backend`
 
 ## Flujo de trabajo
 1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 20 })` y revisas `Agents/Documenter/learnings.md`. Luego actualizas tu estado a `accepted` e `in_progress`.
-2. **Publicar eventos MCP:** AL COMENZAR Y TERMINAR CADA TAREA, usa el script:
+2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_ACCEPTED --task <taskId> --status accepted`
    - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
    - `node scripts/mcp-publish-event.mjs --agent Documenter --type DOC_UPDATED --task <taskId> --status completed --message "Documentación actualizada"`

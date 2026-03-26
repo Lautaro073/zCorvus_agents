@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import { TASK_EVENT_TYPES } from "../MCP_Server/lib/event-contract.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,14 @@ const CONTEXT_FILE = path.resolve(__dirname, "..", "MCP_Server", "shared_context
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function assertNonEmptyString(value, fieldName) {
+  const normalized = normalizeString(value);
+  if (!normalized) {
+    throw new Error(`'${fieldName}' must be a non-empty string`);
+  }
+  return normalized;
 }
 
 function normalizeStringList(value) {
@@ -45,18 +54,36 @@ function parseArgs(argv) {
 }
 
 async function appendEvent(agent, type, payload) {
+  const normalizedAgent = assertNonEmptyString(agent, "agent");
+  const normalizedType = assertNonEmptyString(type, "type");
   const taskId = normalizeString(payload.taskId);
   const assignedTo = normalizeString(payload.assignedTo);
   const status = normalizeString(payload.status);
   const priority = normalizeString(payload.priority);
   const correlationId = normalizeString(payload.correlationId) || taskId;
   const parentTaskId = normalizeString(payload.parentTaskId);
+
+  if (TASK_EVENT_TYPES.has(normalizedType)) {
+    assertNonEmptyString(taskId, "payload.taskId");
+    assertNonEmptyString(assignedTo, "payload.assignedTo");
+    assertNonEmptyString(status, "payload.status");
+  }
+
+  const normalizedPayload = {
+    ...payload,
+    ...(taskId ? { taskId } : {}),
+    ...(assignedTo ? { assignedTo } : {}),
+    ...(status ? { status } : {}),
+    ...(priority ? { priority } : {}),
+    ...(correlationId ? { correlationId } : {}),
+    ...(parentTaskId ? { parentTaskId } : {}),
+  };
   
   const event = {
     eventId: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
-    agent: normalizeString(agent),
-    type: normalizeString(type),
+    agent: normalizedAgent,
+    type: normalizedType,
     taskId,
     assignedTo,
     status,
@@ -64,7 +91,7 @@ async function appendEvent(agent, type, payload) {
     correlationId,
     parentTaskId,
     payloadVersion: "1.0",
-    payload,
+    payload: normalizedPayload,
   };
   
   const line = JSON.stringify(event) + "\n";
