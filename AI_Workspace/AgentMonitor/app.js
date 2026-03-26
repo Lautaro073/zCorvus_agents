@@ -49,11 +49,16 @@ const EVENT_LABELS = {
 const AGENT_VISUALS = {
   Orchestrator: { iconClass: "ti ti-compass", role: "Coordina arquitectura y flujo", primary: "#7c92ff", secondary: "#33d1ff" },
   Planner: { iconClass: "ti ti-route-square-2", role: "Descompone epics y arma el plan tecnico", primary: "#fbbf24", secondary: "#fb7185" },
+  AI_Workspace_Optimizer: { iconClass: "ti ti-rocket", role: "Optimiza rendimiento y ejecuta cambios internos", primary: "#22d3ee", secondary: "#a78bfa" },
   Backend: { iconClass: "ti ti-server-cog", role: "API, persistencia y contratos", primary: "#34d399", secondary: "#22d3ee" },
   Frontend: { iconClass: "ti ti-sparkles", role: "UI, experiencia y consumo de contratos", primary: "#f472b6", secondary: "#8b5cf6" },
   Tester: { iconClass: "ti ti-test-pipe", role: "QA, validacion y regresiones", primary: "#f59e0b", secondary: "#fb7185" },
   Documenter: { iconClass: "ti ti-notebook", role: "Documentacion y contexto humano", primary: "#cbd5e1", secondary: "#33d1ff" },
   Observer: { iconClass: "ti ti-radar-2", role: "Monitor, tiempo real y observabilidad", primary: "#2dd4bf", secondary: "#818cf8" },
+};
+
+const AGENT_SHORT_NAMES = {
+  AI_Workspace_Optimizer: "Optimizer",
 };
 
 const FIELD_LABELS = {
@@ -300,9 +305,20 @@ function humanizeEventType(value) {
   return EVENT_LABELS[value] || value || "Sin tipo";
 }
 
+function humanizeAgentName(value, fallback = "Sin agente") {
+  if (!value) {
+    return fallback;
+  }
+
+  return AGENT_SHORT_NAMES[value] || value;
+}
+
 function humanizeFieldValue(key, value) {
   if (key === "priority") {
     return humanizePriority(value);
+  }
+  if (key === "assignedTo") {
+    return humanizeAgentName(value, "Sin asignacion");
   }
   if (key === "issueNumber" || key === "prNumber") {
     return `#${value}`;
@@ -362,6 +378,14 @@ function avatarMarkup(agentName) {
       <circle cx="35" cy="34" r="3.5" fill="${visual.secondary}" />
       <circle cx="45" cy="30" r="3.5" fill="#ffffff" />
     `,
+    AI_Workspace_Optimizer: `
+      <circle cx="32" cy="32" r="18" fill="none" stroke="${visual.secondary}" stroke-width="2.5" opacity="0.45" />
+      <path d="M24 40L26 27L38 21L44 27L38 43L30 46Z" fill="rgba(255,255,255,0.04)" stroke="${visual.primary}" stroke-width="2.5" stroke-linejoin="round" />
+      <path d="M26 27L33 34" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
+      <path d="M33 34L41 29" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.85" />
+      <circle cx="30" cy="46" r="2.8" fill="${visual.secondary}" />
+      <path d="M22 46C24 44 26 44 28 46" stroke="${visual.secondary}" stroke-width="2.5" stroke-linecap="round" />
+    `,
     Backend: `
       <rect x="17" y="16" width="30" height="10" rx="5" fill="rgba(255,255,255,0.04)" stroke="${visual.primary}" stroke-width="2.5" />
       <rect x="17" y="28" width="30" height="10" rx="5" fill="rgba(255,255,255,0.04)" stroke="${visual.secondary}" stroke-width="2.5" />
@@ -412,7 +436,7 @@ function eventTitle(event) {
     || event.payload?.title
     || event.payload?.description
     || event.summary
-    || `${humanizeEventType(event.type)} desde ${event.agent || "un agente"}`;
+    || `${humanizeEventType(event.type)} desde ${humanizeAgentName(event.agent, "un agente")}`;
 }
 
 function safeStringify(value) {
@@ -905,7 +929,7 @@ function buildMarkdownReport() {
   const topAgents = Object.entries(summary.byAgent || {})
     .sort((left, right) => right[1] - left[1])
     .slice(0, 5)
-    .map(([agent, count]) => `- ${agent}: ${count} eventos`)
+    .map(([agent, count]) => `- ${humanizeAgentName(agent)}: ${count} eventos`)
     .join("\n") || "- Sin actividad";
   const topStatuses = Object.entries(summary.byStatus || {})
     .sort((left, right) => right[1] - left[1])
@@ -914,7 +938,7 @@ function buildMarkdownReport() {
     .join("\n") || "- Sin estados";
   const criticalLines = extractCriticalEvents(state.currentData.events || [])
     .slice(0, 8)
-    .map((event) => `- ${formatDateTime(event.timestamp)} | ${event.agent || "Sin agente"} | ${humanizeEventType(event.type)} | ${eventTitle(event)}`)
+    .map((event) => `- ${formatDateTime(event.timestamp)} | ${humanizeAgentName(event.agent)} | ${humanizeEventType(event.type)} | ${eventTitle(event)}`)
     .join("\n") || "- Sin alertas criticas";
   const taskLines = (state.currentData.tasks || [])
     .slice(0, 10)
@@ -1290,9 +1314,9 @@ function notifyCriticalEvent(event) {
   const assignedTo = event.assignedTo || eventField(event, "assignedTo");
   const body = [
     eventTitle(event),
-    event.agent ? `Agente: ${event.agent}` : null,
+    event.agent ? `Agente: ${humanizeAgentName(event.agent)}` : null,
     taskId ? `Tarea: ${taskId}` : null,
-    assignedTo ? `Asignado a: ${assignedTo}` : null,
+    assignedTo ? `Asignado a: ${humanizeAgentName(assignedTo, "Sin asignacion")}` : null,
   ].filter(Boolean).join(" | ");
 
   showToast({
@@ -1321,7 +1345,7 @@ function renderLiveRibbon() {
 
   elements.liveEventTitle.textContent = eventTitle(event);
   elements.liveEventMeta.textContent = [
-    event.agent ? `Agente ${event.agent}` : null,
+    event.agent ? `Agente ${humanizeAgentName(event.agent)}` : null,
     event.taskId || eventField(event, "taskId") ? `Tarea ${event.taskId || eventField(event, "taskId")}` : null,
     event.timestamp ? `Hace ${formatRelativeTime(event.timestamp)}` : null,
   ].filter(Boolean).join(" | ");
@@ -1445,9 +1469,9 @@ function renderDetailActions(actions) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = action.variant === "primary" ? "detail-action" : "detail-action ghost";
-      button.textContent = action.label;
-      button.addEventListener("click", action.onClick);
-      elements.detailActions.append(button);
+    button.textContent = action.label;
+    button.addEventListener("click", action.onClick);
+    elements.detailActions.append(button);
   });
 }
 
@@ -1522,7 +1546,7 @@ function buildHistoryItems(events) {
   return events.map((event) => ({
     title: eventTitle(event),
     meta: [
-      event.agent || "Sin agente",
+      humanizeAgentName(event.agent),
       humanizeEventType(event.type),
       humanizeStatus(eventField(event, "status")),
       formatDateTime(event.timestamp),
@@ -1585,22 +1609,22 @@ function openEventDetail(event, options = {}) {
   openDetailDrawer({
     kicker: "Detalle de evento",
     title: eventTitle(event),
-    subtitle: `${humanizeEventType(event.type)} desde ${event.agent || "Sin agente"}`,
+    subtitle: `${humanizeEventType(event.type)} desde ${humanizeAgentName(event.agent)}`,
     summaryLead: compactPayloadPreview(event),
     notesMarkdown: buildEventNotes(event),
     highlights: [
-      { label: "Agente", value: event.agent || "Sin agente" },
+      { label: "Agente", value: humanizeAgentName(event.agent) },
       { label: "Tipo", value: humanizeEventType(event.type) },
       { label: "Estado", value: humanizeStatus(eventField(event, "status")) },
       { label: "Momento", value: formatRelativeTime(event.timestamp) },
     ],
     meta: [
-      { label: "Agente", value: event.agent || "Sin agente" },
+      { label: "Agente", value: humanizeAgentName(event.agent) },
       { label: "Tipo", value: humanizeEventType(event.type) },
       { label: "Estado", value: humanizeStatus(eventField(event, "status")) },
       { label: "ID tarea", value: eventField(event, "taskId") || "Sin tarea" },
       { label: "Tarea padre", value: eventField(event, "parentTaskId") || "Sin tarea padre" },
-      { label: "Asignado a", value: eventField(event, "assignedTo") || "Sin asignacion" },
+      { label: "Asignado a", value: humanizeAgentName(eventField(event, "assignedTo"), "Sin asignacion") },
       { label: "Prioridad", value: humanizePriority(eventField(event, "priority")) },
       { label: "Correlacion", value: eventField(event, "correlationId") || "Sin correlacion" },
       { label: "Feature", value: eventField(event, "featureSlug") || "Sin feature" },
@@ -1644,7 +1668,7 @@ function openTaskDetail(task, options = {}) {
     notesMarkdown: buildTaskNotes(task),
     highlights: [
       { label: "Estado", value: humanizeStatus(task.latestStatus) },
-      { label: "Responsable", value: task.assignedTo || "Sin asignacion" },
+      { label: "Responsable", value: humanizeAgentName(task.assignedTo, "Sin asignacion") },
       { label: "Eventos", value: pluralize(task.events.length, "evento", "eventos") },
       durationLabel ? { label: "Duracion", value: durationLabel } : null,
       task.parentTaskId ? { label: "Tarea padre", value: task.parentTaskId } : null,
@@ -1656,7 +1680,7 @@ function openTaskDetail(task, options = {}) {
       { label: "Tipo doc", value: taskField(task, "docType") || "Sin tipo doc" },
       { label: "Arranco con", value: firstEvent ? humanizeEventType(firstEvent.type) : "Sin evento inicial" },
       { label: "Ultimo movimiento", value: lastEvent ? humanizeEventType(lastEvent.type) : "Sin movimiento" },
-      { label: "Ultimo actor", value: lastEvent?.agent || "Sin agente" },
+      { label: "Ultimo actor", value: humanizeAgentName(lastEvent?.agent) },
       { label: "Actualizada", value: formatDateTime(task.updatedAt) },
     ],
     actions: [
@@ -1696,7 +1720,7 @@ function openAgentDetail(summary, options = {}) {
 
   openDetailDrawer({
     kicker: "Detalle de agente",
-    title: summary.name,
+    title: humanizeAgentName(summary.name),
     subtitle: `${summary.health.label} | Ultima actividad ${formatRelativeTime(summary.updatedAt)}`,
     summaryLead: `${visual.role}. ${summary.latestEvent ? `Ahora mismo: ${eventTitle(summary.latestEvent)}.` : "Sin actividad reciente."}`,
     notesMarkdown: recentEvents.length > 0
@@ -1719,11 +1743,13 @@ function openAgentDetail(summary, options = {}) {
     actions: [
       { label: "Ver solo este agente", onClick: () => applyFilterPatch({ agentFilter: summary.name }) },
       summary.risks > 0 ? { label: "Ver solo riesgos", onClick: () => applyFilterPatch({ agentFilter: summary.name, status: "blocked" }) } : null,
-      { label: "Exportar bloque", onClick: () => exportSelection(`agente-${summary.name}`, {
-        agent: summary.name,
-        summary,
-        recentEvents,
-      }) },
+      {
+        label: "Exportar bloque", onClick: () => exportSelection(`agente-${summary.name}`, {
+          agent: summary.name,
+          summary,
+          recentEvents,
+        })
+      },
     ],
     historyItems: buildHistoryItems(recentEvents),
     payload: {
@@ -1823,11 +1849,11 @@ function renderCriticalSignals(events) {
     node.querySelector(".signal-type").textContent = humanizeEventType(event.type);
     node.querySelector(".signal-time").textContent = formatDateTime(event.timestamp);
     node.querySelector(".signal-title").textContent = eventTitle(event);
-    node.querySelector(".signal-body").textContent = `${event.agent || "Sin agente"} reporto un evento que requiere atencion.`;
+    node.querySelector(".signal-body").textContent = `${humanizeAgentName(event.agent)} reporto un evento que requiere atencion.`;
     node.querySelector(".signal-meta").textContent = [
       taskId ? `Tarea ${taskId}` : null,
       parentTaskId ? `Padre ${parentTaskId}` : null,
-      assignedTo ? `Asignado a ${assignedTo}` : null,
+      assignedTo ? `Asignado a ${humanizeAgentName(assignedTo, "Sin asignacion")}` : null,
       eventField(event, "status") ? `Estado ${humanizeStatus(eventField(event, "status"))}` : null,
     ].filter(Boolean).join(" | ") || "Sin contexto adicional";
 
@@ -1865,7 +1891,7 @@ function renderAgentStage(events) {
 
   applyAgentThemeVars(elements.stageLead, featured.name);
   elements.stageLeadAvatar.innerHTML = avatarMarkup(featured.name);
-  elements.stageLeadName.textContent = featured.name;
+  elements.stageLeadName.textContent = humanizeAgentName(featured.name);
   elements.stageLeadRole.textContent = featuredVisual.role;
   elements.stageLeadHealth.textContent = featured.health.label;
   elements.stageLeadCurrent.textContent = featured.latestEvent ? eventTitle(featured.latestEvent) : "Sin actividad reciente";
@@ -1905,7 +1931,7 @@ function renderAgentStage(events) {
     node.dataset.level = summary.health.level;
     applyAgentThemeVars(node, summary.name);
     node.querySelector(".stage-mini-avatar").innerHTML = avatarMarkup(summary.name);
-    node.querySelector(".stage-mini-name").textContent = summary.name;
+    node.querySelector(".stage-mini-name").textContent = humanizeAgentName(summary.name);
     node.querySelector(".stage-mini-role").textContent = visual.role;
     node.querySelector(".stage-mini-health").textContent = summary.health.label;
     node.querySelector(".stage-mini-now").textContent = summary.latestEvent ? eventTitle(summary.latestEvent) : "Sin actividad reciente";
@@ -1931,7 +1957,7 @@ function renderAgentBoards(events) {
     node.dataset.level = summary.health.level;
     applyAgentThemeVars(node, summary.name);
     node.classList.toggle("is-selected", state.selectedAgentName === summary.name);
-    node.querySelector(".agent-name").textContent = summary.name;
+    node.querySelector(".agent-name").textContent = humanizeAgentName(summary.name);
     node.querySelector(".agent-avatar").innerHTML = avatarMarkup(summary.name);
     node.querySelector(".agent-role").textContent = visual.role;
     node.querySelector(".agent-meta").textContent = `Ultima actividad ${formatRelativeTime(summary.updatedAt)}`;
@@ -2001,7 +2027,7 @@ function renderTimeline(events) {
       node.dataset.status = status || "unknown";
       node.dataset.level = eventLevel(event);
       node.querySelector(".timeline-dot-icon").innerHTML = iconMarkup(agentVisual(event.agent).iconClass);
-      node.querySelector(".badge-agent").textContent = event.agent || "Sin agente";
+      node.querySelector(".badge-agent").textContent = humanizeAgentName(event.agent);
       node.querySelector(".badge-type").textContent = humanizeEventType(event.type);
 
       const statusBadge = node.querySelector(".badge-status");
@@ -2098,7 +2124,7 @@ function renderTaskNode(task, parent, depth = 0) {
 
   node.querySelector(".task-title").textContent = task.taskId;
   node.querySelector(".task-meta").textContent = [
-    task.assignedTo ? `Asignada a ${task.assignedTo}` : "Sin asignacion",
+    task.assignedTo ? `Asignada a ${humanizeAgentName(task.assignedTo, "Sin asignacion")}` : "Sin asignacion",
     task.priority ? `Prioridad ${humanizePriority(task.priority)}` : null,
     task.dependsOn?.length ? `Depende de ${task.dependsOn.join(", ")}` : null,
     `${task.events.length} evento${task.events.length === 1 ? "" : "s"}`,
@@ -2145,7 +2171,7 @@ function renderTaskNode(task, parent, depth = 0) {
 
       const meta = document.createElement("div");
       meta.className = "task-event-meta";
-      meta.textContent = `${event.agent || "Sin agente"} | ${humanizeEventType(event.type)} | ${humanizeStatus(eventField(event, "status"))}`;
+      meta.textContent = `${humanizeAgentName(event.agent)} | ${humanizeEventType(event.type)} | ${humanizeStatus(eventField(event, "status"))}`;
 
       head.append(title, time);
       item.append(head, meta);
