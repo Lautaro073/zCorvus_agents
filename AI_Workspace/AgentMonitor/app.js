@@ -517,6 +517,38 @@ function lastTaskEventByType(task, eventType) {
 
 const TASK_TERMINAL_EVENT_TYPES = new Set(["TASK_COMPLETED", "TASK_CANCELLED", "TASK_BLOCKED", "TASK_FAILED", "TEST_PASSED", "TEST_FAILED"]);
 
+const TASK_STATUS_BY_TERMINAL_EVENT = {
+  TASK_COMPLETED: "completed",
+  TASK_CANCELLED: "cancelled",
+  TASK_BLOCKED: "blocked",
+  TASK_FAILED: "failed",
+  TEST_PASSED: "completed",
+  TEST_FAILED: "failed",
+};
+
+function deriveTaskLatestStatus(task) {
+  const events = Array.isArray(task?.events) ? task.events : [];
+  if (events.length === 0) {
+    return task?.latestStatus || "";
+  }
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (TASK_TERMINAL_EVENT_TYPES.has(event?.type)) {
+      return TASK_STATUS_BY_TERMINAL_EVENT[event.type] || eventField(event, "status") || task?.latestStatus || "";
+    }
+  }
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const status = eventField(events[index], "status");
+    if (status) {
+      return status;
+    }
+  }
+
+  return task?.latestStatus || "";
+}
+
 function evaluateTaskTraceability(task) {
   const events = Array.isArray(task?.events) ? task.events : [];
   const hasAssigned = events.some((event) => event.type === "TASK_ASSIGNED");
@@ -2175,9 +2207,11 @@ function enrichTasks(tasks) {
     const latestEvent = task.events?.[task.events.length - 1] || null;
     const latestDescription = latestEvent?.payload?.description || latestEvent?.payload?.message || null;
     const traceability = evaluateTaskTraceability(task);
+    const latestStatus = deriveTaskLatestStatus(task);
 
     return {
       ...task,
+      latestStatus,
       parentTaskId: taskField(task, "parentTaskId"),
       durationMs: taskDurationMs(task),
       durationLabel: formatDuration(taskDurationMs(task)),
