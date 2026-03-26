@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "zcorvus-mcp": {
+      "type": "local",
+      "enabled": true,
+      "command": ["node", "AI_Workspace/MCP_Server/index.js"],
+      "environment": {
+        "NODE_ENV": "development",
+        "MCP_MONITOR_PORT": "4311"
+      },
+      "cwd": "."
+    }
+  }
+}
