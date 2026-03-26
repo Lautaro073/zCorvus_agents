@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "@/i18n/navigation";
 
 export default function SignupPage() {
-  const auth = useTranslations('auth');
+  const t = useTranslations('auth');
   const common = useTranslations('common');
   const router = useRouter();
   const { register } = useAuth();
@@ -26,12 +26,12 @@ export default function SignupPage() {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error(t('errors.passwordMismatch'));
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+      toast.error(t('errors.passwordTooShort'));
       return;
     }
 
@@ -40,13 +40,13 @@ export default function SignupPage() {
     try {
       await register(formData.username, formData.email, formData.password);
 
-      toast.success('¡Cuenta creada exitosamente!');
+      toast.success(t('success.registerSuccess'));
 
       // Redirigir a home
       router.push('/icons');
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message || 'Error al crear la cuenta');
+        toast.error(error.message || t('errors.registerFailed'));
       }
     } finally {
       setIsLoading(false);
@@ -56,13 +56,13 @@ export default function SignupPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-10 sm:w-[300px]">
       <div className="flex flex-col gap-2">
-        <h1 className="font-medium text-2xl uppercase">{auth('screens.signUp.title')}</h1>
-        <p className="text-muted-foreground text-sm leading-tight">{auth('screens.signUp.subtitle')}</p>
+        <h1 className="font-medium text-2xl uppercase">{t('screens.signUp.title')}</h1>
+        <p className="text-muted-foreground text-sm leading-tight">{t('screens.signUp.subtitle')}</p>
       </div>
       <div className="flex flex-col gap-2">
         <Input
           type="text"
-          placeholder="Usuario"
+          placeholder={common('fields.username')}
           value={formData.username}
           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
           required
@@ -87,7 +87,7 @@ export default function SignupPage() {
         />
         <Input
           type="password"
-          placeholder="Confirmar Contraseña"
+          placeholder={common('fields.confirmPassword')}
           value={formData.confirmPassword}
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
           required
@@ -96,14 +96,14 @@ export default function SignupPage() {
         />
 
         <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-          {isLoading ? 'Cargando...' : auth('actions.signUp')}
+          {isLoading ? t('actions.loading') : t('actions.signUp')}
         </Button>
 
         <div className="text-center mt-4">
           <p className="text-sm text-muted-foreground">
-            {auth('screens.signUp.hasAccount')}{' '}
+            {t('screens.signUp.hasAccount')}{' '}
             <Link href="/auth/login" className="text-foreground hover:underline font-medium">
-              {auth('actions.signIn')}
+              {t('actions.signIn')}
             </Link>
           </p>
         </div>
