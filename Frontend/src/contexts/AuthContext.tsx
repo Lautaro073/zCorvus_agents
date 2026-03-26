@@ -57,15 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await backendRefreshAccessToken();
             
             // Mapear role a role_name si es necesario
-            const userObj = data.user;
-            if (userObj && !userObj.role_name && (userObj as any).role) {
-                userObj.role_name = (userObj as any).role;
-            }
+        const userObj = data.user;
+        if (userObj && !userObj.role_name && (userObj as { role?: string }).role) {
+            userObj.role_name = (userObj as unknown as { role: 'admin' | 'user' | 'pro' }).role;
+        }
 
             setAccessToken(data.accessToken);
             setUser(userObj);
             return data.accessToken;
-        } catch (error) {
+        } catch {
             await logoutInternal();
             return null;
         }
@@ -88,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(data.accessToken);
         
         const userObj = data.user;
-        if (userObj && !userObj.role_name && (userObj as any).role) {
-            userObj.role_name = (userObj as any).role;
+        if (userObj && !userObj.role_name && (userObj as { role?: string }).role) {
+            userObj.role_name = (userObj as unknown as { role: 'admin' | 'user' | 'pro' }).role;
         }
         setUser(userObj);
 
@@ -104,8 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(data.accessToken);
 
         const userObj = data.user;
-        if (userObj && !userObj.role_name && (userObj as any).role) {
-            userObj.role_name = (userObj as any).role;
+        if (userObj && !userObj.role_name && (userObj as { role?: string }).role) {
+            userObj.role_name = (userObj as unknown as { role: 'admin' | 'user' | 'pro' }).role;
         }
         setUser(userObj);
 

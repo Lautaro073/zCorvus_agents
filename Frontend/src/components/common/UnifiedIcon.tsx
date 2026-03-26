@@ -27,7 +27,8 @@ export const UnifiedIcon = ({ type, name, variant, className, size }: UnifiedIco
   // ZCorvus icons (core, neo, mina)
   return (
     <ZIcon
-      type={type as any}
+      type={type as 'core' | 'neo' | 'mina'}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       name={name as any}
       variant={variant}
       className={className}

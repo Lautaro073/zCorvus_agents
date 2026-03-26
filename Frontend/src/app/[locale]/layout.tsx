@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NextIntlClientProvider, useMessages } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { Kameron, Kadwa } from "next/font/google";
 import { ViewTransition } from 'react'
@@ -41,8 +41,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   // Otras rutas o componentes cliente que necesiten más namespaces deben usar su propio provider.
   const messages = await getMessages();
   const globalMessages = { 
-    common: (messages as any).common,
-    auth: (messages as any).auth
+    common: (messages as { common: unknown }).common,
+    auth: (messages as { auth: unknown }).auth
   };
 
   // Leer cookies vuelve el layout dinámico. Esto es un trade-off aceptado para evitar Flash of Unstyled Content (FOUC).

@@ -21,16 +21,16 @@ const useIconExport = ({ icon, state }: UseIconExportArgs) => {
 
   useEffect(() => {
     let mounted = true;
-    getIconsSVG(icon.type as IconSet).then((iconsMap: any) => {
+    getIconsSVG(icon.type as IconSet).then((iconsMap) => {
       if (!mounted || !iconsMap) return;
       if (isFontAwesome) {
-        const iconDef = iconsMap[icon.name];
+        const iconDef = iconsMap[icon.name as string];
         if (!iconDef) return;
-        const [width, height, , , path] = iconDef.icon;
+        const [width, height, , , path] = (iconDef as { icon: unknown[] }).icon;
         setSvgMarkup(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><path d="${Array.isArray(path) ? path.join(' ') : path}"/></svg>`);
       } else {
-        const variantMap = iconsMap[icon.variant || ""] || iconsMap;
-        setSvgMarkup(variantMap?.[icon.name] ?? "");
+        const variantMap = iconsMap[icon.variant || ""] as Record<string, string> | undefined;
+        setSvgMarkup(variantMap?.[icon.name as string] ?? "");
       }
     });
     return () => { mounted = false; };

@@ -59,8 +59,8 @@ export const getIconContentData = async (): Promise<IconContent> => {
       mina: minaIconNames as Partial<AllIconNames>[],
     },
     premium: {
-      "fa-solid": faSolidIconNames as any[],
-      "fa-regular": faRegularIconNames as any[],
+      "fa-solid": faSolidIconNames as unknown as Partial<AllIconNames>[],
+      "fa-regular": faRegularIconNames as unknown as Partial<AllIconNames>[],
     },
   };
 };
