@@ -143,7 +143,7 @@ export default function SuccessPage() {
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                         </div>
                         <p className="text-muted-foreground">{t('success.generatingToken')}</p>
-                        <p className="text-sm text-muted-foreground">Intento {retryCount} de 10...</p>
+                        <p className="text-sm text-muted-foreground">{t('success.retryAttempt', { count: retryCount })}</p>
                     </div>
                 ) : npmToken ? (
                     <div className="space-y-6">
@@ -166,7 +166,7 @@ export default function SuccessPage() {
                                 </Button>
 
                                 <Button onClick={downloadNpmrc} variant="outline" size="sm">
-                                    Descargar .npmrc
+                                    {t('success.downloadNpmrc')}
                                 </Button>
                             </div>
                         </div>
@@ -178,20 +178,20 @@ export default function SuccessPage() {
                             </h3>
                             <ol className="list-decimal list-inside space-y-3 text-sm">
                                 <li className="text-muted-foreground">
-                                    <strong className="text-foreground">Opci&oacute;n 1:</strong> Haz click en &quot;Descargar .npmrc&quot; y coloca el archivo en la ra&iacute;z de tu proyecto
+                                    <strong className="text-foreground">{t('success.option1')}</strong>
                                 </li>
                                 <li className="text-muted-foreground">
-                                    <strong className="text-foreground">Opción 2:</strong> Crea manualmente un archivo <code className="bg-muted px-1 py-0.5 rounded">.npmrc</code> en la raíz de tu proyecto con este contenido:
+                                    <strong className="text-foreground">{t('success.option2')}</strong>
                                     <pre className="bg-muted p-3 rounded mt-2 overflow-x-auto text-xs font-mono">
                                         {`@zcorvus:registry=https://registry.npmjs.org/
 //registry.npmjs.org/:_authToken=${npmToken}`}
                                     </pre>
                                 </li>
                                 <li className="text-muted-foreground">
-                                    <strong className="text-foreground">Instala el paquete:</strong>
+                                    <strong className="text-foreground">{t('success.installPackage')}</strong>
                                     <pre className="bg-muted p-3 rounded mt-2 overflow-x-auto text-xs font-mono">
                                         npm install @zcorvus/z-icons-premium
-                                        # o
+                                        {'\n'}
                                         pnpm add @zcorvus/z-icons-premium
                                     </pre>
                                 </li>
@@ -201,9 +201,9 @@ export default function SuccessPage() {
                         {/* Botón para ver iconos */}
                         <div>
                             <Button onClick={() => router.push('/icons/premium/fa-solid')} variant="default" size="lg" className="w-full">
-                                Ver Iconos Premium Ahora
+                                {t('success.viewIconsNow')}
                             </Button>
-                            <p className="text-xs text-muted-foreground mt-2">¡Ya tienes acceso completo a todos los iconos premium!</p>
+                            <p className="text-xs text-muted-foreground mt-2">{t('success.fullAccessMessage')}</p>
                         </div>
                     </div>
                 ) : (
@@ -212,15 +212,15 @@ export default function SuccessPage() {
                             <ZIcon type="mina" name="info" className="text-amber-600 dark:text-amber-400" style={{ fontSize: '2rem' }} />
                         </div>
                         <p className="text-muted-foreground mb-4">
-                            El token está siendo generado. Esto puede tomar unos segundos.
+                            {t('success.generatingMessage')}
                         </p>
                         <div className="space-y-2">
                             <Button onClick={() => window.location.reload()} variant="outline">
                                 <ZIcon type="mina" name="refresh" className="mr-2" />
-                                Reintentar
+                                {t('success.retry')}
                             </Button>
                             <p className="text-xs text-muted-foreground">
-                                Si el problema persiste, contacta a soporte
+                                {t('success.contactSupport')}
                             </p>
                         </div>
                     </div>
