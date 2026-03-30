@@ -359,6 +359,25 @@ h3 {
   padding-inline: 14px;
 }
 
+.hero-buttons a.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hero-buttons a.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(51, 209, 255, 0.25);
+}
+
 .live-panel {
   display: grid;
   gap: 10px;

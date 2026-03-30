@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { CHARACTER_SITTING_OFFSET_PX, TOOL_OVERLAY_VERTICAL_OFFSET } from '../../constants.js';
+import { getZcorvusAgentRegistry } from '../../adapters/zcorvus/ZcorvusAgentRegistry.js';
 import type { SubagentCharacter } from '../../hooks/useExtensionMessages.js';
 import type { OfficeState } from '../engine/officeState.js';
 import type { ToolActivity } from '../types.js';
@@ -29,7 +30,7 @@ function getActivityText(
     // Find the latest non-done tool
     const activeTool = [...tools].reverse().find((t) => !t.done);
     if (activeTool) {
-      if (activeTool.permissionWait) return 'Needs approval';
+      if (activeTool.permissionWait) return 'Necesita aprobación';
       return activeTool.status;
     }
     // All tools done but agent still active (mid-turn) — keep showing last tool status
@@ -39,7 +40,7 @@ function getActivityText(
     }
   }
 
-  return 'Idle';
+  return isActive ? 'Trabajando' : 'Inactivo';
 }
 
 export function ToolOverlay({
@@ -92,8 +93,8 @@ export function ToolOverlay({
         const isHovered = hoveredId === id;
         const isSub = ch.isSubagent;
 
-        // Only show for hovered or selected agents (unless always-show is on)
-        if (!alwaysShowOverlay && !isSelected && !isHovered) return null;
+        // Only show for hovered, selected, or active agents (unless always-show is on)
+        if (!alwaysShowOverlay && !isSelected && !isHovered && !ch.isActive) return null;
 
         // Position above character
         const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;
@@ -103,20 +104,22 @@ export function ToolOverlay({
 
         // Get activity text
         const subHasPermission = isSub && ch.bubbleType === 'permission';
+        const agentName = getZcorvusAgentRegistry().getAgentName(id);
+        
         let activityText: string;
         if (isSub) {
           if (subHasPermission) {
-            activityText = 'Needs approval';
+            activityText = 'Necesita aprobación';
           } else {
             const sub = subagentCharacters.find((s) => s.id === id);
-            activityText = sub ? sub.label : 'Subtask';
+            activityText = sub ? sub.label : 'Subtarea';
           }
         } else {
           activityText = getActivityText(id, agentTools, ch.isActive);
           if (ch.alertType === 'blocked') {
-            activityText = 'BLOCKED';
+            activityText = 'BLOQUEADO';
           } else if (ch.alertType === 'incident') {
-            activityText = 'INCIDENT';
+            activityText = 'INCIDENTE';
           }
         }
 
@@ -188,7 +191,7 @@ export function ToolOverlay({
                     display: 'block',
                   }}
                 >
-                  {activityText}
+                  {agentName}: {activityText}
                 </span>
                 {ch.folderName && (
                   <span
@@ -210,7 +213,7 @@ export function ToolOverlay({
                     e.stopPropagation();
                     onCloseAgent(id);
                   }}
-                  title="Close agent"
+                  title="Cerrar agente"
                   style={{
                     background: 'none',
                     border: 'none',

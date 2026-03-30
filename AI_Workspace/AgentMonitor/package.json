@@ -1,0 +1,15 @@
+{
+  "name": "agent-monitor",
+  "version": "1.0.0",
+  "description": "AgentMonitor - MCP event visualizer with Playwright E2E testing",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:visual": "playwright test --visual",
+    "test:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0"
+  }
+}

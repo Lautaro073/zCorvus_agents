@@ -8,6 +8,8 @@ export interface ZcorvusMcpIntegrationOptions {
   port?: number;
   path?: string;
   autoConnect?: boolean;
+  officeState?: { characters: Map<number, import('../office/types.js').Character>; seats: Map<string, import('../office/types.js').Seat> };
+  onAgentRegistered?: () => void;
 }
 
 export interface UseZcorvusMcpReturn {
@@ -17,6 +19,7 @@ export interface UseZcorvusMcpReturn {
   connect: () => void;
   disconnect: () => void;
   getAgentState: (agentId: number) => AgentStateUpdate | undefined;
+  getAllAgentIds: () => number[];
 }
 
 export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZcorvusMcpReturn {
@@ -25,6 +28,8 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
     port = 4311,
     path = '/ws',
     autoConnect = true,
+    officeState: providedOfficeState,
+    onAgentRegistered,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -34,6 +39,7 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
   const clientRef = useRef<McpWebSocketClient | null>(null);
   const mapperRef = useRef<AgentStateMapper | null>(null);
   const registryRef = useRef<ReturnType<typeof getZcorvusAgentRegistry> | null>(null);
+  const officeStateRef = useRef(providedOfficeState);
 
   const connect = useCallback(() => {
     if (clientRef.current) {
@@ -51,9 +57,19 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
     return registryRef.current?.getAgentState(agentId);
   }, []);
 
+  const getAllAgentIds = useCallback(() => {
+    return registryRef.current?.getAllAgentIds() || [];
+  }, []);
+
   useEffect(() => {
     mapperRef.current = new AgentStateMapper();
     registryRef.current = getZcorvusAgentRegistry();
+    
+    if (providedOfficeState && !registryRef.current.initialized) {
+      console.log('[ZcorvusMCP] Initializing registry immediately with officeState');
+      officeStateRef.current = providedOfficeState;
+      registryRef.current.initialize(providedOfficeState);
+    }
 
     clientRef.current = new McpWebSocketClient({
       host,
@@ -63,6 +79,12 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
         setIsConnected(true);
         setConnectionState('OPEN');
         setError(null);
+        console.log('[ZcorvusMCP] WebSocket connected');
+        
+        if (!registryRef.current?.initialized && officeStateRef.current) {
+          console.log('[ZcorvusMCP] Initializing registry with officeState');
+          registryRef.current?.initialize(officeStateRef.current);
+        }
       },
       onDisconnect: (err?: Error) => {
         setIsConnected(false);
@@ -72,7 +94,12 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
         }
       },
       onEventsUpdated: (event: McpEventPreview) => {
-        if (!mapperRef.current || !registryRef.current) return;
+        if (!mapperRef.current || !registryRef.current) {
+          console.log('[ZcorvusMCP] Mapper or registry not ready');
+          return;
+        }
+
+        console.log('[ZcorvusMCP] Raw event:', event.type, 'agent:', event.agent, 'assignedTo:', event.assignedTo, 'taskId:', event.taskId, 'status:', event.status);
 
         const mapped = mapperRef.current.mapEvent({
           type: event.type,
@@ -84,9 +111,19 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
           timestamp: event.timestamp,
         });
 
-        if (mapped) {
-          const agentId = registryRef.current.registerAgentFromMcpEvent(mapped.agentId);
+        const agentIdentifier = event.agent || event.assignedTo || 'unknown';
 
+        if (mapped) {
+          console.log('[ZcorvusMCP] Mapped:', mapped.eventType, '-> isActive:', mapped.isActive, 'state:', mapped.state, 'agent:', mapped.agentId);
+          const prevCount = registryRef.current.getAgentCount();
+          const agentId = registryRef.current.registerAgentFromMcpEvent(agentIdentifier);
+          console.log('[ZcorvusMCP] Agent registered/updated:', agentId, 'name:', registryRef.current.getAgentName(agentId));
+          
+          if (registryRef.current.getAgentCount() > prevCount && onAgentRegistered) {
+            onAgentRegistered();
+          }
+
+          console.log('[ZcorvusMCP] Updating state, isActive:', mapped.isActive);
           registryRef.current.updateAgentState({
             agentId,
             state: mapped.state,
@@ -98,9 +135,18 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
             taskId: mapped.taskId,
             correlationId: mapped.correlationId,
           });
+        } else {
+          console.log('[ZcorvusMCP] Event not mapped:', event.type, '-> Using agent field:', agentIdentifier);
+          const prevCount = registryRef.current.getAgentCount();
+          const agentId = registryRef.current.registerAgentFromMcpEvent(agentIdentifier);
+          console.log('[ZcorvusMCP] Fallback registered agent:', agentId);
+          if (registryRef.current.getAgentCount() > prevCount && onAgentRegistered) {
+            onAgentRegistered();
+          }
         }
       },
       onError: (err: Error) => {
+        console.log('[ZcorvusMCP] WebSocket error:', err.message);
         setError(err.message);
       },
     });
@@ -121,6 +167,7 @@ export function useZcorvusMcp(options: ZcorvusMcpIntegrationOptions = {}): UseZc
     connect,
     disconnect,
     getAgentState,
+    getAllAgentIds,
   };
 }
 

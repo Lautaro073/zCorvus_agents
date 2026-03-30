@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { DebugView } from './components/DebugView.js';
@@ -7,7 +7,7 @@ import { PULSE_ANIMATION_DURATION_SEC } from './constants.js';
 import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
-import { useZcorvusMcp } from './hooks/useZcorvusMcp.js';
+import { useZcorvusMcp, initializeZcorvusMcp } from './hooks/useZcorvusMcp.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { ToolOverlay } from './office/components/ToolOverlay.js';
 import { EditorState } from './office/editor/editorState.js';
@@ -151,9 +151,16 @@ function App() {
     externalAssetDirectories,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
-  useZcorvusMcp({
+  initializeZcorvusMcp(getOfficeState());
+
+  const [agentIdsKey, setAgentIdsKey] = useState(0);
+  const { getAllAgentIds } = useZcorvusMcp({
     autoConnect: true,
+    officeState: getOfficeState(),
+    onAgentRegistered: () => setAgentIdsKey(k => k + 1),
   });
+
+  const mcpAgentIds = useMemo(() => getAllAgentIds(), [agentIdsKey, getAllAgentIds]);
 
   // Show migration notice once layout reset is detected
   const [migrationNoticeDismissed, setMigrationNoticeDismissed] = useState(false);
@@ -355,7 +362,7 @@ function App() {
       {!isDebugMode && (
         <ToolOverlay
           officeState={officeState}
-          agents={agents}
+          agents={[...agents, ...mcpAgentIds]}
           agentTools={agentTools}
           subagentCharacters={subagentCharacters}
           containerRef={containerRef}

@@ -59,7 +59,7 @@ function ToolLine({ tool }: { tool: ToolActivity }) {
       }}
     >
       <ToolDot tool={tool} />
-      {tool.permissionWait && !tool.done ? 'Needs approval' : tool.status}
+      {tool.permissionWait && !tool.done ? 'Necesita aprobación' : tool.status}
     </span>
   );
 }
@@ -151,7 +151,7 @@ export function DebugView({
               background: isSelected ? 'rgba(90, 140, 255, 0.25)' : undefined,
               color: isSelected ? '#fff' : undefined,
             }}
-            title="Close agent"
+            title="Cerrar agente"
           >
             ✕
           </button>

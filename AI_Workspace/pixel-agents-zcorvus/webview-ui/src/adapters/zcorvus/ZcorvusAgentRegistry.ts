@@ -13,7 +13,7 @@ export interface ZcorvusAgentConfig {
 }
 
 const SEAT_COLS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
-const SEAT_ROWS = [2, 4, 6, 8, 10];
+const SEAT_ROWS = [17, 18, 19, 20, 21];
 
 function getNextSeatPosition(index: number): { col: number; row: number } {
   return {
@@ -47,9 +47,11 @@ export class ZcorvusAgentRegistry {
   private officeState: { characters: Map<number, Character>; seats: Map<string, Seat> } | null = null;
   private agentNameToId: Map<string, number> = new Map();
   private nextAgentId = 1;
+  initialized = false;
 
   initialize(officeState: { characters: Map<number, Character>; seats: Map<string, Seat> }): void {
     this.officeState = officeState;
+    this.initialized = true;
   }
 
   registerAgentFromMcpEvent(agentName: string): number {
@@ -62,6 +64,19 @@ export class ZcorvusAgentRegistry {
     const seatPos = getNextSeatPosition(index);
     const paletteInfo = getNextPalette(index);
 
+    let usedSeat: Seat | undefined;
+    
+    if (this.officeState && this.officeState.seats.size > 0) {
+      const seatsArray = Array.from(this.officeState.seats.values());
+      const availableSeat = seatsArray.find(s => !s.assigned);
+      if (availableSeat) {
+        usedSeat = availableSeat;
+        availableSeat.assigned = true;
+        seatPos.col = availableSeat.seatCol;
+        seatPos.row = availableSeat.seatRow;
+      }
+    }
+
     const config: ZcorvusAgentConfig = {
       id: agentId,
       displayName: agentName,
@@ -70,37 +85,41 @@ export class ZcorvusAgentRegistry {
       hueShift: paletteInfo.hueShift,
       seatCol: seatPos.col,
       seatRow: seatPos.row,
-      facingDir: 0,
+      facingDir: usedSeat?.facingDir ?? 0,
     };
 
     this.agents.set(agentId, config);
     this.agentNameToId.set(agentName, agentId);
 
     if (this.officeState) {
-      this.addAgentToOffice(config);
+      this.addAgentToOffice(config, usedSeat);
     }
 
     return agentId;
   }
 
-  private addAgentToOffice(agent: ZcorvusAgentConfig): void {
+  private addAgentToOffice(agent: ZcorvusAgentConfig, existingSeat?: Seat): void {
     if (!this.officeState) return;
 
-    const seatId = `seat-${agent.seatCol}-${agent.seatRow}`;
-    let seat = this.officeState.seats.get(seatId);
+    const seatId = existingSeat?.uid || `seat-${agent.seatCol}-${agent.seatRow}`;
+    let seat = existingSeat;
 
     if (!seat) {
-      seat = {
-        uid: seatId,
-        seatCol: agent.seatCol,
-        seatRow: agent.seatRow,
-        facingDir: agent.facingDir,
-        assigned: true,
-      };
-      this.officeState.seats.set(seatId, seat);
-    } else {
-      seat.assigned = true;
-      seat.facingDir = agent.facingDir;
+      seat = this.officeState.seats.get(seatId);
+
+      if (!seat) {
+        seat = {
+          uid: seatId,
+          seatCol: agent.seatCol,
+          seatRow: agent.seatRow,
+          facingDir: agent.facingDir,
+          assigned: true,
+        };
+        this.officeState.seats.set(seatId, seat);
+      } else {
+        seat.assigned = true;
+        seat.facingDir = agent.facingDir;
+      }
     }
 
     const ch = createCharacter(
@@ -116,6 +135,8 @@ export class ZcorvusAgentRegistry {
 
     this.officeState.characters.set(agent.id, ch);
 
+    console.log('[ZcorvusAgent] Character added to office:', agent.id, 'at seat:', seatId, 'total characters:', this.officeState.characters.size);
+
     this.agentStates.set(agent.id, {
       agentId: agent.id,
       state: CharacterState.IDLE,
@@ -129,11 +150,18 @@ export class ZcorvusAgentRegistry {
   }
 
   updateAgentState(update: AgentStateUpdate): void {
-    if (!this.officeState) return;
+    if (!this.officeState) {
+      console.log('[ZcorvusAgent] updateAgentState: no officeState');
+      return;
+    }
 
     const ch = this.officeState.characters.get(update.agentId);
-    if (!ch) return;
+    if (!ch) {
+      console.log('[ZcorvusAgent] updateAgentState: character not found:', update.agentId);
+      return;
+    }
 
+    console.log('[ZcorvusAgent] Updating state for agent:', update.agentId, 'to:', update.state, 'active:', update.isActive);
     ch.state = update.state;
     ch.currentTool = update.tool;
     ch.alertType = update.alertType;
@@ -156,7 +184,22 @@ export class ZcorvusAgentRegistry {
 
   getAgentName(agentId: number): string {
     const config = this.agents.get(agentId);
-    return config?.displayName || `Agent ${agentId}`;
+    const fullName = config?.displayName || `Agent ${agentId}`;
+    
+    const shortNames: Record<string, string> = {
+      'AI_Workspace_Optimizer': 'Optimizer',
+      'AI_Workspace_Documenter': 'Documenter',
+    };
+    
+    if (shortNames[fullName]) {
+      return shortNames[fullName];
+    }
+    
+    if (fullName.includes('_')) {
+      return fullName.split('_').pop() || fullName;
+    }
+    
+    return fullName;
   }
 
   getAllAgentIds(): number[] {
