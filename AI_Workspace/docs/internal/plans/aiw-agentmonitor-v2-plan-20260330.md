@@ -2,7 +2,7 @@
 
 **correlationId:** aiw-agentmonitor-v2-20260330  
 **taskId:** aiw-planner-agentmonitor-v2-plan-20260330-02  
-**Versión:** 2.0 — revisión completa con correcciones de asignación, stacks técnicos y dependencias  
+**Versión:** 2.1 — skills Frontend recuperadas: motion-designer, svg-animation-engineer, elevated-design, apple-ui-skills, dramatic-2000ms-plus  
 **Creado:** 2026-03-30  
 **Estado:** PLAN_PROPOSED  
 **Reemplaza:** aiw-planner-agentmonitor-v2-plan-20260330-01
@@ -39,6 +39,20 @@ V2-UI-01 pedía "elegir A o B" sin definir quién decide, con qué criterios, ni
 ### ❌ Error 5 — V2-UI-09 (Testing) depende solo de V2-UI-01
 
 Testing no puede "cubrir todos los componentes" si depende solo de Foundation. Debe tener dependencias reales de los componentes a testear, aunque se configure en paralelo.
+
+### ❌ Error 6 — 5 skills de Frontend ausentes del plan (corregido en v2.1)
+
+Las siguientes skills del agente Frontend existían en el workspace pero no estaban referenciadas en el plan v1 ni en la corrección v2.0. Son críticas para V2 dado el foco en animaciones y calidad visual:
+
+| Skill | Rol en V2 |
+|---|---|
+| `motion-designer` | Animaciones de componentes, transiciones de estado, staggered reveals |
+| `svg-animation-engineer` | SVG animados: avatares de agentes, iconos de estado, conectores de timeline |
+| `elevated-design` | Estética premium y elevada — base del design system V2 |
+| `apple-ui-skills` | UX refinada estilo Apple: physics-based transitions, gestures, micro-interacciones |
+| `dramatic-2000ms-plus` | Animaciones de entrada largas y de alto impacto (hero, estados críticos) |
+
+Se agregan a la sección de stack técnico y se asignan por tarea en este plan v2.1.
 
 ### ✅ Correcciones menores mantenidas del v1
 
@@ -109,12 +123,33 @@ npx shadcn@latest add input select checkbox dropdown-menu popover command
 npx shadcn@latest add collapsible table badge tooltip
 ```
 
-#### Animaciones
+#### Animaciones y motion — Skills Frontend + librerías
 
 ```bash
-# Framer Motion — animaciones de componentes, transiciones de estado
+# framer-motion — animaciones declarativas en React (requerido por motion-designer y dramatic-2000ms-plus)
 npm install framer-motion
+
+# @svgdotjs/svg.js — manipulación y animación de SVG programática (requerido por svg-animation-engineer)
+npm install @svgdotjs/svg.js
+
+# react-spring — física-based animations estilo Apple (requerido por apple-ui-skills)
+npm install @react-spring/web
+
+# lottie-react — reproducción de animaciones Lottie/After Effects (svg-animation-engineer)
+npm install lottie-react
 ```
+
+**Mapa de skills → librerías → tareas:**
+
+| Skill Frontend | Librería principal | Tareas donde aplica |
+|---|---|---|
+| `motion-designer` | `framer-motion` | V2-UI-01, V2-UI-02, V2-UI-03, V2-UI-04 |
+| `svg-animation-engineer` | `@svgdotjs/svg.js`, `lottie-react` | V2-UI-03 (AgentAvatar), V2-UI-04 (timeline connectors), V2-UI-06 (alert icons) |
+| `elevated-design` | sin lib extra — aplica al design system | V2-UI-01 (tokens), V2-UI-02 (Hero) |
+| `apple-ui-skills` | `@react-spring/web` | V2-UI-02 (metrics reveal), V2-UI-03 (state transitions), V2-UI-07 (filter drawer) |
+| `dramatic-2000ms-plus` | `framer-motion` (durations 2000ms+) | V2-UI-02 (Hero entry), V2-UI-03 (INCIDENT_OPENED transition) |
+
+> **Nota importante para `dramatic-2000ms-plus`:** animaciones >2s se aplican SOLO en entradas de pantalla (montaje inicial del Hero) y transiciones de estados críticos (`INCIDENT_OPENED`). No aplican en actualizaciones frecuentes de datos (timeline, WebSocket) donde debe usarse <300ms para no bloquear la lectura operativa.
 
 #### Estado global y datos
 
@@ -274,6 +309,9 @@ export interface McpEvent {
   npm install @tanstack/react-query @tanstack/react-query-devtools
   npm install zustand
   npm install framer-motion
+  npm install @react-spring/web
+  npm install @svgdotjs/svg.js
+  npm install lottie-react
   npm install date-fns
   npm install clsx tailwind-merge
   npm install -D vitest @testing-library/react @testing-library/user-event jsdom
@@ -290,7 +328,7 @@ export interface McpEvent {
   - shadcn init completado (componente Button importable y funcional)
   - WebSocket hook conecta a `/ws` y recibe eventos MCP
   - Tipos MCP creados y sin errores TypeScript
-- **skillsAgente:** `shadcn`, `design-guide`
+- **skillsAgente:** `shadcn`, `design-guide`, `motion-designer`, `elevated-design`, `apple-ui-skills`, `svg-animation-engineer`, `dramatic-2000ms-plus`
 
 ---
 
@@ -319,7 +357,7 @@ export interface McpEvent {
   - Sin overflow horizontal en ningún breakpoint
   - Dark theme por defecto, variables CSS override-ables
 - **skillsAgente:** `observability-design-patterns`, `layout-overflow-guardrails`
-- **skills hermanos:** `design-guide` (Frontend — referencia estética), `playwright-testing` (Tester — para smoke test del layout)
+- **skills hermanos:** `elevated-design` (Frontend — define el tono visual premium del sistema), `motion-designer` (Frontend — definir durations y easing globals en tokens), `design-guide` (Frontend — referencia estética), `playwright-testing` (Tester — smoke test del layout)
 
 ---
 
@@ -346,8 +384,10 @@ export interface McpEvent {
   - Animación de entrada con framer-motion (`initial → animate`)
   - Responsive: grid colapsa a 2 columnas en <1280px, 1 columna en <768px
   - Sin overflow en ningún breakpoint
-- **skillsAgente:** `shadcn`, `design-guide`
+- **skillsAgente:** `shadcn`, `design-guide`, `motion-designer`, `dramatic-2000ms-plus`, `apple-ui-skills`, `elevated-design`
 - **skills hermanos:** `observability-design-patterns` (Observer — qué métricas priorizar), `playwright-testing` (Tester)
+
+> **Nota de animación:** El Hero usa `dramatic-2000ms-plus` en la entrada inicial (staggered reveal de métricas, 2200ms total). Las actualizaciones en tiempo real por WebSocket usan transiciones cortas (<200ms) para no interferir con lectura operativa.
 
 #### V2-UI-03: Agent Stage
 - **taskId:** `aiw-observer-agentmonitor-v2-ui03-20260330-01`
@@ -368,8 +408,10 @@ export interface McpEvent {
   - Health indicator cambia de color según estado MCP (`TASK_BLOCKED` → rojo, `TASK_IN_PROGRESS` → azul, etc.)
   - Quick actions: al menos "Ver detalle" y "Copiar taskId" funcionales
   - Animación de transición de estado con framer-motion (no salto abrupto)
+  - AgentAvatar implementado como SVG animado (no imagen estática)
+  - Transición `INCIDENT_OPENED` usa animación dramática >2000ms (pulso de alerta)
 - **skillsAgente:** `observability-design-patterns`, `layout-overflow-guardrails`
-- **skills hermanos:** `shadcn` (Frontend), `playwright-testing` (Tester)
+- **skills hermanos:** `svg-animation-engineer` (Frontend — AgentAvatar como SVG animado), `apple-ui-skills` (Frontend — physics-based state transition), `dramatic-2000ms-plus` (Frontend — transición INCIDENT_OPENED), `shadcn` (Frontend), `playwright-testing` (Tester)
 
 #### V2-UI-04: Timeline
 - **taskId:** `aiw-observer-agentmonitor-v2-ui04-20260330-01`
@@ -397,7 +439,7 @@ export interface McpEvent {
   - Filtros por tipo de evento (TASK_*, TEST_*, INCIDENT_*, DOC_*) sin reload
   - Sin overflow en panel de timeline
 - **skillsAgente:** `observability-design-patterns`, `layout-overflow-guardrails`
-- **skills hermanos:** `distributed-tracing` (AI_Workspace_Optimizer — patrones de clustering temporal), `playwright-testing` (Tester)
+- **skills hermanos:** `svg-animation-engineer` (Frontend — conectores SVG animados entre eventos del timeline), `motion-designer` (Frontend — reveal animation de nuevos eventos), `distributed-tracing` (AI_Workspace_Optimizer — patrones de clustering temporal), `playwright-testing` (Tester)
 
 ---
 
@@ -426,7 +468,7 @@ export interface McpEvent {
   - Rango de tiempo configurable: última hora, últimas 6h, últimas 24h
   - Sin errores TypeScript en props de Chart (usar tipos de Recharts correctamente)
   - Responsive: charts mantienen proportions en diferentes anchos
-- **skillsAgente:** `shadcn`, `design-guide`
+- **skillsAgente:** `shadcn`, `design-guide`, `motion-designer`, `elevated-design`
 - **skills hermanos:** `sql-optimization-patterns` (Backend — si las agregaciones migran al server), `observability-design-patterns` (Observer — qué métricas son accionables), `distributed-tracing` (AI_Workspace_Optimizer — patrones de métricas de sistema)
 
 #### V2-UI-06: Critical Panel Redesign
@@ -450,7 +492,7 @@ export interface McpEvent {
   - Quick resolve: click en alerta abre Sheet con taskId, causa (rootCause del payload) y botón "Copiar taskId"
   - Panel tiene scroll propio, no afecta al layout general
 - **skillsAgente:** `observability-design-patterns`, `layout-overflow-guardrails`
-- **skills hermanos:** `shadcn` (Frontend), `playwright-testing` (Tester)
+- **skills hermanos:** `svg-animation-engineer` (Frontend — iconos de alerta como SVG animados), `dramatic-2000ms-plus` (Frontend — animación de entrada de INCIDENT_OPENED al panel), `shadcn` (Frontend), `playwright-testing` (Tester)
 
 ---
 
@@ -477,7 +519,7 @@ export interface McpEvent {
   - Save preset guarda en localStorage, carga al iniciar la sesión
   - Filtros activos visibles como chips removibles
   - Sin overflow horizontal en el panel de filtros en ningún breakpoint
-- **skillsAgente:** `shadcn`, `design-guide`
+- **skillsAgente:** `shadcn`, `design-guide`, `apple-ui-skills`
 - **skills hermanos:** `layout-overflow-guardrails` (Observer — validar que los chips no rompan el layout), `playwright-testing` (Tester)
 
 #### V2-UI-08: Task Groups
@@ -503,7 +545,7 @@ export interface McpEvent {
   - Swimlane view: toggle entre vista agrupada por correlationId y vista por agente
   - Filtros de V2-UI-07 se aplican correctamente sobre los grupos
   - Scroll virtual activo con 200+ tareas (react-window)
-- **skillsAgente:** `shadcn`, `design-guide`
+- **skillsAgente:** `shadcn`, `design-guide`, `motion-designer`
 - **skills hermanos:** `task-coordination-strategies` (AI_Workspace_Optimizer — patrones de grouping), `sql-optimization-patterns` (Backend — si grouping migra al server), `playwright-testing` (Tester)
 
 ---
@@ -680,12 +722,14 @@ V2-SETUP-01 (Auditoría entorno)
 | 2 | Recharts se comporta distinto en SSR o con datos vacíos | Media | Bajo | V2-UI-05 debe manejar estados: loading, empty, error en Charts |
 | 3 | react-window incompatible con altura dinámica de items (timeline) | Media | Medio | Usar `VariableSizeList` en vez de `FixedSizeList`; documentado en V2-UI-04 |
 | 4 | Zustand store se desincroniza con WebSocket en reconexión | Baja | Alto | `useMcpEvents` hook debe limpiar store y re-fetch historial al reconectar |
-| 5 | framer-motion causa jank en listas largas | Baja | Medio | Aplicar `will-change: transform` y limitar animaciones a elementos fuera del scroll virtual |
-| 6 | Bundle size supera 500KB por Recharts + framer-motion + D3 | Media | Medio | V2-PERF-01 analiza con rollup-plugin-visualizer; lazy load de Recharts y D3 |
+| 5 | framer-motion + @react-spring/web causan jank en listas largas | Media | Medio | Limitar animaciones a elementos fuera del scroll virtual; `will-change: transform` solo en elementos animados; no animar `react-window` internals |
+| 6 | Bundle size supera 500KB: Recharts + framer-motion + @react-spring/web + @svgdotjs/svg.js + lottie-react + D3 | Alta | Medio | V2-PERF-01 analiza con `rollup-plugin-visualizer`; lazy load de D3, lottie-react y @svgdotjs/svg.js; tree-shake Recharts importando solo los componentes usados |
+| 7 | `dramatic-2000ms-plus` aplicado en actualizaciones frecuentes de WebSocket bloquea la lectura operativa | Media | Alto | Regla explícita: animaciones >2s SOLO en montaje inicial y `INCIDENT_OPENED`; todas las actualizaciones de datos en tiempo real usan <200ms |
+| 8 | SVGs animados con @svgdotjs/svg.js no accesibles (falta aria) | Baja | Medio | Todo SVG animado debe tener `role="img"`, `aria-label` y `aria-live` cuando cambia de estado |
 
 ---
 
-## Criterios de aceptación del plan v2
+## Criterios de aceptación del plan v2.1
 
 - [x] Corrección de asignaciones: tareas de UI reasignadas a Observer/Frontend
 - [x] AI_Workspace_Optimizer con rol correcto: auditoría y performance, no UI
@@ -698,3 +742,8 @@ V2-SETUP-01 (Auditoría entorno)
 - [x] Gates formales por fase con responsable
 - [x] `/pixel` separado, no integrado en V2
 - [x] Riesgos técnicos específicos con mitigaciones concretas
+- [x] **5 skills de Frontend recuperadas:** `motion-designer`, `svg-animation-engineer`, `elevated-design`, `apple-ui-skills`, `dramatic-2000ms-plus`
+- [x] Skills asignadas por tarea con criterio (no aplicadas en todas, sino donde aportan)
+- [x] Regla de `dramatic-2000ms-plus` documentada: solo en montaje inicial e INCIDENT_OPENED
+- [x] Libs de animación con comandos de instalación y mapa skill→librería→tarea
+- [x] Riesgos de bundle size y accesibilidad de SVGs agregados
