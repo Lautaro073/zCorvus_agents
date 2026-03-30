@@ -3,10 +3,9 @@
   "mcp": {
     "zcorvus-mcp": {
       "type": "local",
-      "command": ["node", "AI_Workspace/MCP_Server/index.js"],
+      "command": ["node", "AI_Workspace/MCP_Server/mcp-stdio.js"],
       "environment": {
         "NODE_ENV": "development",
-        "MCP_MONITOR_PORT": "4311"
       }
     }
   }

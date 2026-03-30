@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Monitor de Agentes</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@2.0.0/modern-normalize.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/open-props@1.7.9/open-props.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -35,12 +37,13 @@
           <div class="hero-buttons">
             <button id="refreshButton" type="button"><i class="ti ti-refresh"></i><span>Actualizar ahora</span></button>
             <button id="muteButton" type="button" class="ghost" aria-pressed="false"><i class="ti ti-volume"></i><span>Sonido: activo</span></button>
+            <a href="http://127.0.0.1:4311/pixel/" target="_blank" class="button"><i class="ti ti-brand-tabler"></i><span>Pixel Experience</span></a>
           </div>
         </div>
       </header>
 
       <div class="workspace-grid">
-        <main class="workspace-main">
+        <main id="mainContent" class="workspace-main" tabindex="-1">
           <section id="summaryGrid" class="summary-grid"></section>
 
           <section id="typeDistribution" class="type-distribution card">
@@ -119,7 +122,7 @@
           </article>
 
           <section class="main-grid">
-            <article class="card panel">
+            <article id="timelinePanel" class="card panel">
               <div class="panel-head">
                 <div>
                   <h2><i class="ti ti-timeline"></i><span>Linea de tiempo</span></h2>
@@ -137,7 +140,7 @@
               <ol id="timelineList" class="timeline"></ol>
             </article>
 
-            <article class="card panel">
+            <article id="tasksPanel" class="card panel">
               <div class="panel-head">
                 <div>
                   <h2><i class="ti ti-list-details"></i><span>Tareas agrupadas</span></h2>
@@ -164,6 +167,11 @@
                 <p class="eyebrow eyebrow-soft">Panel de consulta</p>
                 <h2><i class="ti ti-adjustments-horizontal"></i><span>Filtros y exportes</span></h2>
                 <p class="section-copy">Abre los filtros solo cuando quieras refinar la lectura. El foco principal son los agentes y lo que estan haciendo.</p>
+                <div class="quick-jumps" role="navigation" aria-label="Saltos rapidos">
+                  <a class="quick-link" href="#timelinePanel">Linea de tiempo</a>
+                  <a class="quick-link" href="#tasksPanel">Tareas</a>
+                  <a class="quick-link" href="#criticalPanel">Alertas</a>
+                </div>
               </div>
 
               <div class="control-dock-actions">
@@ -173,6 +181,16 @@
                 <button id="resetButton" type="button" class="ghost"><i class="ti ti-filter-off"></i><span>Limpiar filtros</span></button>
               </div>
             </div>
+
+            <div class="quick-actions" aria-label="Acciones operativas rapidas">
+              <button id="quickBlockedButton" type="button" class="ghost" aria-pressed="false"><i class="ti ti-alert-triangle"></i><span>Solo bloqueadas</span></button>
+              <button id="quickActiveButton" type="button" class="ghost" aria-pressed="false"><i class="ti ti-loader"></i><span>En progreso</span></button>
+              <button id="quickRecentButton" type="button" class="ghost" aria-pressed="false"><i class="ti ti-clock-hour-1"></i><span>Ultima hora</span></button>
+            </div>
+
+            <p class="control-shortcuts" aria-live="polite">
+              Atajos: <kbd>/</kbd> foco en tarea, <kbd>R</kbd> actualizar, <kbd>F</kbd> filtros, <kbd>M</kbd> sonido, <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> acciones rapidas.
+            </p>
 
             <div id="activeFiltersBar" class="active-filters hidden"></div>
           </section>
@@ -259,7 +277,7 @@
             </div>
           </section>
 
-          <article class="card panel signal-panel">
+          <article id="criticalPanel" class="card panel signal-panel">
           <div class="panel-head">
             <div>
               <h2><i class="ti ti-alert-triangle"></i><span>Alertas criticas</span></h2>

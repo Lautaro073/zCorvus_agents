@@ -1,0 +1,52 @@
+{
+  "agents": [
+    {
+      "assignedTo": "Orchestrator",
+      "displayName": "Orchestrator",
+      "color": "#FF6B6B",
+      "role": "Coordinator"
+    },
+    {
+      "assignedTo": "Planner",
+      "displayName": "Planner",
+      "color": "#4ECDC4",
+      "role": "Planning"
+    },
+    {
+      "assignedTo": "AI_Workspace_Optimizer",
+      "displayName": "Optimizer",
+      "color": "#45B7D1",
+      "role": "Optimization"
+    },
+    {
+      "assignedTo": "Observer",
+      "displayName": "Observer",
+      "color": "#96CEB4",
+      "role": "Monitoring"
+    },
+    {
+      "assignedTo": "Documenter",
+      "displayName": "Documenter",
+      "color": "#FFEAA7",
+      "role": "Documentation"
+    },
+    {
+      "assignedTo": "Tester",
+      "displayName": "Tester",
+      "color": "#DDA0DD",
+      "role": "Testing"
+    },
+    {
+      "assignedTo": "Frontend",
+      "displayName": "Frontend",
+      "color": "#98D8C8",
+      "role": "UI Development"
+    },
+    {
+      "assignedTo": "Backend",
+      "displayName": "Backend",
+      "color": "#F7DC6F",
+      "role": "API Development"
+    }
+  ]
+}

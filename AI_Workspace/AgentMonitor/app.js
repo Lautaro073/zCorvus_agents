@@ -133,6 +133,9 @@ const elements = {
   exportReportButton: document.getElementById("exportReportButton"),
   muteButton: document.getElementById("muteButton"),
   resetButton: document.getElementById("resetButton"),
+  quickBlockedButton: document.getElementById("quickBlockedButton"),
+  quickActiveButton: document.getElementById("quickActiveButton"),
+  quickRecentButton: document.getElementById("quickRecentButton"),
   filtersSection: document.getElementById("filtersSection"),
   activeFiltersBar: document.getElementById("activeFiltersBar"),
   socketBadge: document.getElementById("socketBadge"),
@@ -517,6 +520,38 @@ function lastTaskEventByType(task, eventType) {
 }
 
 const TASK_TERMINAL_EVENT_TYPES = new Set(["TASK_COMPLETED", "TASK_CANCELLED", "TASK_BLOCKED", "TASK_FAILED", "TEST_PASSED", "TEST_FAILED"]);
+
+const TASK_STATUS_BY_TERMINAL_EVENT = {
+  TASK_COMPLETED: "completed",
+  TASK_CANCELLED: "cancelled",
+  TASK_BLOCKED: "blocked",
+  TASK_FAILED: "failed",
+  TEST_PASSED: "completed",
+  TEST_FAILED: "failed",
+};
+
+function deriveTaskLatestStatus(task) {
+  const events = Array.isArray(task?.events) ? task.events : [];
+  if (events.length === 0) {
+    return task?.latestStatus || "";
+  }
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (TASK_TERMINAL_EVENT_TYPES.has(event?.type)) {
+      return TASK_STATUS_BY_TERMINAL_EVENT[event.type] || eventField(event, "status") || task?.latestStatus || "";
+    }
+  }
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const status = eventField(events[index], "status");
+    if (status) {
+      return status;
+    }
+  }
+
+  return task?.latestStatus || "";
+}
 
 function evaluateTaskTraceability(task) {
   const events = Array.isArray(task?.events) ? task.events : [];
@@ -943,6 +978,36 @@ function renderActiveFilters() {
     node.append(label, value);
     elements.activeFiltersBar.append(node);
   });
+
+  renderQuickActionStates();
+}
+
+function isRecentFilterActive(windowMinutes = 75) {
+  if (!state.filters.since) {
+    return false;
+  }
+
+  const sinceMs = Date.parse(state.filters.since);
+  if (!Number.isFinite(sinceMs)) {
+    return false;
+  }
+
+  const ageMinutes = (Date.now() - sinceMs) / (60 * 1000);
+  return ageMinutes >= 0 && ageMinutes <= windowMinutes;
+}
+
+function renderQuickActionStates() {
+  if (elements.quickBlockedButton) {
+    elements.quickBlockedButton.setAttribute("aria-pressed", String(state.filters.status === "blocked"));
+  }
+
+  if (elements.quickActiveButton) {
+    elements.quickActiveButton.setAttribute("aria-pressed", String(state.filters.status === "in_progress"));
+  }
+
+  if (elements.quickRecentButton) {
+    elements.quickRecentButton.setAttribute("aria-pressed", String(isRecentFilterActive()));
+  }
 }
 
 function buildSnapshotPayload() {
@@ -2232,9 +2297,11 @@ function enrichTasks(tasks) {
     const latestEvent = task.events?.[task.events.length - 1] || null;
     const latestDescription = latestEvent?.payload?.description || latestEvent?.payload?.message || null;
     const traceability = evaluateTaskTraceability(task);
+    const latestStatus = deriveTaskLatestStatus(task);
 
     return {
       ...task,
+      latestStatus,
       parentTaskId: taskField(task, "parentTaskId"),
       durationMs: taskDurationMs(task),
       durationLabel: formatDuration(taskDurationMs(task)),
@@ -2581,6 +2648,101 @@ function clearAllFilters() {
   refreshWithHandling();
 }
 
+function toggleQuickStatusFilter(statusValue) {
+  const nextStatus = state.filters.status === statusValue ? "" : statusValue;
+  applyFilterPatch({ status: nextStatus });
+}
+
+function toggleRecentWindowFilter(hours = 1) {
+  if (isRecentFilterActive()) {
+    applyFilterPatch({ since: "" });
+    return;
+  }
+
+  const sinceValue = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  applyFilterPatch({ since: sinceValue });
+}
+
+function isTypingContext(target) {
+  if (!target || !(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
+function focusTaskFilter() {
+  if (!state.filtersOpen) {
+    state.filtersOpen = true;
+    persistPreferences();
+    renderFiltersVisibility();
+  }
+
+  elements.taskIdFilter?.focus();
+  elements.taskIdFilter?.select();
+}
+
+function handleGlobalShortcuts(event) {
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    if (!elements.detailShell.classList.contains("hidden")) {
+      closeDetailDrawer();
+    }
+    return;
+  }
+
+  if (isTypingContext(event.target)) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+
+  if (key === "/") {
+    event.preventDefault();
+    focusTaskFilter();
+    return;
+  }
+
+  if (key === "r") {
+    event.preventDefault();
+    refreshWithHandling();
+    return;
+  }
+
+  if (key === "f") {
+    event.preventDefault();
+    toggleFiltersPanel();
+    return;
+  }
+
+  if (key === "m") {
+    event.preventDefault();
+    toggleAudio();
+    return;
+  }
+
+  if (key === "1") {
+    event.preventDefault();
+    toggleQuickStatusFilter("blocked");
+    return;
+  }
+
+  if (key === "2") {
+    event.preventDefault();
+    toggleQuickStatusFilter("in_progress");
+    return;
+  }
+
+  if (key === "3") {
+    event.preventDefault();
+    toggleRecentWindowFilter(1);
+  }
+}
+
 function toggleFiltersPanel() {
   state.filtersOpen = !state.filtersOpen;
   persistPreferences();
@@ -2604,6 +2766,9 @@ function bindEvents() {
   elements.exportReportButton.addEventListener("click", exportReport);
   elements.muteButton.addEventListener("click", toggleAudio);
   elements.resetButton.addEventListener("click", clearAllFilters);
+  elements.quickBlockedButton?.addEventListener("click", () => toggleQuickStatusFilter("blocked"));
+  elements.quickActiveButton?.addEventListener("click", () => toggleQuickStatusFilter("in_progress"));
+  elements.quickRecentButton?.addEventListener("click", () => toggleRecentWindowFilter(1));
 
   elements.detailTabs.addEventListener("click", (event) => {
     const button = event.target.closest(".detail-tab");
@@ -2617,11 +2782,7 @@ function bindEvents() {
   elements.detailBackdrop.addEventListener("click", closeDetailDrawer);
   elements.detailCloseButton.addEventListener("click", closeDetailDrawer);
 
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !elements.detailShell.classList.contains("hidden")) {
-      closeDetailDrawer();
-    }
-  });
+  window.addEventListener("keydown", handleGlobalShortcuts);
 
   window.addEventListener("pointerdown", primeAudio, { passive: true });
   window.addEventListener("keydown", primeAudio);

@@ -1,5 +1,8 @@
 :root {
   color-scheme: dark;
+  --layout-sidebar-width: 360px;
+  --task-indent-step: 18px;
+  --task-indent-max: 96px;
   --bg: #030712;
   --panel: rgba(8, 16, 34, 0.84);
   --panel-strong: rgba(10, 21, 45, 0.96);
@@ -32,6 +35,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: clip;
   font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
   color: var(--text);
   background:
@@ -75,10 +79,39 @@ body.detail-open {
   overflow: hidden;
 }
 
+.skip-link {
+  position: fixed;
+  left: 14px;
+  top: 12px;
+  transform: translateY(-140%);
+  z-index: 60;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.42);
+  transition: transform 180ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
 }
 
 button {
@@ -107,6 +140,12 @@ button:active {
   transform: translateY(0);
 }
 
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(51, 209, 255, 0.72);
+  outline-offset: 2px;
+}
+
 button.ghost {
   background: rgba(148, 163, 184, 0.08);
   color: var(--text);
@@ -133,7 +172,7 @@ button.ghost {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, var(--layout-sidebar-width));
   gap: 18px;
   align-items: start;
 }
@@ -142,6 +181,7 @@ button.ghost {
 .workspace-side {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 
 .workspace-side {
@@ -185,7 +225,7 @@ button.ghost {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.8fr);
   gap: 24px;
   align-items: stretch;
   padding: 24px;
@@ -306,6 +346,7 @@ h3 {
   display: grid;
   gap: 14px;
   align-content: start;
+  min-width: 0;
 }
 
 .hero-buttons {
@@ -316,6 +357,25 @@ h3 {
 
 .hero-buttons button {
   padding-inline: 14px;
+}
+
+.hero-buttons a.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hero-buttons a.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(51, 209, 255, 0.25);
 }
 
 .live-panel {
@@ -401,6 +461,55 @@ h3 {
   gap: 10px;
 }
 
+.quick-jumps {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.08);
+  color: #dce8ff;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.quick-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quick-actions button[aria-pressed="true"] {
+  border-color: rgba(51, 209, 255, 0.34);
+  background: rgba(51, 209, 255, 0.16);
+}
+
+.control-shortcuts {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+kbd {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(5, 12, 24, 0.9);
+  color: #d8e3ff;
+}
+
 .active-filters {
   margin-top: 16px;
   display: flex;
@@ -451,6 +560,18 @@ h3 {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
+}
+
+.filters-head > *,
+.panel-head > *,
+.task-group-head > *,
+.signal-head > *,
+.agent-card-head > *,
+.task-event-head > *,
+.detail-head > *,
+.detail-section-head > *,
+.live-ribbon > * {
+  min-width: 0;
 }
 
 .filter-grid,
@@ -645,7 +766,7 @@ select:focus {
 
 .agent-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 18px;
   padding: 20px 22px;
   margin-bottom: 16px;
@@ -838,7 +959,7 @@ select:focus {
 }
 
 .overview-grid {
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.75fr);
   margin-bottom: 16px;
 }
 
@@ -1179,7 +1300,7 @@ select:focus {
 }
 
 .main-grid {
-  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.95fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.95fr);
   align-items: start;
 }
 
@@ -1366,7 +1487,8 @@ dd {
   background:
     radial-gradient(circle at top right, rgba(139, 92, 246, 0.09), transparent 28%),
     linear-gradient(180deg, rgba(9, 18, 37, 0.98), rgba(5, 11, 22, 0.96));
-  margin-left: calc(var(--task-depth, 0) * 18px);
+  margin-left: min(calc(var(--task-depth, 0) * var(--task-indent-step)), var(--task-indent-max));
+  min-width: 0;
 }
 
 .task-group::after {
@@ -1401,6 +1523,7 @@ dd {
   color: #dce8ff;
   line-height: 1.6;
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 .task-toggle {
@@ -1426,6 +1549,7 @@ dd {
 .task-events li {
   border-top: 1px solid rgba(148, 163, 184, 0.12);
   padding-top: 10px;
+  min-width: 0;
 }
 
 .task-events li:first-child {
@@ -1590,6 +1714,7 @@ dd {
 .detail-rich-notes {
   color: #dce8ff;
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 .detail-rich-notes > :first-child {
@@ -1730,6 +1855,32 @@ dd {
   word-break: break-word;
 }
 
+.badge,
+.hero-pill,
+.quick-link,
+.agent-name,
+.agent-role,
+.agent-now-title,
+.agent-now-meta,
+.task-title,
+.task-meta,
+.timeline-title,
+.signal-title,
+.signal-body,
+.signal-meta,
+.stage-lead-current,
+.stage-lead-meta,
+.stage-mini-name,
+.stage-mini-role,
+.stage-mini-now,
+.payload-preview,
+.live-event-title,
+.live-event-meta,
+.detail-summary-lead,
+.detail-meta-value {
+  overflow-wrap: anywhere;
+}
+
 .hidden {
   display: none !important;
 }
@@ -1802,6 +1953,11 @@ pre {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .task-group {
+    --task-indent-step: 14px;
+    --task-indent-max: 64px;
+  }
+
   .detail-shell {
     inset: 0;
     width: auto;
@@ -1845,6 +2001,7 @@ pre {
 
   .hero-buttons,
   .control-dock-actions,
+  .quick-actions,
   .panel-head,
   .task-group-head,
   .agent-card-head,
@@ -1877,6 +2034,18 @@ pre {
 
   .detail-tabs {
     grid-template-columns: 1fr;
+  }
+
+  .task-group {
+    margin-left: 0;
+  }
+
+  .task-children {
+    padding-left: 10px;
+  }
+
+  .task-group-badges {
+    justify-content: flex-start;
   }
 
   .toast-stack {

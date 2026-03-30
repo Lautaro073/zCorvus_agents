@@ -16,6 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTEXT_FILE = path.join(__dirname, "shared_context.jsonl");
 const MONITOR_DIR = path.resolve(__dirname, "..", "AgentMonitor");
+const PIXEL_WEBVIEW_DIR = path.resolve(__dirname, "..", "pixel-agents-zcorvus", "dist", "webview");
 const HTTP_HOST = process.env.MCP_MONITOR_HOST || "127.0.0.1";
 const HTTP_PORT = Number.parseInt(process.env.MCP_MONITOR_PORT || "4311", 10);
 const WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -517,6 +518,33 @@ async function serveStaticFile(requestPath, response) {
   }
 }
 
+async function servePixelWebview(requestPath, response) {
+  const rawPath = requestPath === "/pixel" || requestPath === "/pixel/" ? "/index.html" : requestPath.replace(/^\/pixel/, "") || "/index.html";
+  const safeRelativePath = rawPath.replace(/^\/+/, "");
+  const filePath = path.resolve(PIXEL_WEBVIEW_DIR, safeRelativePath);
+
+  if (!filePath.startsWith(PIXEL_WEBVIEW_DIR)) {
+    sendJson(response, 403, { error: "Forbidden" });
+    return;
+  }
+
+  try {
+    const fileData = await fs.readFile(filePath);
+    const extension = path.extname(filePath).toLowerCase();
+    response.writeHead(200, {
+      "Content-Type": MIME_TYPES[extension] || "application/octet-stream",
+      "Cache-Control": "no-store",
+    });
+    response.end(fileData);
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      sendJson(response, 404, { error: "Not found" });
+      return;
+    }
+    sendJson(response, 500, { error: "Failed to serve pixel webview asset" });
+  }
+}
+
 function rejectWebSocketConnection(socket, statusLine) {
   socket.write(`${statusLine}\r\nConnection: close\r\n\r\n`);
   socket.destroy();
@@ -582,6 +610,7 @@ async function handleHttpRequest(request, response) {
       ok: true,
       contextFile: CONTEXT_FILE,
       monitorDir: MONITOR_DIR,
+      pixelWebviewDir: PIXEL_WEBVIEW_DIR,
       websocketPath: "/ws",
     });
     return;
@@ -595,6 +624,11 @@ async function handleHttpRequest(request, response) {
 
   if (url.pathname === "/" || url.pathname === "/monitor" || url.pathname.startsWith("/monitor/") || url.pathname === "/app.js" || url.pathname === "/styles.css") {
     await serveStaticFile(url.pathname, response);
+    return;
+  }
+
+  if (url.pathname === "/pixel" || url.pathname.startsWith("/pixel/")) {
+    await servePixelWebview(url.pathname, response);
     return;
   }
 
