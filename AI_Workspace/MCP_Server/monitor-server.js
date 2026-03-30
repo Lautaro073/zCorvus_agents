@@ -8,10 +8,14 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTEXT_FILE = path.join(__dirname, "shared_context.jsonl");
-const MONITOR_DIR = path.resolve(__dirname, "..", "AgentMonitor");
+const LEGACY_MONITOR_DIR = path.resolve(__dirname, "..", "AgentMonitor");
+const MONITOR_V2_DIR = path.resolve(__dirname, "..", "agentmonitor-v2", "dist");
 const PIXEL_WEBVIEW_DIR = path.resolve(__dirname, "..", "pixel-agents-zcorvus", "dist", "webview");
 const HTTP_HOST = process.env.MCP_MONITOR_HOST || "127.0.0.1";
 const HTTP_PORT = Number.parseInt(process.env.MCP_MONITOR_PORT || "4311", 10);
+const MONITOR_UI_VARIANT = (process.env.MCP_MONITOR_UI_VARIANT || "v2").toLowerCase();
+const MONITOR_FALLBACK_TO_LEGACY =
+  (process.env.MCP_MONITOR_FALLBACK_TO_LEGACY || "true").toLowerCase() !== "false";
 const WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 const MIME_TYPES = {
@@ -25,6 +29,9 @@ const MIME_TYPES = {
 const websocketClients = new Set();
 let contextWatcher;
 let contextBroadcastTimer;
+let activeMonitorVariant = MONITOR_UI_VARIANT === "legacy" ? "legacy" : "v2";
+let activeMonitorDir =
+  activeMonitorVariant === "legacy" ? LEGACY_MONITOR_DIR : MONITOR_V2_DIR;
 
 function normalizeString(value) {
   if (typeof value !== "string") {
@@ -77,6 +84,34 @@ async function ensureContextFile() {
     await fs.access(CONTEXT_FILE);
   } catch {
     await fs.writeFile(CONTEXT_FILE, "", "utf-8");
+  }
+}
+
+async function pathExists(targetPath) {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveMonitorDirectory() {
+  if (activeMonitorVariant === "v2") {
+    const v2IndexFile = path.join(MONITOR_V2_DIR, "index.html");
+    const v2Ready = await pathExists(v2IndexFile);
+
+    if (!v2Ready && MONITOR_FALLBACK_TO_LEGACY) {
+      activeMonitorVariant = "legacy";
+      activeMonitorDir = LEGACY_MONITOR_DIR;
+      console.warn(
+        `[monitor-server] AgentMonitor V2 dist missing at ${v2IndexFile}. Falling back to legacy UI.`
+      );
+    }
+  }
+
+  if (activeMonitorVariant === "legacy") {
+    await fs.mkdir(activeMonitorDir, { recursive: true });
   }
 }
 
@@ -399,9 +434,9 @@ async function serveStaticFile(requestPath, response) {
       : requestPath.replace(/^\/monitor/, "") || "/index.html";
 
   const safeRelativePath = rawPath.replace(/^\/+/, "");
-  const filePath = path.resolve(MONITOR_DIR, safeRelativePath);
+  const filePath = path.resolve(activeMonitorDir, safeRelativePath);
 
-  if (!filePath.startsWith(MONITOR_DIR)) {
+  if (!filePath.startsWith(activeMonitorDir)) {
     sendJson(response, 403, { error: "Forbidden" });
     return;
   }
@@ -497,6 +532,7 @@ async function handleWebSocketUpgrade(request, socket) {
       "Upgrade: websocket",
       "Connection: Upgrade",
       `Sec-WebSocket-Accept: ${acceptValue}`,
+      "Access-Control-Allow-Origin: *",
       "\r\n",
     ].join("\r\n")
   );
@@ -539,7 +575,11 @@ async function handleHttpRequest(request, response) {
     sendJson(response, 200, {
       ok: true,
       contextFile: CONTEXT_FILE,
-      monitorDir: MONITOR_DIR,
+      monitorVariant: activeMonitorVariant,
+      monitorDir: activeMonitorDir,
+      monitorLegacyDir: LEGACY_MONITOR_DIR,
+      monitorV2Dir: MONITOR_V2_DIR,
+      monitorFallbackToLegacy: MONITOR_FALLBACK_TO_LEGACY,
       pixelWebviewDir: PIXEL_WEBVIEW_DIR,
       websocketPath: "/ws",
     });
@@ -554,18 +594,27 @@ async function handleHttpRequest(request, response) {
     return;
   }
 
-  if (
+  const isMonitorPath =
     url.pathname === "/" ||
     url.pathname === "/monitor" ||
     url.pathname.startsWith("/monitor/") ||
     url.pathname === "/app.js" ||
-    url.pathname === "/styles.css"
-  ) {
+    url.pathname === "/styles.css" ||
+    url.pathname.startsWith("/assets/") ||
+    url.pathname === "/favicon.svg" ||
+    url.pathname === "/icons.svg";
+
+  if (isMonitorPath) {
     await serveStaticFile(url.pathname, response);
     return;
   }
 
-  if (url.pathname === "/pixel" || url.pathname === "/pixel/" || url.pathname.startsWith("/pixel/") ||url.pathname.startsWith("/pixel")) {
+  if (
+    url.pathname === "/pixel" ||
+    url.pathname === "/pixel/" ||
+    url.pathname.startsWith("/pixel/") ||
+    url.pathname.startsWith("/pixel")
+  ) {
     await servePixelWebview(url.pathname, response);
     return;
   }
@@ -575,7 +624,7 @@ async function handleHttpRequest(request, response) {
 
 async function startHttpServer() {
   await ensureContextFile();
-  await fs.mkdir(MONITOR_DIR, { recursive: true });
+  await resolveMonitorDirectory();
 
   const httpServer = createServer((request, response) => {
     handleHttpRequest(request, response).catch((error) => {
@@ -598,6 +647,7 @@ async function startHttpServer() {
 
   startContextWatcher();
   console.error(`Agent monitor available at http://${HTTP_HOST}:${HTTP_PORT}/monitor`);
+  console.error(`[monitor-server] UI variant: ${activeMonitorVariant} (${activeMonitorDir})`);
 }
 
 async function main() {

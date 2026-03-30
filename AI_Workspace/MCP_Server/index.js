@@ -571,6 +571,7 @@ async function handleWebSocketUpgrade(request, socket) {
     "Upgrade: websocket",
     "Connection: Upgrade",
     `Sec-WebSocket-Accept: ${acceptValue}`,
+    "Access-Control-Allow-Origin: *",
     "\r\n",
   ].join("\r\n"));
 
@@ -597,8 +598,22 @@ async function handleWebSocketUpgrade(request, socket) {
   }
 }
 
+function setCorsHeaders(response) {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 async function handleHttpRequest(request, response) {
+  setCorsHeaders(response);
+  
   const url = new URL(request.url || "/", `http://${request.headers.host || `${HTTP_HOST}:${HTTP_PORT}`}`);
+
+  if (request.method === "OPTIONS") {
+    response.writeHead(204);
+    response.end();
+    return;
+  }
 
   if (request.method !== "GET") {
     sendJson(response, 405, { error: "Method not allowed" });
