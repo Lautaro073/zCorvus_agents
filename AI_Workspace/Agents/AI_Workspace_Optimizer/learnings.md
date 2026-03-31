@@ -53,3 +53,15 @@ When installing skills from skills.sh, ALWAYS ask Orchestrator which agent shoul
 - `monitor-server.js` must route root static assets to the active monitor UI directory while still keeping `/pixel/*` mapped to pixel webview.
 - A server-side variant flag (`MCP_MONITOR_UI_VARIANT`) plus fallback-to-legacy guard keeps `/monitor` resilient when V2 dist is missing.
 - Trailing slash is a runtime hazard: if `/monitor/` is not explicitly mapped to `/index.html`, server can attempt `readFile` on the monitor directory and return HTTP 500.
+
+## Token & Context Optimization
+
+### Baseline heuristics that proved useful
+
+- `shared_context.jsonl` byte size gives a practical token proxy (`~bytes/4`) when provider-level token telemetry is unavailable.
+- Measuring both `get_events` payload and `/api/events` payload is key: `/api/events` can be >2x heavier because task groups may embed full nested event arrays.
+
+### High-ROI reduction pattern
+
+- For monitor/API calls, returning `tasks` summary without nested `task.events` preserves UX while cutting payload size significantly.
+- Canonical field duplication (`taskId`, `assignedTo`, `status`, etc.) at top-level + payload is measurable overhead and should be normalized at write-time.
