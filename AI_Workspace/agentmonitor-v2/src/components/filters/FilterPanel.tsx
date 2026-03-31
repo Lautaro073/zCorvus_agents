@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { SearchBar } from './SearchBar';
 import { QuickFilters } from './QuickFilters';
 import { FilterPresets } from './FilterPresets';
+import { DEFAULT_FILTERS, type FilterState } from './filterState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -33,50 +34,29 @@ const STATUSES: McpStatus[] = [
 ];
 
 interface FilterPanelProps {
+  value: FilterState;
   onFilterChange: (filters: FilterState) => void;
 }
 
-export interface FilterState {
-  agent: AgentName | null;
-  status: McpStatus | null;
-  searchQuery: string;
-  quickFilters: string[];
-}
-
-const DEFAULT_FILTERS: FilterState = {
-  agent: null,
-  status: null,
-  searchQuery: '',
-  quickFilters: [],
-};
-
-export function FilterPanel({ onFilterChange }: FilterPanelProps) {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+export function FilterPanel({ value, onFilterChange }: FilterPanelProps) {
+  const filters = value;
 
   const updateFilter = useCallback(<K extends keyof FilterState>(
     key: K,
     value: FilterState[K]
   ) => {
-    setFilters((prev) => {
-      const updated = { ...prev, [key]: value };
-      onFilterChange(updated);
-      return updated;
-    });
-  }, [onFilterChange]);
+    const updated = { ...filters, [key]: value };
+    onFilterChange(updated);
+  }, [filters, onFilterChange]);
 
   const toggleQuickFilter = useCallback((filterId: string) => {
-    setFilters((prev) => {
-      const quickFilters = prev.quickFilters.includes(filterId)
-        ? prev.quickFilters.filter((f) => f !== filterId)
-        : [...prev.quickFilters, filterId];
-      const updated = { ...prev, quickFilters };
-      onFilterChange(updated);
-      return updated;
-    });
-  }, [onFilterChange]);
+    const quickFilters = filters.quickFilters.includes(filterId)
+      ? filters.quickFilters.filter((filter) => filter !== filterId)
+      : [...filters.quickFilters, filterId];
+    onFilterChange({ ...filters, quickFilters });
+  }, [filters, onFilterChange]);
 
   const resetFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
     onFilterChange(DEFAULT_FILTERS);
   }, [onFilterChange]);
 
@@ -87,7 +67,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
     filters.quickFilters.length > 0;
 
   return (
-    <Card>
+    <Card data-testid="settings-filter-panel">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Filtros</CardTitle>
@@ -106,17 +86,18 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
               value={filters.searchQuery}
               onChange={(value) => updateFilter('searchQuery', value)}
               placeholder="Buscar por taskId o correlationId..."
+              dataTestId="settings-search-query"
             />
           </div>
           <Select
-            value={filters.agent || ''}
-            onValueChange={(value) => updateFilter('agent', (value as AgentName) || null)}
+            value={filters.agent ?? 'all'}
+            onValueChange={(value) => updateFilter('agent', value === 'all' ? null : (value as AgentName))}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]" data-testid="settings-agent-select">
               <SelectValue placeholder="Todos los agentes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los agentes</SelectItem>
+              <SelectItem value="all">Todos los agentes</SelectItem>
               {AGENTS.map((agent) => (
                 <SelectItem key={agent} value={agent}>
                   {agent}
@@ -125,14 +106,14 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
             </SelectContent>
           </Select>
           <Select
-            value={filters.status || ''}
-            onValueChange={(value) => updateFilter('status', (value as McpStatus) || null)}
+            value={filters.status ?? 'all'}
+            onValueChange={(value) => updateFilter('status', value === 'all' ? null : (value as McpStatus))}
           >
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]" data-testid="settings-status-select">
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los estados</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
               {STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.replace('TASK_', '').replace('INCIDENT_', '').replace('TEST_', '')}
@@ -150,13 +131,12 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
                 searchQuery: preset.searchQuery,
                 quickFilters: preset.quickFilters,
               };
-              setFilters(updatedFilters);
               onFilterChange(updatedFilters);
             }}
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" data-testid="settings-quick-filters">
           <div className="text-sm text-muted-foreground">Filtros rapidos</div>
           <QuickFilters
             activeFilters={new Set(filters.quickFilters)}

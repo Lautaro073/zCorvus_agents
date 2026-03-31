@@ -1,7 +1,6 @@
-import { formatDistanceToNowStrict } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { AlertCircle, Ban, FlaskConical, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatRelativeTime } from '@/lib/timestamp';
 import type { AlertGroupModel, AlertSeverity } from './types';
 
 const severityMeta: Record<AlertSeverity, { label: string; icon: LucideIcon; dotClass: string }> = {
@@ -18,13 +17,11 @@ interface AlertItemProps {
 export function AlertItem({ alert, onOpen }: AlertItemProps) {
   const meta = severityMeta[alert.severity];
   const Icon = meta.icon;
-  const age = formatDistanceToNowStrict(new Date(alert.latest.timestamp), {
-    addSuffix: true,
-    locale: es,
-  });
+  const age = formatRelativeTime(alert.latest.timestamp);
 
   return (
     <button
+      data-testid="critical-alert-item"
       onClick={() => onOpen(alert)}
       className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent"
     >

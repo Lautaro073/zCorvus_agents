@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,23 @@ interface QuickResolveProps {
 }
 
 export function QuickResolve({ alert, onClose }: QuickResolveProps) {
+  const [copyState, setCopyState] = useState<{
+    state: 'idle' | 'success' | 'error';
+    taskId: string | null;
+  }>({ state: 'idle', taskId: null });
+
+  useEffect(() => {
+    if (copyState.state === 'idle') {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setCopyState({ state: 'idle', taskId: copyState.taskId }),
+      1400
+    );
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
   const details = useMemo(() => {
     if (!alert) {
       return null;
@@ -42,6 +59,7 @@ export function QuickResolve({ alert, onClose }: QuickResolveProps) {
             onClick={onClose}
           />
           <motion.aside
+            data-testid="quick-resolve-panel"
             initial={{ x: 360, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 360, opacity: 0 }}
@@ -83,13 +101,27 @@ export function QuickResolve({ alert, onClose }: QuickResolveProps) {
               ) : null}
 
               <Button
+                data-testid="quick-resolve-copy-task"
                 className="w-full gap-2"
                 variant="secondary"
-                onClick={() => navigator.clipboard.writeText(details.taskId)}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(details.taskId);
+                    setCopyState({ state: 'success', taskId: details.taskId });
+                  } catch {
+                    setCopyState({ state: 'error', taskId: details.taskId });
+                  }
+                }}
               >
                 <Copy className="h-4 w-4" />
                 Copiar taskId
               </Button>
+              {copyState.state === 'success' && copyState.taskId === details.taskId ? (
+                <p className="text-xs text-emerald-600" data-testid="quick-resolve-copy-feedback">taskId copiado</p>
+              ) : null}
+              {copyState.state === 'error' && copyState.taskId === details.taskId ? (
+                <p className="text-xs text-destructive" data-testid="quick-resolve-copy-feedback">no se pudo copiar</p>
+              ) : null}
             </div>
           </motion.aside>
         </>

@@ -3,17 +3,17 @@ import { expect, test } from '@playwright/test'
 test('filter controls expose expected status options', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByPlaceholder('Search by task ID or message...')).toBeVisible()
+  await expect(page.getByTestId('timeline-search-input')).toBeVisible()
 
-  await expect(page.getByRole('button', { name: 'Assigned', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'In Progress', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Completed', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Blocked', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Passed', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Failed', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Incident', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Artifacts', exact: true })).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TASK_ASSIGNED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TASK_IN_PROGRESS')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TASK_COMPLETED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TASK_BLOCKED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TEST_PASSED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-TEST_FAILED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-INCIDENT_OPENED')).toBeVisible()
+  await expect(page.getByTestId('timeline-filter-ARTIFACT_PUBLISHED')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Incident', exact: true }).click()
+  await page.getByTestId('timeline-filter-INCIDENT_OPENED').click()
   await expect(page.getByText('INCIDENT_OPENED').first()).toBeVisible()
 })

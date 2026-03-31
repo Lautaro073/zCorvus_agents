@@ -9,3 +9,4 @@
 - Checklist minimo requerido: `playwright.config` robusto, proyectos cross-browser, specs por flujo critico, dataset deterministico, artifacts (trace/screenshots/video/report), y comandos separados smoke/regression/visual.
 - Prevencion futura: Si falta cualquiera de esos prerrequisitos, publicar `TASK_BLOCKED` + `SUBTASK_REQUESTED` a Orchestrator con el gap exacto.
 - Eficiencia de tokens: Apenas se lee la task, si faltan recursos/infra para testear (config, fixtures, dataset, server, permisos, artefactos), bloquear de inmediato y pedir subtask a Orchestrator sin ejecutar intentos parciales.
+- Ejecucion autonoma QA: Tester puede crear/ajustar tests y scripts de Playwright directamente para validar hipotesis y producir evidencia reproducible, sin depender de otro agente para escribirlos.

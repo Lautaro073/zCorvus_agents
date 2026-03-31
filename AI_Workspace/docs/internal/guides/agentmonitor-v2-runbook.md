@@ -1,12 +1,12 @@
 # AgentMonitor V2 Runbook
 
 ## Metadata
-- taskId: `aiw-documenter-v2-doc-delta-20260330-01`
+- taskId: `aiw-documenter-v2-doc-delta-final-20260331-01`
 - correlationId: `aiw-agentmonitor-v2-20260330`
 - docType: `runbook`
 - featureSlug: `agentmonitor-v2`
 - owner: `Documenter`
-- updatedAt: `2026-03-30 (delta update)`
+- updatedAt: `2026-03-31 (final delta update)`
 
 ## Purpose
 Operational guide for running, validating, and troubleshooting AgentMonitor V2 (`agentmonitor-v2/`).
@@ -39,20 +39,18 @@ npm start
 ```
 Default MCP URL: `http://127.0.0.1:4311`
 
-## 2) Endpoint alignment check (critical)
-Current V2 code targets:
-- HTTP: `http://localhost:3001/api/events`
-- WS: `ws://localhost:3001/ws`
+## 2) Endpoint strategy (same-origin by default)
+Current V2 endpoint resolution is centralized in `agentmonitor-v2/src/lib/mcpEndpoints.ts`.
 
-Current MCP default is `4311`.
+Default behavior:
+- API: `/api` (same-origin)
+- WebSocket: `ws(s)://<current-host>/ws`
 
-Before running with live data, align endpoint config with one of these options:
-1. Provide MCP-compatible service on `3001`.
-2. Update V2 constants in:
-   - `agentmonitor-v2/src/hooks/useMcpEvents.ts`
-   - `agentmonitor-v2/src/lib/wsClient.ts`
+Optional overrides:
+- `VITE_MCP_HTTP_BASE`
+- `VITE_MCP_WS_URL`
 
-If not aligned, V2 can still render with fallback events but will not represent live MCP stream.
+For `/monitor` runtime, this default same-origin strategy is the recommended mode.
 
 ## 3) `/monitor` routing and fallback controls
 
@@ -66,6 +64,9 @@ If not aligned, V2 can still render with fallback events but will not represent 
 1. If variant is `v2` and V2 dist exists, `/monitor` serves `agentmonitor-v2/dist`.
 2. If V2 dist is missing and fallback is enabled, `/monitor` falls back to legacy `AgentMonitor/`.
 3. `/pixel` remains independent and is still served by pixel webview routing.
+
+### Proven reference
+- `docs/internal/reports/aiw-optimizer-v2-monitor-route-report-20260330.md`
 
 ### Verification commands
 ```bash
@@ -84,14 +85,23 @@ Expected:
 - `/monitor` returns 200 and serves current configured variant.
 - `/pixel` returns 200 and remains available.
 
-## 4) Build and preview
+## 4) Final fixes covered in this runbook delta
+
+This runbook includes final post-QA fixes validated in the latest rechecks:
+
+1. Same-origin endpoint strategy and stable `/monitor` runtime.
+2. Invalid timestamp handling with safe fallbacks (`sin fecha`) via `lib/timestamp.ts`.
+3. KPI/chart synchronization via status normalization (`lib/mcpStatus.ts`).
+4. Clickable UX hardening (sidebar/header/timeline/task-groups) and notifications with toast controls and dedupe/throttle.
+
+## 5) Build and preview
 ```bash
 cd agentmonitor-v2
 npm run build
 npm run preview
 ```
 
-## 5) QA and E2E execution
+## 6) QA and E2E execution
 
 ### Install Playwright browsers (first time)
 ```bash
@@ -104,6 +114,12 @@ npx playwright install chromium firefox webkit
 npm run test:e2e:smoke
 npm run test:e2e:regression
 npm run test:e2e:visual
+```
+
+### Final delta recheck commands
+```bash
+npx playwright test tests/e2e/clickable-gaps.spec.ts tests/e2e/notifications-toast.spec.ts
+npx vitest run src/hooks/useDashboardMetrics.test.tsx
 ```
 
 ### Optional full suite
@@ -119,10 +135,12 @@ npm run test:e2e:headed
 
 ### Current validated evidence
 - QA final report: `docs/internal/reports/aiw-tester-v2-test-01-final-report-20260330.md`
+- UX clickable + notifications recheck: `docs/internal/reports/aiw-tester-v2-ux-clickable-notifications-recheck-report-20260331.md`
+- Metrics desync recheck: `docs/internal/reports/aiw-tester-v2-metrics-desync-recheck-report-20260331.md`
 - HTML report: `agentmonitor-v2/playwright-report/index.html`
 - Visual snapshots: `agentmonitor-v2/tests/e2e/visual.spec.ts-snapshots/`
 
-## 6) Performance checks
+## 7) Performance checks
 ```bash
 cd agentmonitor-v2
 npm run build
@@ -138,14 +156,14 @@ npm run perf:lighthouse
 Perf baseline and budgets reference:
 - `docs/internal/reports/aiw-optimizer-agentmonitor-v2-perf-report.md`
 
-## 7) Troubleshooting
+## 8) Troubleshooting
 
 ### Issue: App loads but no live events
 Symptoms:
 - dashboard renders data but does not react to new MCP events.
 
 Checks:
-1. Verify endpoint alignment (3001 vs 4311).
+1. Verify endpoint resolution from `mcpEndpoints.ts` and active env overrides.
 2. Confirm MCP health endpoint:
    - `http://127.0.0.1:4311/api/health`
 3. Confirm WS endpoint availability:
@@ -158,6 +176,23 @@ Checks:
    - `VITE_E2E_USE_FIXTURES=true`
 2. Re-run tests sequentially (avoid port collisions).
 3. Use `npm run test:e2e:headed` for visual debugging.
+
+### Issue: KPI cards and charts diverge
+Checks:
+1. Verify status normalization helper `lib/mcpStatus.ts` is used by both `useDashboardMetrics` and `useMetricsAggregations`.
+2. Verify timestamp helper `lib/timestamp.ts` is used where sorting or bucketing happens.
+3. Re-run:
+   - `npx vitest run src/hooks/useDashboardMetrics.test.tsx`
+   - `npm run test:e2e:regression`
+
+### Issue: Notifications flood or duplicate
+Checks:
+1. Verify header constants:
+   - `TOAST_LIMIT`
+   - `TOAST_THROTTLE_MS`
+2. Check toast controls in notifications popover (toggle, pause, severity filter).
+3. Re-run dedicated tests:
+   - `npx playwright test tests/e2e/notifications-toast.spec.ts`
 
 ### Issue: Performance budget fails
 Checks:
@@ -185,23 +220,27 @@ Checks:
 2. Confirm pixel webview dist path is present in monitor server health output.
 3. Ensure route testing uses `/pixel/` and not `/monitor/pixel`.
 
-## 8) Operational checklist
+## 9) Operational checklist
 - [ ] `npm install` completed in `agentmonitor-v2/`
 - [ ] `npm run dev` starts without errors
 - [ ] MCP server is up and reachable
-- [ ] Endpoint ports are aligned (3001 or adjusted config)
+- [ ] Endpoint strategy is same-origin or explicit overrides are configured
 - [ ] `/monitor` responds with expected variant (v2 or legacy)
 - [ ] `/pixel/` responds correctly after monitor startup
 - [ ] `npm run build` passes
 - [ ] `npm run test:e2e:smoke` passes
 - [ ] `npm run test:e2e:regression` passes
 - [ ] `npm run test:e2e:visual` passes
+- [ ] `npx playwright test tests/e2e/clickable-gaps.spec.ts tests/e2e/notifications-toast.spec.ts` passes
+- [ ] `npx vitest run src/hooks/useDashboardMetrics.test.tsx` passes
 - [ ] `npm run perf:budget` passes
 
-## 9) Related documents
+## 10) Related documents
 - Architecture spec: `docs/internal/specs/agentmonitor-v2-architecture.md`
 - API reference: `docs/api/mcp-events-schema.md`
 - V2 plan: `docs/internal/plans/aiw-agentmonitor-v2-plan-20260330.md`
 - Tester report: `docs/internal/reports/aiw-tester-v2-test-01-final-report-20260330.md`
+- UX clickable recheck: `docs/internal/reports/aiw-tester-v2-ux-clickable-notifications-recheck-report-20260331.md`
+- Metrics desync recheck: `docs/internal/reports/aiw-tester-v2-metrics-desync-recheck-report-20260331.md`
 - Optimizer perf report: `docs/internal/reports/aiw-optimizer-agentmonitor-v2-perf-report.md`
 - Monitor route switch report: `docs/internal/reports/aiw-optimizer-v2-monitor-route-report-20260330.md`

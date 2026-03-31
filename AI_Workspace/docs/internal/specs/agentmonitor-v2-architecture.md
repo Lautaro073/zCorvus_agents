@@ -1,12 +1,12 @@
 # AgentMonitor V2 Architecture Spec
 
 ## Metadata
-- taskId: `aiw-documenter-v2-doc-delta-20260330-01`
+- taskId: `aiw-documenter-v2-doc-delta-final-20260331-01`
 - correlationId: `aiw-agentmonitor-v2-20260330`
 - docType: `spec`
 - featureSlug: `agentmonitor-v2`
 - owner: `Documenter`
-- updatedAt: `2026-03-30 (delta update)`
+- updatedAt: `2026-03-31 (final delta update)`
 
 ## Scope
 This spec documents the implemented architecture of AgentMonitor V2 in `agentmonitor-v2/`.
@@ -17,16 +17,23 @@ It reflects the current code and QA artifacts, not the intended target state fro
 - `agentmonitor-v2/src/App.tsx`
 - `agentmonitor-v2/src/hooks/useMcpEvents.ts`
 - `agentmonitor-v2/src/lib/wsClient.ts`
+- `agentmonitor-v2/src/lib/mcpEndpoints.ts`
+- `agentmonitor-v2/src/lib/mcpStatus.ts`
+- `agentmonitor-v2/src/lib/timestamp.ts`
 - `agentmonitor-v2/src/store/monitorStore.ts`
 - `agentmonitor-v2/src/types/mcp.ts`
 - `agentmonitor-v2/src/components/agentStage/AgentAvatar.tsx`
 - `agentmonitor-v2/src/index.css`
+- `agentmonitor-v2/src/components/layout/Sidebar.tsx`
+- `agentmonitor-v2/src/components/layout/Header.tsx`
 - `agentmonitor-v2/playwright.config.ts`
 - `MCP_Server/monitor-server.js`
 - `docs/api/mcp-events-schema.md`
 - `docs/internal/reports/aiw-optimizer-agentmonitor-v2-perf-report.md`
 - `docs/internal/reports/aiw-optimizer-v2-monitor-route-report-20260330.md`
 - `docs/internal/reports/aiw-tester-v2-test-01-final-report-20260330.md`
+- `docs/internal/reports/aiw-tester-v2-ux-clickable-notifications-recheck-report-20260331.md`
+- `docs/internal/reports/aiw-tester-v2-metrics-desync-recheck-report-20260331.md`
 
 ## High-level architecture
 
@@ -54,25 +61,35 @@ It reflects the current code and QA artifacts, not the intended target state fro
 - Status semantics include animated states (`idle`, `active`, `in-progress`, `blocked`, `completed`, `failed`, `pending`).
 - Motion behavior is centralized in CSS keyframes in `src/index.css` with reduced-motion support.
 - User-facing fallback copy in `src/App.tsx` is localized to Spanish.
+- Sidebar navigation is hash-driven and explicitly clickable (`Sidebar.tsx` with section anchors and active state).
+- Header search exposes realtime result count feedback and notification controls (`Header.tsx`).
 
 ## Data flow and connectivity
 
 ### Current V2 client flow
-1. Initial data fetch in `useMcpEvents` uses `GET http://localhost:3001/api/events`.
-2. Realtime updates use `ws://localhost:3001/ws` via `WebSocketClient`.
+1. Initial data fetch in `useMcpEvents` uses `GET /api/events` by default.
+2. Realtime updates use same-origin `ws(s)://<host>/ws` by default via `WebSocketClient`.
 3. New events are appended to Zustand and React Query cache.
 4. Dashboard metrics are derived client-side from in-memory events.
 
-### Important integration note
-The MCP server in `MCP_Server/index.js` defaults to port `4311`, while V2 client code currently targets `3001`.
-This is an explicit runtime alignment requirement for local/dev deployment:
-- either expose MCP-compatible API/WS on `3001`,
-- or update V2 endpoint constants to match `4311`.
+### Endpoint strategy
+Endpoint resolution is centralized in `src/lib/mcpEndpoints.ts`:
+- API base default: `/api` (same-origin)
+- WS default: protocol-aware same-origin `/ws`
+- Optional overrides:
+  - `VITE_MCP_HTTP_BASE`
+  - `VITE_MCP_WS_URL`
+
+This removes hardcoded cross-origin defaults and stabilizes runtime access from `/monitor`.
 
 ### Fixture mode for deterministic tests
 When `VITE_E2E_USE_FIXTURES=true`:
 - network fetch and websocket dependency are bypassed in `useMcpEvents`,
 - tests execute against deterministic data paths.
+
+### Data quality guards
+- Invalid timestamps are normalized through `lib/timestamp.ts` helper functions with safe fallbacks.
+- Event status values are normalized through `lib/mcpStatus.ts` to handle lowercase and alias forms (for example `in_progress` -> `TASK_IN_PROGRESS`).
 
 ## Serving architecture (`/monitor` and `/pixel`)
 
@@ -83,6 +100,9 @@ When `VITE_E2E_USE_FIXTURES=true`:
 - `/monitor` serves **AgentMonitor V2** by default from `agentmonitor-v2/dist`.
 - `/pixel` remains served from pixel webview dist and is not replaced by V2.
 - `/api/events`, `/api/health`, and `/ws` remain part of the same monitor server runtime.
+
+### Runtime stability detail
+The route switch keeps `/monitor` and `/pixel` independently reachable while exposing monitor variant diagnostics in `/api/health`.
 
 ### Variant and fallback controls
 - `MCP_MONITOR_UI_VARIANT=v2|legacy` (default `v2`)
@@ -157,15 +177,24 @@ Reported status in perf artifact: PASS.
   - `npm run test:e2e:regression`
   - `npm run test:e2e:visual`
 
+### Final QA delta verification
+- UX clickable + notifications recheck:
+  - command: `npx playwright test tests/e2e/clickable-gaps.spec.ts tests/e2e/notifications-toast.spec.ts`
+  - result: 6/6 passed across chromium/firefox/webkit
+- Metrics desync recheck:
+  - KPI and sparkline synchronization validated after status normalization
+  - regression and unit checks reported as passed
+
 ### QA evidence
 - final QA report: `docs/internal/reports/aiw-tester-v2-test-01-final-report-20260330.md`
+- ux clickable + notifications report: `docs/internal/reports/aiw-tester-v2-ux-clickable-notifications-recheck-report-20260331.md`
+- metrics desync recheck report: `docs/internal/reports/aiw-tester-v2-metrics-desync-recheck-report-20260331.md`
 - html report: `agentmonitor-v2/playwright-report/index.html`
 - visual snapshots: `agentmonitor-v2/tests/e2e/visual.spec.ts-snapshots/`
 
 ## Known constraints
 - V2 currently uses fallback sample events when no live stream is available.
 - WS message envelope from MCP (`events_updated` + `latestEvent`) must stay aligned with V2 client parsing strategy.
-- API/WS host-port alignment is required before production rollout.
 - `/monitor` variant behavior depends on env flags and V2 dist presence at runtime.
 
 ## Non-goals

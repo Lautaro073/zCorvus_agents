@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useMonitorStore } from '@/store/monitorStore';
 import type { AgentName, McpStatus } from '@/types/mcp';
+import { getTimestampMs } from '@/lib/timestamp';
+import { getNormalizedEventStatus } from '@/lib/mcpStatus';
 
 export interface AgentThroughput {
   agent: AgentName;
@@ -43,7 +45,7 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
 
   const filteredEvents = useMemo(() => {
     const referenceTimestamp = events.reduce((latest, event) => {
-      const eventTime = new Date(event.timestamp).getTime();
+      const eventTime = getTimestampMs(event.timestamp) ?? Number.NEGATIVE_INFINITY;
       return eventTime > latest ? eventTime : latest;
     }, 0);
 
@@ -52,7 +54,10 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
     }
 
     const cutoff = referenceTimestamp - getTimeRangeMs(timeRange);
-    return events.filter((e) => new Date(e.timestamp).getTime() > cutoff);
+    return events.filter((event) => {
+      const eventTime = getTimestampMs(event.timestamp);
+      return eventTime !== null && eventTime > cutoff;
+    });
   }, [events, timeRange]);
 
   const throughputByAgent = useMemo((): AgentThroughput[] => {
@@ -65,7 +70,7 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
       }
       const stats = agentMap.get(agent)!;
       stats.total++;
-      if (event.status === 'TASK_COMPLETED') {
+      if (getNormalizedEventStatus(event) === 'TASK_COMPLETED') {
         stats.completed++;
       }
     });
@@ -87,30 +92,39 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
         taskMap.set(taskId, { start: event.timestamp, agent: event.agent as AgentName, end: '' });
       }
       const task = taskMap.get(taskId)!;
-      if (event.type === 'TASK_IN_PROGRESS' && !task.start) {
+      if (getNormalizedEventStatus(event) === 'TASK_IN_PROGRESS' && !task.start) {
         task.start = event.timestamp;
         task.agent = (event.assignedTo || event.agent) as AgentName;
       }
-      if (event.status === 'TASK_COMPLETED') {
+      if (getNormalizedEventStatus(event) === 'TASK_COMPLETED') {
         task.end = event.timestamp;
       }
     });
 
     return Array.from(taskMap.entries())
       .filter(([, task]) => task.start && task.end)
-      .map(([taskId, task]) => ({
-        taskId,
-        agent: task.agent,
-        duration: new Date(task.end!).getTime() - new Date(task.start).getTime(),
-        completedAt: task.end!,
-      }));
+      .map(([taskId, task]) => {
+        const startTime = getTimestampMs(task.start);
+        const endTime = getTimestampMs(task.end);
+        if (startTime === null || endTime === null) {
+          return null;
+        }
+
+        return {
+          taskId,
+          agent: task.agent,
+          duration: endTime - startTime,
+          completedAt: task.end,
+        };
+      })
+      .filter((task): task is CycleTimeData => task !== null);
   }, [filteredEvents]);
 
   const statusDistribution = useMemo((): StatusDistribution[] => {
     const statusMap = new Map<McpStatus, number>();
 
     filteredEvents.forEach((event) => {
-      const status = (event.status || event.type.replace('TASK_', 'TASK_')) as McpStatus;
+      const status = getNormalizedEventStatus(event) as McpStatus;
       statusMap.set(status, (statusMap.get(status) || 0) + 1);
     });
 
@@ -123,7 +137,7 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
     const agentMap = new Map<AgentName, { blockedCount: number; blockedTasks: string[] }>();
 
     filteredEvents.forEach((event) => {
-      if (event.status === 'TASK_BLOCKED') {
+      if (getNormalizedEventStatus(event) === 'TASK_BLOCKED') {
         const agent = (event.assignedTo || event.agent) as AgentName;
         if (!agentMap.has(agent)) {
           agentMap.set(agent, { blockedCount: 0, blockedTasks: [] });
@@ -145,9 +159,11 @@ export function useMetricsAggregations(timeRange: TimeRange = '1h') {
 
   const summaryMetrics = useMemo(() => {
     const total = filteredEvents.length;
-    const completed = filteredEvents.filter((e) => e.status === 'TASK_COMPLETED').length;
-    const blocked = filteredEvents.filter((e) => e.status === 'TASK_BLOCKED').length;
-    const inProgress = filteredEvents.filter((e) => e.status === 'TASK_IN_PROGRESS').length;
+    const completed = filteredEvents.filter((event) => getNormalizedEventStatus(event) === 'TASK_COMPLETED').length;
+    const blocked = filteredEvents.filter((event) => getNormalizedEventStatus(event) === 'TASK_BLOCKED').length;
+    const inProgress = filteredEvents.filter(
+      (event) => getNormalizedEventStatus(event) === 'TASK_IN_PROGRESS'
+    ).length;
 
     return {
       total,

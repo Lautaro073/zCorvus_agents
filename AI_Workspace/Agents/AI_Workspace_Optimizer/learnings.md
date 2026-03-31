@@ -52,3 +52,4 @@ When installing skills from skills.sh, ALWAYS ask Orchestrator which agent shoul
 - AgentMonitor V2 build emits absolute asset paths (`/assets/*`, `/favicon.svg`), so serving only `/monitor/*` is insufficient.
 - `monitor-server.js` must route root static assets to the active monitor UI directory while still keeping `/pixel/*` mapped to pixel webview.
 - A server-side variant flag (`MCP_MONITOR_UI_VARIANT`) plus fallback-to-legacy guard keeps `/monitor` resilient when V2 dist is missing.
+- Trailing slash is a runtime hazard: if `/monitor/` is not explicitly mapped to `/index.html`, server can attempt `readFile` on the monitor directory and return HTTP 500.

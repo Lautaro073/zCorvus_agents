@@ -1,11 +1,22 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Hero } from '@/components/dashboard/Hero';
 import { SummaryGrid } from '@/components/dashboard/SummaryGrid';
+import { FilterPanel } from '@/components/filters/FilterPanel';
+import { DEFAULT_FILTERS, type FilterState } from '@/components/filters/filterState';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useMcpEvents } from '@/hooks/useMcpEvents';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
+import { getNormalizedEventStatus } from '@/lib/mcpStatus';
+import { formatRelativeTime, formatShortTime } from '@/lib/timestamp';
 import type { AgentName, McpEvent } from '@/types/mcp';
-import type { FilterState } from '@/components/filters/FilterPanel';
 
 const AgentStage = lazy(async () => {
   const mod = await import('@/components/agentStage/AgentStage');
@@ -27,12 +38,30 @@ const TaskGroups = lazy(async () => {
   return { default: mod.TaskGroups };
 });
 
-const DEFAULT_GROUP_FILTERS: FilterState = {
-  agent: null,
-  status: null,
-  searchQuery: '',
-  quickFilters: [],
-};
+const SETTINGS_FILTERS_STORAGE_KEY = 'monitor-settings-filters-v2';
+
+function loadSettingsFilters(): FilterState {
+  if (typeof window === 'undefined') {
+    return { ...DEFAULT_FILTERS };
+  }
+
+  const saved = window.localStorage.getItem(SETTINGS_FILTERS_STORAGE_KEY);
+  if (!saved) {
+    return { ...DEFAULT_FILTERS };
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Partial<FilterState>;
+    return {
+      agent: parsed.agent ?? null,
+      status: parsed.status ?? null,
+      searchQuery: parsed.searchQuery ?? '',
+      quickFilters: Array.isArray(parsed.quickFilters) ? parsed.quickFilters : [],
+    };
+  } catch {
+    return { ...DEFAULT_FILTERS };
+  }
+}
 
 const fallbackEvents: McpEvent[] = [
   {
@@ -95,7 +124,7 @@ function toAgentStatus(event: McpEvent):
   | 'completed'
   | 'failed'
   | 'pending' {
-  const status = event.status || event.type;
+  const status = getNormalizedEventStatus(event);
   if (status === 'TASK_IN_PROGRESS') return 'in-progress';
   if (status === 'TASK_BLOCKED' || status === 'INCIDENT_OPENED' || status === 'TEST_FAILED') {
     return 'blocked';
@@ -109,10 +138,59 @@ function toAgentStatus(event: McpEvent):
 function App() {
   const { events, isLoading, isConnected } = useMcpEvents();
   const liveEvents = events.length > 0 ? events : fallbackEvents;
-  const metrics = useDashboardMetrics(liveEvents);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [selectedEvent, setSelectedEvent] = useState<McpEvent | null>(null);
+  const [settingsFilters, setSettingsFilters] = useState<FilterState>(() => loadSettingsFilters());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const syncFromHash = () => {
+      const fromHash = window.location.hash.replace('#', '').trim();
+      if (fromHash) {
+        setActiveSection(fromHash);
+      }
+    };
+
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(SETTINGS_FILTERS_STORAGE_KEY, JSON.stringify(settingsFilters));
+  }, [settingsFilters]);
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredEvents = useMemo(() => {
+    if (!normalizedQuery) {
+      return liveEvents;
+    }
+
+    return liveEvents.filter((event) => {
+      const message = (event.payload?.message as string | undefined)?.toLowerCase() ?? '';
+      const status = (event.status || event.type || '').toLowerCase();
+      return (
+        event.taskId.toLowerCase().includes(normalizedQuery) ||
+        event.correlationId.toLowerCase().includes(normalizedQuery) ||
+        event.agent.toLowerCase().includes(normalizedQuery) ||
+        message.includes(normalizedQuery) ||
+        status.includes(normalizedQuery)
+      );
+    });
+  }, [liveEvents, normalizedQuery]);
+
+  const metrics = useDashboardMetrics(filteredEvents);
   const sortedEvents = useMemo(
-    () => [...liveEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
-    [liveEvents]
+    () => [...filteredEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+    [filteredEvents]
   );
 
   const agentCards = useMemo(() => {
@@ -152,21 +230,47 @@ function App() {
     [sortedEvents]
   );
 
-  return (
-    <AppShell>
-      <div className="space-y-5 pb-6">
-        <Hero
-          totalEvents={metrics.totalEvents}
-          liveEventsLastMinute={metrics.liveEventsLastMinute}
-          activeTasks={metrics.activeTasks}
-          blockedTasks={metrics.blockedTasks}
-          isConnected={isConnected}
-        />
+  const navigateToSection = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
 
-        <SummaryGrid metrics={metrics.metrics} isLoading={isLoading} />
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (window.location.hash !== `#${sectionId}`) {
+      window.history.replaceState(null, '', `#${sectionId}`);
+    }
+  }, []);
+
+  const openEventDetails = useCallback((event: McpEvent) => {
+    setSelectedEvent(event);
+  }, []);
+
+  return (
+    <AppShell
+      activeSection={activeSection}
+      onNavigateSection={navigateToSection}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      searchResultCount={filteredEvents.length}
+      notificationEvents={liveEvents}
+    >
+      <div className="space-y-5 pb-6">
+        <section id="dashboard" className="scroll-mt-20 space-y-5" data-testid="section-dashboard">
+          <Hero
+            totalEvents={metrics.totalEvents}
+            liveEventsLastMinute={metrics.liveEventsLastMinute}
+            activeTasks={metrics.activeTasks}
+            blockedTasks={metrics.blockedTasks}
+            isConnected={isConnected}
+          />
+
+          <SummaryGrid metrics={metrics.metrics} isLoading={isLoading} />
+        </section>
 
         <div className="grid gap-4 xl:grid-cols-3">
-          <div className="xl:col-span-2">
+          <section id="agents" className="xl:col-span-2 scroll-mt-20" data-testid="section-agents">
             <Suspense fallback={<PanelFallback label="Cargando panel de agente" />}>
               <AgentStage
                 focusedAgent={focused?.name || null}
@@ -180,28 +284,127 @@ function App() {
                 }))}
                 onAgentClick={setSelectedAgent}
                 onViewDetails={() => {
-                  if (focused?.latest.taskId) {
-                    navigator.clipboard.writeText(focused.latest.taskId);
+                  if (focused?.latest) {
+                    openEventDetails(focused.latest);
                   }
                 }}
               />
             </Suspense>
-          </div>
+          </section>
 
+          <section id="critical" className="scroll-mt-20" data-testid="section-critical">
             <Suspense fallback={<PanelFallback label="Cargando panel critico" />}>
-            <CriticalPanel events={liveEvents} />
-          </Suspense>
+              <CriticalPanel events={filteredEvents} />
+            </Suspense>
+          </section>
         </div>
 
-        <Suspense fallback={<PanelFallback label="Cargando linea de tiempo" />}>
-          <Timeline events={liveEvents} />
-        </Suspense>
+        <section id="timeline" className="scroll-mt-20" data-testid="section-timeline">
+          <Suspense fallback={<PanelFallback label="Cargando linea de tiempo" />}>
+            <Timeline events={filteredEvents} onEventClick={openEventDetails} globalFilters={settingsFilters} />
+          </Suspense>
+        </section>
 
-        <Suspense fallback={<PanelFallback label="Cargando grupos de tareas" />}>
-          <TaskGroups filters={DEFAULT_GROUP_FILTERS} events={liveEvents} />
-        </Suspense>
+        <section id="settings" className="scroll-mt-20 space-y-2" data-testid="section-settings">
+          <div className="rounded-xl border border-border/70 bg-card/40 p-3 text-sm text-muted-foreground">
+            {normalizedQuery
+              ? `Vista filtrada por: "${searchQuery}"`
+              : 'Ajustes de vista y agrupacion de tareas'}
+          </div>
+          <FilterPanel value={settingsFilters} onFilterChange={setSettingsFilters} />
+          <Suspense fallback={<PanelFallback label="Cargando grupos de tareas" />}>
+            <TaskGroups
+              filters={settingsFilters}
+              events={filteredEvents}
+              onEventClick={openEventDetails}
+            />
+          </Suspense>
+        </section>
       </div>
+      <EventDetailDialog
+        event={selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEvent(null);
+          }
+        }}
+      />
     </AppShell>
+  );
+}
+
+function EventDetailDialog({
+  event,
+  onOpenChange,
+}: {
+  event: McpEvent | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [copyState, setCopyState] = useState<{
+    state: 'idle' | 'success' | 'error';
+    taskId: string | null;
+  }>({ state: 'idle', taskId: null });
+
+  useEffect(() => {
+    if (copyState.state === 'idle') {
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setCopyState({ state: 'idle', taskId: copyState.taskId }),
+      1400
+    );
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
+  const handleCopy = async () => {
+    if (!event?.taskId) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(event.taskId);
+      setCopyState({ state: 'success', taskId: event.taskId });
+    } catch {
+      setCopyState({ state: 'error', taskId: event.taskId });
+    }
+  };
+
+  return (
+    <Dialog open={Boolean(event)} onOpenChange={onOpenChange}>
+      <DialogContent data-testid="event-detail-dialog" className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Detalle del evento</DialogTitle>
+          <DialogDescription>
+            {event ? `${event.agent} · ${event.type}` : 'Sin evento seleccionado'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {event ? (
+          <div className="space-y-3 text-sm">
+            <p className="font-mono text-xs text-muted-foreground">{event.taskId}</p>
+            <p>{event.payload?.message || event.status || event.type}</p>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <span>Hora: {formatShortTime(event.timestamp)}</span>
+              <span>Hace: {formatRelativeTime(event.timestamp)}</span>
+              <span>Correlacion: {event.correlationId}</span>
+              <span>Asignado: {event.assignedTo || event.agent}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="secondary" onClick={handleCopy}>
+                Copiar taskId
+              </Button>
+              {copyState.state === 'success' && copyState.taskId === event.taskId ? (
+                <span className="text-xs text-emerald-600">Copiado</span>
+              ) : null}
+              {copyState.state === 'error' && copyState.taskId === event.taskId ? (
+                <span className="text-xs text-destructive">No se pudo copiar</span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 

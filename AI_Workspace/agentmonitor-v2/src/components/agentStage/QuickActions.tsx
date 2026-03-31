@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, ExternalLink } from 'lucide-react';
 
@@ -8,10 +9,26 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({ taskId, onViewDetails, onCopyTaskId }: QuickActionsProps) {
+  const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    if (copyState === 'idle') {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setCopyState('idle'), 1400);
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
   const handleCopy = async () => {
     if (taskId) {
-      await navigator.clipboard.writeText(taskId);
-      onCopyTaskId?.();
+      try {
+        await navigator.clipboard.writeText(taskId);
+        onCopyTaskId?.();
+        setCopyState('success');
+      } catch {
+        setCopyState('error');
+      }
     }
   };
 
@@ -23,6 +40,7 @@ export function QuickActions({ taskId, onViewDetails, onCopyTaskId }: QuickActio
           variant="outline" 
           size="sm" 
           onClick={onViewDetails}
+          disabled={!onViewDetails}
           className="gap-2"
         >
           <ExternalLink className="h-4 w-4" />
@@ -39,6 +57,12 @@ export function QuickActions({ taskId, onViewDetails, onCopyTaskId }: QuickActio
           Copiar taskId
         </Button>
       </div>
+      {copyState === 'success' ? (
+        <p className="text-xs text-emerald-600" data-testid="quick-actions-copy-feedback">taskId copiado</p>
+      ) : null}
+      {copyState === 'error' ? (
+        <p className="text-xs text-destructive" data-testid="quick-actions-copy-feedback">no se pudo copiar</p>
+      ) : null}
     </div>
   );
 }

@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMonitorStore } from '@/store/monitorStore';
 import { wsClient } from '@/lib/wsClient';
 import { QUERY_KEYS } from '@/lib/queryClient';
+import { getMcpApiBase } from '@/lib/mcpEndpoints';
 import type { McpEvent } from '@/types/mcp';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = getMcpApiBase();
 const USE_LOCAL_FIXTURES = import.meta.env.VITE_E2E_USE_FIXTURES === 'true';
 
 async function fetchEvents(): Promise<McpEvent[]> {
@@ -13,7 +14,23 @@ async function fetchEvents(): Promise<McpEvent[]> {
   if (!response.ok) {
     throw new Error(`Failed to fetch events: ${response.statusText}`);
   }
-  return response.json();
+
+  const payload = (await response.json()) as unknown;
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'events' in payload &&
+    Array.isArray((payload as { events?: unknown }).events)
+  ) {
+    return (payload as { events: McpEvent[] }).events;
+  }
+
+  throw new Error('Unexpected events payload shape');
 }
 
 export function useMcpEvents() {

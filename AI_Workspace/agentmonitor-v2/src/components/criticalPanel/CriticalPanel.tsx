@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { McpEvent } from '@/types/mcp';
+import { getTimestampMs } from '@/lib/timestamp';
 import { AlertGroup } from './AlertGroup';
 import { QuickResolve } from './QuickResolve';
 import type { AlertGroupModel, AlertSeverity } from './types';
@@ -68,8 +69,8 @@ export function CriticalPanel({ events }: CriticalPanelProps) {
         continue;
       }
 
-      const currentLatestTime = new Date(existing.latest.timestamp).getTime();
-      const incomingTime = new Date(event.timestamp).getTime();
+      const currentLatestTime = getTimestampMs(existing.latest.timestamp) ?? Number.NEGATIVE_INFINITY;
+      const incomingTime = getTimestampMs(event.timestamp) ?? Number.NEGATIVE_INFINITY;
       existing.count += 1;
       existing.events.push(event);
       if (incomingTime > currentLatestTime) {
@@ -82,7 +83,9 @@ export function CriticalPanel({ events }: CriticalPanelProps) {
       if (bySeverity !== 0) {
         return bySeverity;
       }
-      return new Date(b.latest.timestamp).getTime() - new Date(a.latest.timestamp).getTime();
+      const left = getTimestampMs(a.latest.timestamp) ?? Number.NEGATIVE_INFINITY;
+      const right = getTimestampMs(b.latest.timestamp) ?? Number.NEGATIVE_INFINITY;
+      return right - left;
     });
   }, [events]);
 

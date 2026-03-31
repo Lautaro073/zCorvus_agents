@@ -46,6 +46,7 @@ export function TimelineFilters({
         {filterOptions.map((filter) => (
           <Button
             key={filter.id}
+            data-testid={`timeline-filter-${filter.id}`}
             variant={activeFilters.includes(filter.id) ? 'default' : 'outline'}
             size="sm"
             onClick={() => onFilterChange(filter.id)}
@@ -57,7 +58,7 @@ export function TimelineFilters({
       </div>
 
       {activeFilters.length > 0 && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-testid="timeline-active-filters">
           <span className="text-xs text-muted-foreground">Filtros activos:</span>
           {activeFilters.map((filter) => (
             <Badge 
@@ -71,6 +72,7 @@ export function TimelineFilters({
             </Badge>
           ))}
           <Button
+            data-testid="timeline-clear-filters"
             variant="ghost"
             size="sm"
             onClick={onClearFilters}

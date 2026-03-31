@@ -3,9 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TimelineEvent } from './TimelineEvent';
 import { TimelineFilters } from './TimelineFilters';
 import type { McpEvent } from '@/types/mcp';
+import type { FilterState } from '@/components/filters/filterState';
+import { getNormalizedEventStatus } from '@/lib/mcpStatus';
+import { formatShortTime, getTimestampMs } from '@/lib/timestamp';
 
 interface TimelineProps {
   events: McpEvent[];
+  onEventClick?: (event: McpEvent) => void;
+  globalFilters?: FilterState;
 }
 
 const CLUSTER_THRESHOLD_MS = 5000;
@@ -13,10 +18,10 @@ const CLUSTER_THRESHOLD_MS = 5000;
 interface EventCluster {
   id: string;
   events: McpEvent[];
-  timestamp: Date;
+  timestamp: string;
 }
 
-export function Timeline({ events }: TimelineProps) {
+export function Timeline({ events, onEventClick, globalFilters }: TimelineProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
@@ -24,47 +29,92 @@ export function Timeline({ events }: TimelineProps) {
   const filteredEvents = useMemo(() => {
     let filtered = events;
 
+    if (globalFilters) {
+      filtered = filtered.filter((event) => {
+        const normalizedStatus = getNormalizedEventStatus(event);
+        const agent = event.assignedTo || event.agent;
+
+        if (globalFilters.agent && agent !== globalFilters.agent) {
+          return false;
+        }
+
+        if (globalFilters.status && normalizedStatus !== globalFilters.status) {
+          return false;
+        }
+
+        if (globalFilters.searchQuery) {
+          const query = globalFilters.searchQuery.toLowerCase();
+          const message = ((event.payload?.message as string | undefined) ?? '').toLowerCase();
+          if (
+            !event.taskId.toLowerCase().includes(query) &&
+            !event.correlationId.toLowerCase().includes(query) &&
+            !message.includes(query)
+          ) {
+            return false;
+          }
+        }
+
+        if (globalFilters.quickFilters.length > 0) {
+          const hasBlocked = globalFilters.quickFilters.includes('blocked');
+          const hasInProgress = globalFilters.quickFilters.includes('in_progress');
+          const hasCompleted = globalFilters.quickFilters.includes('completed');
+          const hasIncident = globalFilters.quickFilters.includes('incident');
+
+          if (hasBlocked && normalizedStatus !== 'TASK_BLOCKED') return false;
+          if (hasInProgress && normalizedStatus !== 'TASK_IN_PROGRESS') return false;
+          if (hasCompleted && normalizedStatus !== 'TASK_COMPLETED') return false;
+          if (hasIncident && !normalizedStatus.includes('INCIDENT')) return false;
+        }
+
+        return true;
+      });
+    }
+
     if (activeFilters.length > 0) {
-      filtered = filtered.filter((event) => 
-        activeFilters.includes(event.status || event.type)
-      );
+      filtered = filtered.filter((event) => activeFilters.includes(getNormalizedEventStatus(event)));
     }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((event) => 
         event.taskId.toLowerCase().includes(query) ||
-        event.payload?.message?.toLowerCase().includes(query) ||
+        ((event.payload?.message as string | undefined)?.toLowerCase() ?? '').includes(query) ||
         event.agent.toLowerCase().includes(query)
       );
     }
 
     return filtered;
-  }, [events, activeFilters, searchQuery]);
+  }, [events, activeFilters, globalFilters, searchQuery]);
 
   const clusters = useMemo(() => {
     const result: EventCluster[] = [];
     let currentCluster: EventCluster | null = null;
 
     filteredEvents.forEach((event, index) => {
-      const eventTime = new Date(event.timestamp).getTime();
+      const eventTime = getTimestampMs(event.timestamp);
 
       if (!currentCluster) {
         currentCluster = {
           id: `cluster-${index}`,
           events: [event],
-          timestamp: new Date(event.timestamp),
+          timestamp: event.timestamp,
         };
       } else {
-        const clusterTime = currentCluster.timestamp.getTime();
-        if (eventTime - clusterTime < CLUSTER_THRESHOLD_MS) {
+        const clusterTime = getTimestampMs(currentCluster.timestamp);
+        const shouldCluster =
+          eventTime !== null &&
+          clusterTime !== null &&
+          eventTime >= clusterTime &&
+          eventTime - clusterTime < CLUSTER_THRESHOLD_MS;
+
+        if (shouldCluster) {
           currentCluster.events.push(event);
         } else {
           result.push(currentCluster);
           currentCluster = {
             id: `cluster-${index}`,
             events: [event],
-            timestamp: new Date(event.timestamp),
+            timestamp: event.timestamp,
           };
         }
       }
@@ -133,10 +183,7 @@ export function Timeline({ events }: TimelineProps) {
                     >
                       <span className="text-xs">
                         {cluster.events.length} eventos a las{' '}
-                        {new Date(cluster.timestamp).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatShortTime(cluster.timestamp)}
                       </span>
                       <span className="text-xs">
                         {isExpanded ? '▼' : '▶'}
@@ -149,6 +196,7 @@ export function Timeline({ events }: TimelineProps) {
                             key={`${event.eventId}-${idx}`}
                             event={event}
                             isNew={idx < totalNewEvents}
+                            onClick={onEventClick}
                           />
                         ))}
                       </div>
@@ -158,6 +206,7 @@ export function Timeline({ events }: TimelineProps) {
                   <TimelineEvent
                     event={cluster.events[0]}
                     isNew={true}
+                    onClick={onEventClick}
                   />
                 )}
               </div>

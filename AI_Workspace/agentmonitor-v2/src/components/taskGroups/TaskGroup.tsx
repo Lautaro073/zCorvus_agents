@@ -3,6 +3,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight, Activity } from 'lucide-react';
 import { TaskRow } from './TaskRow';
+import { getNormalizedEventStatus } from '@/lib/mcpStatus';
 import type { McpEvent } from '@/types/mcp';
 
 interface TaskGroupProps {
@@ -15,9 +16,9 @@ export function TaskGroup({ correlationId, events, onEventClick }: TaskGroupProp
   const [isOpen, setIsOpen] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const completedCount = events.filter((e) => e.status === 'TASK_COMPLETED').length;
-  const blockedCount = events.filter((e) => e.status === 'TASK_BLOCKED').length;
-  const inProgressCount = events.filter((e) => e.status === 'TASK_IN_PROGRESS').length;
+  const completedCount = events.filter((event) => getNormalizedEventStatus(event) === 'TASK_COMPLETED').length;
+  const blockedCount = events.filter((event) => getNormalizedEventStatus(event) === 'TASK_BLOCKED').length;
+  const inProgressCount = events.filter((event) => getNormalizedEventStatus(event) === 'TASK_IN_PROGRESS').length;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>

@@ -28,6 +28,10 @@ const STORAGE_KEY = 'monitor-filter-presets';
 
 export function FilterPresets({ currentFilters, onApplyPreset }: FilterPresetsProps) {
   const [presets, setPresets] = useState<FilterPreset[]>(() => {
+    if (typeof window === 'undefined') {
+      return [];
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
       return [];
@@ -71,7 +75,7 @@ export function FilterPresets({ currentFilters, onApplyPreset }: FilterPresetsPr
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" data-testid="settings-presets-button">
           <Save className="h-4 w-4 mr-2" />
           Presets
         </Button>

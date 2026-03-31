@@ -1,11 +1,12 @@
 import type { McpEvent } from '@/types/mcp';
+import { getMcpWsUrl } from '@/lib/mcpEndpoints';
 
 type MessageHandler = (event: McpEvent) => void;
 type ConnectionHandler = () => void;
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
-  private url: string;
+  private urlOverride?: string;
   private messageHandlers: Set<MessageHandler> = new Set();
   private openHandlers: Set<ConnectionHandler> = new Set();
   private closeHandlers: Set<ConnectionHandler> = new Set();
@@ -14,15 +15,19 @@ export class WebSocketClient {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
-  constructor(url: string = 'ws://localhost:3001/ws') {
-    this.url = url;
+  constructor(url?: string) {
+    this.urlOverride = url;
+  }
+
+  private getConnectionUrl(): string {
+    return this.urlOverride ?? getMcpWsUrl();
   }
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
     try {
-      this.ws = new WebSocket(this.url);
+      this.ws = new WebSocket(this.getConnectionUrl());
 
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;

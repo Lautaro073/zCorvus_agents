@@ -13,17 +13,19 @@ import {
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  activeSection: string;
+  onNavigate: (sectionId: string) => void;
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Panel', href: '#dashboard' },
-  { icon: Users, label: 'Agentes', href: '#agents' },
-  { icon: Activity, label: 'Timeline', href: '#timeline' },
-  { icon: AlertTriangle, label: 'Critico', href: '#critical' },
-  { icon: Settings, label: 'Ajustes', href: '#settings' },
+  { icon: LayoutDashboard, label: 'Panel', sectionId: 'dashboard' },
+  { icon: Users, label: 'Agentes', sectionId: 'agents' },
+  { icon: Activity, label: 'Timeline', sectionId: 'timeline' },
+  { icon: AlertTriangle, label: 'Critico', sectionId: 'critical' },
+  { icon: Settings, label: 'Ajustes', sectionId: 'settings' },
 ];
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, activeSection, onNavigate }: SidebarProps) {
   return (
     <aside
       className={cn(
@@ -43,11 +45,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <nav className="flex-1 space-y-1 p-2">
         {navItems.map((item) => (
           <a
-            key={item.href}
-            href={item.href}
+            key={item.sectionId}
+            href={`#${item.sectionId}`}
+            data-testid={`sidebar-nav-${item.sectionId}`}
+            aria-current={activeSection === item.sectionId ? 'page' : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigate(item.sectionId);
+            }}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground",
-              "hover:bg-accent hover:text-accent-foreground transition-colors"
+              "hover:bg-accent hover:text-accent-foreground transition-colors",
+              activeSection === item.sectionId && 'bg-accent text-accent-foreground'
             )}
           >
             <item.icon className="h-5 w-5 shrink-0" />
@@ -68,7 +77,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft className="h-4 w-4 mr-2" />
-              <span>Colapsar</span>
             </>
           )}
         </Button>

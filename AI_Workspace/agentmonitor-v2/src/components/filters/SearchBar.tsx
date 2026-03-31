@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
@@ -6,10 +6,15 @@ interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  dataTestId?: string;
 }
 
-export function SearchBar({ value, onChange, placeholder = 'Buscar...' }: SearchBarProps) {
+export function SearchBar({ value, onChange, placeholder = 'Buscar...', dataTestId }: SearchBarProps) {
   const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +28,7 @@ export function SearchBar({ value, onChange, placeholder = 'Buscar...' }: Search
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
+        data-testid={dataTestId}
         type="text"
         placeholder={placeholder}
         value={localValue}

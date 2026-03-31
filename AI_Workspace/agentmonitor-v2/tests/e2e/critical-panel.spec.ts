@@ -3,12 +3,12 @@ import { expect, test } from '@playwright/test'
 test('critical panel opens quick resolve details', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByText('Critical Panel', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('critical-panel')).toBeVisible({ timeout: 15000 })
 
-  const alertButton = page.getByRole('button', { name: /Incident|Blocked|Test Failed/ }).first()
+  const alertButton = page.getByTestId('critical-alert-item').first()
   await expect(alertButton).toBeVisible()
   await alertButton.click()
 
-  await expect(page.getByText('Quick Resolve')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Copy taskId' })).toBeVisible()
+  await expect(page.getByTestId('quick-resolve-panel')).toBeVisible()
+  await expect(page.getByTestId('quick-resolve-copy-task')).toBeVisible()
 })

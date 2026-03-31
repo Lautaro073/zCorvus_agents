@@ -18,6 +18,7 @@ export function QuickFilters({ activeFilters, onToggle }: QuickFiltersProps) {
       {QUICK_FILTERS.map((filter) => (
         <Badge
           key={filter.id}
+          data-testid={`settings-quick-filter-${filter.id}`}
           variant={activeFilters.has(filter.id) ? 'default' : 'outline'}
           className={`cursor-pointer transition-all ${
             activeFilters.has(filter.id) ? filter.color : ''

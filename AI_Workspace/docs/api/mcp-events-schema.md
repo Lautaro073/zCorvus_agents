@@ -273,22 +273,28 @@ export function useMcpEvents() {
 
 ## AgentMonitor V2 integration profile
 
-For `AI_Workspace/agentmonitor-v2`, confirm runtime endpoint alignment before live usage.
+For `AI_Workspace/agentmonitor-v2`, endpoint resolution is same-origin by default.
 
-- V2 client currently points to:
-  - `http://localhost:3001/api/events`
-  - `ws://localhost:3001/ws`
-- MCP server default in this workspace is:
-  - `http://127.0.0.1:4311/api/events`
-  - `ws://127.0.0.1:4311/ws`
+- API base comes from `agentmonitor-v2/src/lib/mcpEndpoints.ts`:
+  - default: `/api`
+  - optional override: `VITE_MCP_HTTP_BASE`
+- WebSocket URL also comes from `mcpEndpoints.ts`:
+  - default in browser: `ws(s)://<current-host>/ws`
+  - optional override: `VITE_MCP_WS_URL`
 
-If these ports are not aligned, V2 does not consume live MCP stream.
-Use either:
+This aligns V2 with `/monitor` runtime without requiring hardcoded cross-origin ports.
 
-1. a compatible MCP endpoint on `3001`, or
-2. updated V2 endpoint constants in:
-   - `agentmonitor-v2/src/hooks/useMcpEvents.ts`
-   - `agentmonitor-v2/src/lib/wsClient.ts`
+### Runtime verification for `/monitor`
+
+```bash
+curl http://127.0.0.1:4311/api/health
+curl -I http://127.0.0.1:4311/monitor
+curl -I http://127.0.0.1:4311/pixel/
+```
+
+Expected:
+- `/monitor` returns 200 and serves current monitor variant.
+- `/pixel/` remains available independently.
 
 ### QA command reference for V2
 
@@ -298,10 +304,14 @@ Run in `AI_Workspace/agentmonitor-v2`:
 npm run test:e2e:smoke
 npm run test:e2e:regression
 npm run test:e2e:visual
+npx playwright test tests/e2e/clickable-gaps.spec.ts tests/e2e/notifications-toast.spec.ts
+npx vitest run src/hooks/useDashboardMetrics.test.tsx
 ```
 
 Evidence paths:
 - `docs/internal/reports/aiw-tester-v2-test-01-final-report-20260330.md`
+- `docs/internal/reports/aiw-tester-v2-ux-clickable-notifications-recheck-report-20260331.md`
+- `docs/internal/reports/aiw-tester-v2-metrics-desync-recheck-report-20260331.md`
 - `agentmonitor-v2/playwright-report/index.html`
 - `agentmonitor-v2/tests/e2e/visual.spec.ts-snapshots/`
 

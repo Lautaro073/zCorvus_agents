@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
 import type { McpEvent } from '@/types/mcp';
 import { Badge } from '@/components/ui/badge';
+import { getNormalizedEventStatus } from '@/lib/mcpStatus';
+import { formatShortTime } from '@/lib/timestamp';
 
 interface TimelineEventProps {
   event: McpEvent;
@@ -39,19 +41,32 @@ const statusLabels: Record<string, string> = {
 };
 
 export function TimelineEvent({ event, isNew = false, onClick }: TimelineEventProps) {
-  const eventStatus = event.status || event.type;
+  const eventStatus = getNormalizedEventStatus(event);
   const colorScheme = statusColors[eventStatus] || { bg: 'bg-gray-500', text: 'text-gray-500' };
   
-  const time = new Date(event.timestamp);
-  const formattedTime = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedTime = formatShortTime(event.timestamp);
 
   return (
     <div 
+      data-testid="timeline-event-row"
       className={cn(
-        "flex gap-4 p-3 rounded-lg transition-colors hover:bg-accent cursor-pointer",
+        "flex gap-4 p-3 rounded-lg transition-colors",
+        onClick ? 'cursor-pointer hover:bg-accent' : 'cursor-default',
         isNew && "bg-accent/50"
       )}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
       onClick={() => onClick?.(event)}
+      onKeyDown={(eventKey) => {
+        if (!onClick) {
+          return;
+        }
+
+        if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+          eventKey.preventDefault();
+          onClick(event);
+        }
+      }}
     >
       <div className="flex flex-col items-center">
         <div 

@@ -429,7 +429,7 @@ function sendJson(response, statusCode, body) {
 
 async function serveStaticFile(requestPath, response) {
   const rawPath =
-    requestPath === "/" || requestPath === "/monitor"
+    requestPath === "/" || requestPath === "/monitor" || requestPath === "/monitor/"
       ? "/index.html"
       : requestPath.replace(/^\/monitor/, "") || "/index.html";
 
