@@ -8,8 +8,36 @@
 - Regla aprendida: Antes de merge automatico, verificar que GitHub Actions este habilitado y corriendo. "pending" sin status contexts significa que no hay CI configurado.
 - Prevencion futura: Si CI no esta corriendo, notificar al humano para habilitar GitHub Actions o hacer merge manual.
 - Script creado: list-open-prs.mjs, approve-pr.mjs, merge-pr.mjs
+- **Plantillas de PR en `.github/pull_request_template.md`** - usar al crear PRs
+- **Scripts de GitHub en `AI_Workspace/scripts/github/*.mjs`**
+
+## 2026-03-30 - Script path correction
+- Trigger: Olvidé que los scripts de GitHub están en AI_Workspace/scripts/github/, no en scripts/
+- Regla aprendida: Los scripts de GitHub para PRs, branches y issues están en `AI_Workspace/scripts/github/*.mjs`
+- Scripts importantes:
+  - `node AI_Workspace/scripts/github/create-task-pr.mjs --task <taskId> --agent <Agent> --base <branch>`
+  - `node AI_Workspace/scripts/github/create-agent-branch.mjs --task <taskId> --agent <Agent> --base <branch>`
+  - `node AI_Workspace/scripts/github/merge-pr.mjs --pr <numero> --base <branch>`
+  - NUNCA usar `gh pr create` directamente
+- También existen plantillas en `.github/` para PRs, issues, etc.
 
 ## 2026-03-26 - CI scope-aware para merge
 - Trigger: PRs de tareas de workspace bloqueadas por checks de areas no relacionadas
 - Regla aprendida: El merge debe considerar solo checks relevantes al scope de archivos tocados por el PR (workspace/backend/frontend). Si una tarea es de workspace, fallos de backend/frontend no relacionados no bloquean.
 - Prevencion futura: Usar validacion scope-aware en `scripts/github/merge-pr.mjs` y permitir override con `--scope workspace|backend|frontend|auto`.
+
+## 2026-03-30 - Scope lock antes de asignar trabajo en paralelo
+- Trigger: Cualquier asignación de 2+ tareas concurrentes entre agentes (en cualquier epic/proyecto).
+- Regla aprendida: Antes de asignar tareas en paralelo, analizar solapamiento de scope (archivos/directorios/config/entorno). Si hay riesgo, definir scope lock explícito por agente.
+- Prevencion futura:
+  - Definir por task: "qué puede tocar" y "qué NO puede tocar".
+  - Evitar paralelizar tareas sin límites claros cuando comparten módulo o infraestructura.
+  - Si el scope no está claro, secuenciar tareas en vez de paralelizarlas.
+
+## 2026-03-30 - Gestión explícita de SUBTASK_REQUESTED
+- Trigger: Cuando llega un evento `SUBTASK_REQUESTED` desde cualquier agente.
+- Regla aprendida: El Orchestrator debe resolverlo explícitamente para evitar estados ambiguos en el panel.
+- Prevencion futura:
+  - Evaluar cada subtask y tomar decisión inmediata: aceptar (asignar task concreta) o rechazar/cancelar con motivo.
+  - No dejar subtasks "colgadas" en estado intermedio.
+  - Registrar siempre la decisión en MCP para trazabilidad limpia.

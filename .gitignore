@@ -16,6 +16,7 @@
 skills-lock.json
 *.docx
 *.bat
+*.log
 
 # testing
 /coverage

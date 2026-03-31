@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-state-idle: hsl(var(--state-idle));
+  --color-state-active: hsl(var(--state-active));
+  --color-state-in-progress: hsl(var(--state-in-progress));
+  --color-state-blocked: hsl(var(--state-blocked));
+  --color-state-completed: hsl(var(--state-completed));
+  --color-state-failed: hsl(var(--state-failed));
+  --color-state-pending: hsl(var(--state-pending));
+  --color-state-incident: hsl(var(--state-incident));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
+
+  /* MCP State semantic tokens */
+  --state-idle: 180 60% 45%;
+  --state-idle-foreground: 0 0% 100%;
+  --state-active: 142 71% 45%;
+  --state-active-foreground: 0 0% 100%;
+  --state-in-progress: 217 91% 60%;
+  --state-in-progress-foreground: 0 0% 100%;
+  --state-blocked: 0 84% 60%;
+  --state-blocked-foreground: 0 0% 100%;
+  --state-completed: 142 60% 40%;
+  --state-completed-foreground: 0 0% 100%;
+  --state-failed: 0 90% 55%;
+  --state-failed-foreground: 0 0% 100%;
+  --state-pending: 45 93% 57%;
+  --state-pending-foreground: 0 0% 100%;
+  --state-incident: 0 90% 50%;
+  --state-incident-foreground: 0 0% 100%;
+
+  /* Spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px hsl(var(--foreground) / 0.05);
+  --shadow-md: 0 4px 6px hsl(var(--foreground) / 0.1);
+  --shadow-lg: 0 10px 15px hsl(var(--foreground) / 0.15);
+  --shadow-glow-active: 0 0 12px hsl(var(--state-active) / 0.5);
+  --shadow-glow-blocked: 0 0 12px hsl(var(--state-blocked) / 0.5);
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", "Noto Sans", sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+
+  /* MCP State semantic tokens - Dark */
+  --state-idle: 180 50% 35%;
+  --state-active: 142 70% 45%;
+  --state-in-progress: 217 91% 65%;
+  --state-blocked: 0 84% 55%;
+  --state-completed: 142 60% 35%;
+  --state-failed: 0 90% 50%;
+  --state-pending: 45 93% 50%;
+  --state-incident: 0 90% 55%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+*::before,
+*::after {
+  border-color: hsl(var(--border));
+}
+
+:where(button, a, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, hsl(var(--primary) / 0.12), transparent 42%),
+    radial-gradient(circle at bottom left, hsl(var(--state-in-progress) / 0.12), transparent 45%),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  margin: 0;
+  min-height: 100vh;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@keyframes avatar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes avatar-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+}
+
+@keyframes avatar-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.65;
+  }
+}
+
+@keyframes avatar-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5px);
+  }
+  75% {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes avatar-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.08);
+  }
+  60% {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes avatar-pending {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+.avatar-state-idle .avatar-glyph {
+  animation: avatar-breathe 3s ease-in-out infinite;
+}
+
+.avatar-state-active .avatar-ring {
+  animation: avatar-spin 2.2s linear infinite;
+}
+
+.avatar-state-in-progress .avatar-ring {
+  stroke-dasharray: 90 188.5;
+  animation: avatar-spin 1.1s linear infinite;
+}
+
+.avatar-state-blocked {
+  animation: avatar-shake 0.6s ease-in-out infinite;
+}
+
+.avatar-state-blocked .avatar-ring,
+.avatar-state-failed .avatar-ring {
+  animation: avatar-pulse 1s ease-in-out infinite;
+}
+
+.avatar-state-completed .avatar-glyph {
+  animation: avatar-pop 1.2s ease-in-out infinite;
+}
+
+.avatar-state-pending .avatar-glyph {
+  animation: avatar-pending 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-state-idle .avatar-glyph,
+  .avatar-state-active .avatar-ring,
+  .avatar-state-in-progress .avatar-ring,
+  .avatar-state-blocked,
+  .avatar-state-blocked .avatar-ring,
+  .avatar-state-failed .avatar-ring,
+  .avatar-state-completed .avatar-glyph,
+  .avatar-state-pending .avatar-glyph {
+    animation: none;
+  }
+}
