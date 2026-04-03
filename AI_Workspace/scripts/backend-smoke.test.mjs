@@ -27,7 +27,7 @@ async function waitFor(url, attempts = 30) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
-test("backend bootstrap exposes health and ping", async () => {
+test("backend bootstrap exposes health and root endpoints", async () => {
   const port = 4512;
   const child = spawn(process.execPath, [backendEntry], {
     cwd: backendRoot,
@@ -39,13 +39,13 @@ test("backend bootstrap exposes health and ping", async () => {
   });
 
   try {
-    const healthResponse = await waitFor(`http://127.0.0.1:${port}/health`);
+    const healthResponse = await waitFor(`http://127.0.0.1:${port}/api/health`);
     const healthPayload = await healthResponse.json();
-    assert.equal(healthPayload.ok, true);
+    assert.equal(healthPayload.status, "OK");
 
-    const pingResponse = await waitFor(`http://127.0.0.1:${port}/api/v1/ping`);
-    const pingPayload = await pingResponse.json();
-    assert.equal(pingPayload.message, "pong");
+    const rootResponse = await waitFor(`http://127.0.0.1:${port}/`);
+    const rootPayload = await rootResponse.json();
+    assert.equal(rootPayload.message, "Welcome to zCorvus API");
   } finally {
     child.kill();
   }
