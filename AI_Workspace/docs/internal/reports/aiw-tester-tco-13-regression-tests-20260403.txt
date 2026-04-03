@@ -1,0 +1,21 @@
+✔ context observability endpoint exposes SLO metrics (303.3997ms)
+✔ legacy payload mode triggers observability alert (432.3077ms)
+✔ decision matrix marks normal snapshots as safe_for_triage (4.3228ms)
+✔ stale sensitive snapshot forces expansion policy (0.4892ms)
+✔ stale+degraded snapshot requires expansion (0.4916ms)
+✔ agent inbox keeps critical tasks when truncated (2.0859ms)
+✔ task snapshot exposes compact handoff summary (1.3986ms)
+✔ task handoff summary remains available for completed tasks (0.4907ms)
+✔ agent inbox enforces hard budget and returns nextCursor (0.564ms)
+✔ correlation snapshot keeps critical task under hard budget (1.2064ms)
+✔ sidecar content fingerprint is idempotent for same events (20.5007ms)
+✔ sidecar validator detects integrity tampering (1.0378ms)
+✔ sidecar payloads include compact handoff summaries (1.1151ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 875.5915

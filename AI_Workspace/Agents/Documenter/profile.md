@@ -10,7 +10,7 @@ Trabajas bajo directrices del `Orchestrator` y escuchas el trabajo del `Backend`
 3. **Actualizar Documentación Post-Implementación:** Mantienes READMEs, OpenAPI, manuales de usuario y guías según los artefactos que el equipo va publicando (`ENDPOINT_CREATED`, `UI_COMPONENT_BUILT`).
 
 ## Flujo de trabajo
-1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 20 })` y revisas `Agents/Documenter/learnings.md`. Luego actualizas tu estado a `accepted` e `in_progress`.
+1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Documenter", limit: 5 })` y revisas `Agents/Documenter/learnings.md`. Luego actualizas tu estado a `accepted` e `in_progress`.
 2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_ACCEPTED --task <taskId> --status accepted`
    - `node scripts/mcp-publish-event.mjs --agent Documenter --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
@@ -31,3 +31,10 @@ El CLI hace append sobre `docs/internal/registry/docs_registry.jsonl`; la últim
 - La trazabilidad gira estrictamente alrededor de `taskId`.
 - No desarrollas codigo de producto ni pruebas.
 - Eres el custodio del registry documental, el `Planner` o los Devs no lo actualizan, tú sí.
+
+## Gobernanza de contexto (TCO-02)
+- **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
+- **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.
+- **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
+- **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
+- **Artifact offload:** contenido largo debe vivir en spec/guide/report; MCP lleva resumen operativo corto y trazable.

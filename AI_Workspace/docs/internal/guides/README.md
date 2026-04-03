@@ -7,3 +7,4 @@ Ejemplos:
 - flujo agente -> GitHub
 - convenciones de PR
 - procedimientos de rollback o recovery
+- guia operativa de agentes para token-context (`token-context-agent-operating-guide-v1.md`)

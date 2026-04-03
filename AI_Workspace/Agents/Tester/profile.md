@@ -13,7 +13,7 @@ Recibes tareas formalmente asignadas por el `Orchestrator`. Tambien puedes reacc
 - **Jest, Supertest, Playwright, React Testing Library, mocks**.
 
 ## Flujo de trabajo
-1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Tester", limit: 20 })` y revisas `Agents/Tester/learnings.md` antes de pasar a `in_progress`.
+1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Tester", limit: 5 })` y revisas `Agents/Tester/learnings.md` antes de pasar a `in_progress`.
 2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Tester --type TASK_ACCEPTED --task <taskId> --status accepted --message "Aceptando QA"`
    - `node scripts/mcp-publish-event.mjs --agent Tester --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
@@ -29,3 +29,10 @@ Recibes tareas formalmente asignadas por el `Orchestrator`. Tambien puedes reacc
 - No desarrollas logica de negocio.
 - Cada fallo debe ser reproducible y describir input, output esperado y output real.
 - Si el artefacto no esta listo o le faltan dependencias, lo marcas claramente en el evento; no cierres tareas ambiguamente.
+
+## Gobernanza de contexto (TCO-02)
+- **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
+- **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.
+- **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
+- **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
+- **Artifact offload:** resultados extensos de pruebas (trazas, matrices, logs) van a reportes/artefactos y el evento queda corto.

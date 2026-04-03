@@ -67,10 +67,11 @@ It reflects the current code and QA artifacts, not the intended target state fro
 ## Data flow and connectivity
 
 ### Current V2 client flow
-1. Initial data fetch in `useMcpEvents` uses `GET /api/events` by default.
-2. Realtime updates use same-origin `ws(s)://<host>/ws` by default via `WebSocketClient`.
-3. New events are appended to Zustand and React Query cache.
-4. Dashboard metrics are derived client-side from in-memory events.
+1. Initial data fetch in `useMcpEvents` uses compact relevance-first views (`GET /api/context/get_agent_inbox`) by default.
+2. Realtime updates use same-origin `ws(s)://<host>/ws` via websocket envelope messages (`connected`, `events_updated`, `latestEvent`).
+3. Snapshot task summaries are normalized into event-like stream entries for dashboard/timeline rendering.
+4. Deep debug expansion is explicit (`get_task_snapshot`, `get_correlation_snapshot`, targeted `/api/events?taskId=...&includeTaskEvents=true`) and not used as default intake.
+5. Context safety metadata (`degradedMode`, `stale`, `truncated`, `decisionSafety`, `readMode`) is exposed in the UI.
 
 ### Endpoint strategy
 Endpoint resolution is centralized in `src/lib/mcpEndpoints.ts`:
@@ -90,6 +91,8 @@ When `VITE_E2E_USE_FIXTURES=true`:
 ### Data quality guards
 - Invalid timestamps are normalized through `lib/timestamp.ts` helper functions with safe fallbacks.
 - Event status values are normalized through `lib/mcpStatus.ts` to handle lowercase and alias forms (for example `in_progress` -> `TASK_IN_PROGRESS`).
+- Context observability telemetry is consumed from `GET /api/context/observability` and surfaced in dashboard context health for SLO alert visibility.
+- Wave canary rollout telemetry is consumed from `GET /api/context/wave_canary` and exposed in dashboard context health (`activeWave`, `canaryFreeze`).
 
 ## Serving architecture (`/monitor` and `/pixel`)
 

@@ -1,0 +1,50 @@
+✔ sidecar content fingerprint is idempotent for same events (10.2063ms)
+✔ sidecar validator detects integrity tampering (0.8583ms)
+✔ sidecar validator detects invalid sourceWatermark (0.6457ms)
+✔ readValidatedSidecars rejects watermark mismatch across sidecars (88.2982ms)
+✔ readValidatedSidecars rejects incomplete sidecar file (65.7089ms)
+✔ sidecar payloads include compact handoff summaries (0.5295ms)
+✔ relevance-first endpoints return v1 compact snapshots (301.0716ms)
+✔ relevance-first endpoints audit broad fallback when sidecars are disabled (251.8503ms)
+✔ relevance-first endpoints enforce hard token limits with truncation metadata (254.6543ms)
+✔ runtime read mode changes when relevance reads are toggled (465.4895ms)
+✖ token budget flag disables budget metadata and truncation enforcement (439.1083ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1810.8767
+
+✖ failing tests:
+
+test at scripts\relevance-read-modes.test.mjs:292:1
+✖ token budget flag disables budget metadata and truncation enforcement (439.1083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + {
+  +   estimatedTokensAfter: 1745,
+  +   estimatedTokensBefore: 2092,
+  +   hardTokens: 1800,
+  +   policyVersion: 'ctx-budget.v1',
+  +   targetTokens: 1200,
+  +   truncatedByBudget: true,
+  +   view: 'agent_inbox',
+  +   withinHardLimit: true
+  + }
+  - undefined
+  
+      at TestContext.<anonymous> (file:///C:/Users/El%20Yisus%20Pai/Desktop/zCorvus/AI_Workspace/scripts/relevance-read-modes.test.mjs:331:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { policyVersion: 'ctx-budget.v1', view: 'agent_inbox', targetTokens: 1200, hardTokens: 1800, estimatedTokensBefore: 2092, estimatedTokensAfter: 1745, truncatedByBudget: true, withinHardLimit: true },
+    expected: undefined,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

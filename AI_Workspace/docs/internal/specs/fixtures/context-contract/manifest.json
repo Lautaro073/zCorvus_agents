@@ -1,0 +1,52 @@
+{
+  "manifestVersion": "1.0",
+  "schemaFamily": "ctx-contract",
+  "fixtures": [
+    {
+      "id": "agent-inbox-v1",
+      "path": "docs/internal/specs/fixtures/context-contract/v1/agent_inbox.v1.json",
+      "view": "agent_inbox",
+      "schemaVersion": "ctx-contract.v1"
+    },
+    {
+      "id": "task-snapshot-v1",
+      "path": "docs/internal/specs/fixtures/context-contract/v1/task_snapshot.v1.json",
+      "view": "task_snapshot",
+      "schemaVersion": "ctx-contract.v1"
+    },
+    {
+      "id": "correlation-snapshot-v1",
+      "path": "docs/internal/specs/fixtures/context-contract/v1/correlation_snapshot.v1.json",
+      "view": "correlation_snapshot",
+      "schemaVersion": "ctx-contract.v1"
+    },
+    {
+      "id": "task-snapshot-v2-additive",
+      "path": "docs/internal/specs/fixtures/context-contract/v2/task_snapshot.v2.additive.json",
+      "view": "task_snapshot",
+      "schemaVersion": "ctx-contract.v2"
+    }
+  ],
+  "compatibilityScenarios": [
+    {
+      "fixtureId": "task-snapshot-v1",
+      "consumerVersion": "ctx-contract.v1",
+      "expected": "native"
+    },
+    {
+      "fixtureId": "task-snapshot-v1",
+      "consumerVersion": "ctx-contract.v2",
+      "expected": "backward_compatible"
+    },
+    {
+      "fixtureId": "task-snapshot-v2-additive",
+      "consumerVersion": "ctx-contract.v1",
+      "expected": "fallback_required"
+    },
+    {
+      "fixtureId": "task-snapshot-v2-additive",
+      "consumerVersion": "ctx-contract.v2",
+      "expected": "native"
+    }
+  ]
+}

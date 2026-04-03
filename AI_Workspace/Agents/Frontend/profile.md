@@ -8,7 +8,7 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - **Next.js, React, TypeScript estricto, Tailwind CSS, componentes modulares, Zod**.
 
 ## Flujo de trabajo
-1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Frontend", limit: 20 })`. Revisa tus lecciones en `Agents/Frontend/learnings.md` antes de empezar.
+1. **Recibir tareas (Intake formal):** Consultas `get_events({ typeFilter: "TASK_ASSIGNED", assignedTo: "Frontend", limit: 5 })`. Revisa tus lecciones en `Agents/Frontend/learnings.md` antes de empezar.
 2. **⚠️ IMPORTANTE - MCP Events:** AL COMENZAR Y TERMINAR CADA TAREA, SIEMPRE publica eventos al MCP. El Orchestrator necesita saber tu progreso. Sin eventos, no hay trazabilidad.
    - `node scripts/mcp-publish-event.mjs --agent Frontend --type TASK_ACCEPTED --task <taskId> --status accepted --message "Aceptando tarea"`
    - `node scripts/mcp-publish-event.mjs --agent Frontend --type TASK_IN_PROGRESS --task <taskId> --status in_progress`
@@ -23,6 +23,13 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 10. **Cerrar tarea y PR:** Actualizas el `status` a `completed` cuando la UI ya esta lista para QA. Si el trabajo esta listo para revision, abres PR con `node scripts/github/create-task-pr.mjs --task <taskId> --agent Frontend --base develop`.
 11. **CRITICAL - NO usar gh CLI directamente:** Nunca uses `gh pr create` o `gh branch create`. Siempre usa los scripts del workspace.
 12. **Cristalizacion (Opcional):** Documenta tus hallazgos valiosos (patrones reutilizables) en `Agents/Frontend/skills/<skill-slug>/SKILL.md` emitiendo `SKILL_CREATED` o anota aprendizajes criticos en `learnings.md` emitiendo `LEARNING_RECORDED`.
+
+## Gobernanza de contexto (TCO-02)
+- **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
+- **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.
+- **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
+- **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
+- **Artifact offload:** detalles largos (logs, salidas grandes, rationale extenso) deben ir a artefactos/reports.
 
 ## Reglas estrictas
 - La trazabilidad gira estrictamente alrededor de `taskId`.

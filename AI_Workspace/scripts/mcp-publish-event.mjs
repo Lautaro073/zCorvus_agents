@@ -4,9 +4,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import {
+  DEDUPE_DEFAULTS,
+  applySnapshotSafetyPolicy,
+  applyMessageBudgetPolicy,
+  evaluateDeterministicDedupe,
+  MESSAGE_BUDGET_DEFAULTS,
   TASK_EVENT_TYPES,
   TASK_EVENT_STATUS_BY_TYPE,
   TASK_TERMINAL_EVENT_TYPES,
+  normalizeEventPayloadForStorage,
   validateEventPayload,
   validateTaskEventSequence,
 } from "../MCP_Server/lib/event-contract.js";
@@ -15,6 +21,38 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const CONTEXT_FILE = path.resolve(__dirname, "..", "MCP_Server", "shared_context.jsonl");
+const MCP_CONTEXT_LEGACY_PAYLOAD_MODE =
+  (process.env.MCP_CONTEXT_LEGACY_PAYLOAD_MODE || "false").toLowerCase() === "true";
+const MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED =
+  (process.env.MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_TOKEN_BUDGETS_ENABLED =
+  (process.env.MCP_CONTEXT_TOKEN_BUDGETS_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_REDACTION_ENABLED =
+  (process.env.MCP_CONTEXT_REDACTION_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_MEMORY_SAFETY_GUARDRAILS_ENABLED =
+  (process.env.MCP_CONTEXT_MEMORY_SAFETY_GUARDRAILS_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_MESSAGE_BUDGET_ENABLED =
+  (process.env.MCP_CONTEXT_MESSAGE_BUDGET_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_ARTIFACT_OFFLOAD_ENABLED =
+  (process.env.MCP_CONTEXT_ARTIFACT_OFFLOAD_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_HANDOFF_SUMMARIES_ENABLED =
+  (process.env.MCP_CONTEXT_HANDOFF_SUMMARIES_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED =
+  (process.env.MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED || "false").toLowerCase() === "true";
+const MCP_CONTEXT_DEDUP_ENABLED =
+  (process.env.MCP_CONTEXT_DEDUP_ENABLED || "true").toLowerCase() !== "false";
+const MCP_CONTEXT_DEDUP_WINDOW_MS = Number.parseInt(
+  process.env.MCP_CONTEXT_DEDUP_WINDOW_MS || String(DEDUPE_DEFAULTS.windowMs),
+  10
+);
+const MCP_CONTEXT_MESSAGE_TARGET_CHARS = Number.parseInt(
+  process.env.MCP_CONTEXT_MESSAGE_TARGET_CHARS || String(MESSAGE_BUDGET_DEFAULTS.targetChars),
+  10
+);
+const MCP_CONTEXT_MESSAGE_SOFT_LIMIT_CHARS = Number.parseInt(
+  process.env.MCP_CONTEXT_MESSAGE_SOFT_LIMIT_CHARS || String(MESSAGE_BUDGET_DEFAULTS.softLimitChars),
+  10
+);
 
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -106,6 +144,35 @@ async function normalizeAndValidateEventInput(agent, type, payload, options = {}
     ...(parentTaskId ? { parentTaskId } : {}),
   };
 
+  const { payload: safetyPayload } = applySnapshotSafetyPolicy(normalizedPayload, {
+    redactionEnabled: MCP_CONTEXT_REDACTION_ENABLED,
+    memorySafetyEnabled: MCP_CONTEXT_MEMORY_SAFETY_GUARDRAILS_ENABLED,
+  });
+
+  const messageBudgetEnabled = MCP_CONTEXT_TOKEN_BUDGETS_ENABLED && MCP_CONTEXT_MESSAGE_BUDGET_ENABLED;
+  const artifactOffloadEnabled = MCP_CONTEXT_ARTIFACT_OFFLOAD_ENABLED && MCP_CONTEXT_HANDOFF_SUMMARIES_ENABLED;
+
+  let { payload: budgetedPayload, warning: messageBudgetWarning } = messageBudgetEnabled
+    ? applyMessageBudgetPolicy(safetyPayload, {
+        targetChars: MCP_CONTEXT_MESSAGE_TARGET_CHARS,
+        softLimitChars: MCP_CONTEXT_MESSAGE_SOFT_LIMIT_CHARS,
+        hardLimitEnabled: MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED,
+      })
+    : { payload: { ...safetyPayload }, warning: null };
+
+  if (!artifactOffloadEnabled) {
+    delete budgetedPayload.offloadHint;
+    if (budgetedPayload.messageBudget && typeof budgetedPayload.messageBudget === "object") {
+      budgetedPayload.messageBudget.offloadRequired = false;
+      if (budgetedPayload.messageBudget.state === "trimmed_offload_suggested") {
+        budgetedPayload.messageBudget.state = "trimmed_to_target";
+      }
+    }
+    if (messageBudgetWarning && messageBudgetWarning.toLowerCase().includes("artifactpaths")) {
+      messageBudgetWarning = "Message trimmed to target budget (artifact offload disabled by flag).";
+    }
+  }
+
   if (TASK_EVENT_TYPES.has(normalizedType)) {
     assertNonEmptyString(taskId, "payload.taskId");
     assertNonEmptyString(assignedTo, "payload.assignedTo");
@@ -118,17 +185,31 @@ async function normalizeAndValidateEventInput(agent, type, payload, options = {}
     }
 
     if (normalizedType !== "TASK_ASSIGNED") {
-      validateEventPayload(normalizedType, normalizedPayload);
+      validateEventPayload(normalizedType, budgetedPayload);
     }
   }
 
+  let lifecycleHistory = [];
   if (TASK_EVENT_TYPES.has(normalizedType) || TASK_TERMINAL_EVENT_TYPES.has(normalizedType)) {
     assertNonEmptyString(taskId, "payload.taskId");
-    const history = await readEventsFromContext();
-    validateTaskEventSequence(normalizedType, normalizedPayload, history, {
+    lifecycleHistory = await readEventsFromContext();
+    validateTaskEventSequence(normalizedType, normalizedPayload, lifecycleHistory, {
       allowSequenceOverride: Boolean(options.allowSequenceOverride),
     });
   }
+
+  const dedupeDecision = evaluateDeterministicDedupe(
+    normalizedType,
+    budgetedPayload,
+    lifecycleHistory,
+    {
+      enabled: MCP_CONTEXT_DEDUP_ENABLED,
+      windowMs: Number.isFinite(MCP_CONTEXT_DEDUP_WINDOW_MS)
+        ? MCP_CONTEXT_DEDUP_WINDOW_MS
+        : DEDUPE_DEFAULTS.windowMs,
+      agent: normalizedAgent,
+    }
+  );
 
   return {
     normalizedAgent,
@@ -139,7 +220,9 @@ async function normalizeAndValidateEventInput(agent, type, payload, options = {}
     priority,
     correlationId,
     parentTaskId,
-    normalizedPayload,
+    normalizedPayload: budgetedPayload,
+    messageBudgetWarning,
+    dedupeDecision,
   };
 }
 
@@ -155,7 +238,51 @@ async function appendEvent(agent, type, payload, options = {}) {
     correlationId,
     parentTaskId,
     normalizedPayload,
+    messageBudgetWarning,
+    dedupeDecision,
   } = normalizedInput;
+
+  if (messageBudgetWarning) {
+    console.error(`[mcp-publish-event] ${messageBudgetWarning}`);
+  }
+
+  if (dedupeDecision?.suppressed) {
+    return {
+      suppressed: true,
+      dedupe: dedupeDecision,
+      agent: normalizedAgent,
+      type: normalizedType,
+      taskId,
+      status,
+      correlationId,
+      payload: normalizedPayload,
+    };
+  }
+
+  const dependsOn = normalizeStringList(normalizedPayload.dependsOn);
+  const artifactPaths = normalizeStringList(normalizedPayload.artifactPaths);
+  const payloadVersion = normalizeString(normalizedPayload.payloadVersion) || "1.0";
+
+  const compactPayload = normalizeEventPayloadForStorage(
+    normalizedPayload,
+    {
+      taskId,
+      assignedTo,
+      status,
+      priority,
+      correlationId,
+      parentTaskId,
+      dependsOn,
+      artifactPaths,
+      payloadVersion,
+    },
+    {
+      legacyPayloadMode:
+        MCP_CONTEXT_LEGACY_PAYLOAD_MODE ||
+        !MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED ||
+        !MCP_CONTEXT_TOKEN_BUDGETS_ENABLED,
+    }
+  );
 
   const event = {
     eventId: crypto.randomUUID(),
@@ -168,8 +295,10 @@ async function appendEvent(agent, type, payload, options = {}) {
     priority,
     correlationId,
     parentTaskId,
-    payloadVersion: "1.0",
-    payload: normalizedPayload,
+    dependsOn,
+    artifactPaths,
+    payloadVersion,
+    payload: compactPayload,
   };
 
   const line = JSON.stringify(event) + "\n";
@@ -199,10 +328,63 @@ async function main() {
   if (args.allowSequenceOverride) payload.allowSequenceOverride = true;
 
   if (args.dryRun) {
-    await normalizeAndValidateEventInput(args.agent, args.type, payload, {
+    const normalized = await normalizeAndValidateEventInput(args.agent, args.type, payload, {
       allowSequenceOverride: Boolean(args.allowSequenceOverride),
     });
-    console.log(JSON.stringify({ agent: args.agent, type: args.type, payload, dryRunValidated: true }, null, 2));
+    if (normalized.messageBudgetWarning) {
+      console.error(`[mcp-publish-event] ${normalized.messageBudgetWarning}`);
+    }
+    const eventPreviewDependsOn = normalizeStringList(normalized.normalizedPayload.dependsOn);
+    const eventPreviewArtifactPaths = normalizeStringList(normalized.normalizedPayload.artifactPaths);
+    const eventPreviewPayloadVersion =
+      normalizeString(normalized.normalizedPayload.payloadVersion) || "1.0";
+    const eventPreviewCompactPayload = normalizeEventPayloadForStorage(
+      normalized.normalizedPayload,
+      {
+        taskId: normalized.taskId,
+        assignedTo: normalized.assignedTo,
+        status: normalized.status,
+        priority: normalized.priority,
+        correlationId: normalized.correlationId,
+        parentTaskId: normalized.parentTaskId,
+        dependsOn: eventPreviewDependsOn,
+        artifactPaths: eventPreviewArtifactPaths,
+        payloadVersion: eventPreviewPayloadVersion,
+      },
+      {
+        legacyPayloadMode:
+          MCP_CONTEXT_LEGACY_PAYLOAD_MODE ||
+          !MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED ||
+          !MCP_CONTEXT_TOKEN_BUDGETS_ENABLED,
+      }
+    );
+
+    console.log(
+      JSON.stringify(
+        {
+          agent: args.agent,
+          type: args.type,
+          payload,
+          normalizedPayload: normalized.normalizedPayload,
+          dedupeDecision: normalized.dedupeDecision,
+          eventPreview: {
+            taskId: normalized.taskId,
+            assignedTo: normalized.assignedTo,
+            status: normalized.status,
+            priority: normalized.priority,
+            correlationId: normalized.correlationId,
+            parentTaskId: normalized.parentTaskId,
+            dependsOn: eventPreviewDependsOn,
+            artifactPaths: eventPreviewArtifactPaths,
+            payloadVersion: eventPreviewPayloadVersion,
+            payload: eventPreviewCompactPayload,
+          },
+          dryRunValidated: true,
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 

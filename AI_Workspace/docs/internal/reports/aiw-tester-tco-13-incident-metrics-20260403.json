@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-04-03T01:25:30.068Z",
+  "correlationId": "aiw-token-context-optimization-20260331",
+  "events": 189,
+  "snapshotConflictRate": 0,
+  "snapshotConflictCount": 0,
+  "partialWriteIncidents": 3,
+  "waveRolloutIncidents": 0,
+  "incidentResolvedCount": 0,
+  "alertAckTimeMinutesAvg": null,
+  "alertAckTimeSamples": 0
+}

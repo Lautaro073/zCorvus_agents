@@ -1,0 +1,44 @@
+{
+  "view": "correlation_snapshot",
+  "schemaVersion": "ctx-contract.v1",
+  "generatedAt": "2026-04-02T05:20:00.000Z",
+  "buildVersion": "context-snapshot@1.0.0",
+  "maxAgeMs": 5000,
+  "sourceEventId": "a8b4f2b0-efa6-41a0-8ffb-80e72bd125f3",
+  "sourceWatermark": "jsonl:780",
+  "integrityHash": "sha256:fixture-correlation-snapshot-v1",
+  "rebuiltAt": "2026-04-02T05:20:00.000Z",
+  "stale": false,
+  "degradedMode": false,
+  "decisionSafety": "safe_for_triage",
+  "correlationId": "aiw-token-context-optimization-20260331",
+  "overallStatus": "in_progress",
+  "activeTaskCount": 2,
+  "blockedTaskCount": 0,
+  "lastUpdatedAt": "2026-04-02T05:28:01.200Z",
+  "criticalUpdates": [
+    {
+      "taskId": "aiw-opt-tco-01a-schema-evolution-policy-20260402-01",
+      "status": "in_progress",
+      "summary": "Schema evolution policy drafting"
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "aiw-opt-tco-01-context-contract-20260402-01",
+      "assignedTo": "AI_Workspace_Optimizer",
+      "status": "completed",
+      "latestSummary": "Context contract v1 delivered",
+      "updatedAt": "2026-04-02T05:04:52.128Z"
+    },
+    {
+      "taskId": "aiw-opt-tco-01a-schema-evolution-policy-20260402-01",
+      "assignedTo": "AI_Workspace_Optimizer",
+      "status": "in_progress",
+      "latestSummary": "Schema policy and compatibility matrix in progress",
+      "updatedAt": "2026-04-02T05:28:01.200Z"
+    }
+  ],
+  "nextExpansionHint": null,
+  "truncated": false
+}
