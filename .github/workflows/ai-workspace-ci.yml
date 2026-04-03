@@ -25,7 +25,7 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    
+
     env:
       TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
       TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
@@ -46,6 +46,10 @@ jobs:
         working-directory: Backend
         run: npm ci
 
+      - name: Run backend checks
+        working-directory: Backend
+        run: npm run check
+
       - name: Debug env vars
         run: |
           echo "TURSO_DATABASE_URL set: ${{ secrets.TURSO_DATABASE_URL != '' }}"
@@ -54,6 +58,9 @@ jobs:
       - name: Run backend tests
         working-directory: Backend
         run: npm test
+
+      - name: Run backend smoke tests
+        run: node --test AI_Workspace/scripts/backend-smoke.test.mjs
 
   frontend:
     name: Frontend
@@ -73,6 +80,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: Frontend
         run: npm ci
+
+      - name: Run frontend checks
+        working-directory: Frontend
+        run: npm run check
 
       - name: Run frontend lint
         working-directory: Frontend
@@ -121,6 +132,9 @@ jobs:
 
       - name: Run docs registry tests
         run: node --test AI_Workspace/scripts/docs-registry.test.mjs
+
+      - name: Run profile/context conformance checker
+        run: node AI_Workspace/scripts/check-profile-context-conformance.mjs
 
       - name: Run MCP event contract tests
         run: node --test AI_Workspace/scripts/mcp-event-contract.test.mjs
