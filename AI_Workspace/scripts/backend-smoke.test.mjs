@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const workspaceRoot = path.resolve(__dirname, "..");
-const backendEntry = path.join(workspaceRoot, "Backend", "src", "server.js");
+const repositoryRoot = path.resolve(workspaceRoot, "..");
+const backendRoot = path.join(repositoryRoot, "Backend");
+const backendEntry = path.join(backendRoot, "server.js");
 
 async function waitFor(url, attempts = 30) {
   for (let index = 0; index < attempts; index += 1) {
@@ -28,7 +30,7 @@ async function waitFor(url, attempts = 30) {
 test("backend bootstrap exposes health and ping", async () => {
   const port = 4512;
   const child = spawn(process.execPath, [backendEntry], {
-    cwd: path.join(workspaceRoot, "Backend"),
+    cwd: backendRoot,
     env: {
       ...process.env,
       PORT: String(port),
