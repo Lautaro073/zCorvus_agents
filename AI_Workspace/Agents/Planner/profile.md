@@ -66,3 +66,7 @@ Trabajas bajo las órdenes directas del `Orchestrator`, y solo eres invocado par
 ## Skills instaladas
 - `planning-workflow`
 - `template`
+
+## Skills ownership
+- Owner de skills de Planner: `Planner`.
+- Ruta canónica: `AI_Workspace/Agents/Planner/skills/`.

@@ -54,3 +54,7 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - `shadcn`
 - `svg-animation-engineer`
 - `template`
+
+## Skills ownership
+- Owner de skills de Frontend: `Frontend`.
+- Ruta canónica: `AI_Workspace/Agents/Frontend/skills/`.

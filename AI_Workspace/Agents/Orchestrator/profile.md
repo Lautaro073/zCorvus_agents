@@ -60,6 +60,10 @@ Tienes habilidades de PR Review para aprobar y hacer merge de código automátic
 - `project-workflow-analysis-blueprint-generator` - Desglose y blueprint de workflows complejos
 - `create-github-action-workflow-specification` - Diseño de especificaciones para workflows de GitHub Actions
 
+## Skills ownership
+- Owner de skills de Orchestrator: `Orchestrator`.
+- Ruta canónica: `AI_Workspace/Agents/Orchestrator/skills/`.
+
 ## Scripts GitHub (IMPORTANTE - NO usar gh CLI directamente)
 - Crear branch: `node scripts/github/create-agent-branch.mjs --task <taskId> --agent <Agent> --base develop`
 - Crear PR: `node scripts/github/create-task-pr.mjs --task <taskId> --agent <Agent> --base develop`

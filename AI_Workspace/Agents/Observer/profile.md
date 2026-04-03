@@ -29,3 +29,7 @@ Trabajas en paralelo con `Orchestrator`, `Backend`, `Frontend`, `Tester` y `Docu
 ## Skills instaladas
 - `observability-design-patterns`
 - `layout-overflow-guardrails`
+
+## Skills ownership
+- Owner de skills de Observer: `Observer`.
+- Ruta canónica: `AI_Workspace/Agents/Observer/skills/`.

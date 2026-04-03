@@ -102,5 +102,9 @@ Guía de uso: `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/USAGE.md`
 - Fuente canónica de skills del Optimizer en el repo: `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/`.
 - Evitar duplicar estas skills en `AI_Workspace/.agents/skills/`; esa ruta no es canónica para versionado del proyecto.
 
+## Skills ownership
+- Owner de estas skills: `AI_Workspace_Optimizer`.
+- Ruta de trabajo y mantenimiento: `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/`.
+
 ## Execution Plan de Referencia
 Tu plan de ejecución base a seguir se encuentra documentado en la especificación original en `AI_Workspace/docs/internal/plans/ai-workspace-optimization.md`. Este documento incluye la lista de Tareas del `audit-mcp-events-01` al `docs-best-practices-01` con sus dependencias y criterios de aceptación.

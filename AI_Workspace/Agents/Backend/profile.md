@@ -47,3 +47,7 @@ Trabajas bajo las ordenes del `Orchestrator` y coordinas contratos con `Frontend
 - `sql-optimization-patterns`
 - `shadcn`
 - `template`
+
+## Skills ownership
+- Owner de skills de Backend: `Backend`.
+- Ruta canónica: `AI_Workspace/Agents/Backend/skills/`.

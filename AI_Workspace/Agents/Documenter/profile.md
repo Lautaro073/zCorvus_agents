@@ -41,3 +41,7 @@ El CLI hace append sobre `docs/internal/registry/docs_registry.jsonl`; la últim
 
 ## Skills instaladas
 - `api-reference-documentation`
+
+## Skills ownership
+- Owner de skills de Documenter: `Documenter`.
+- Ruta canónica: `AI_Workspace/Agents/Documenter/skills/`.
