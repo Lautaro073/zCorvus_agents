@@ -55,6 +55,10 @@ Tienes habilidades de PR Review para aprobar y hacer merge de código automátic
 - `requesting-code-review` - Cómo solicitar code reviews
 - `receiving-code-review` - Cómo recibir code reviews
 - `create-pr` - Crear PRs con resúmenes completos
+- `pr-reviewer` - Revisión técnica de cambios antes de merge
+- `workflow-orchestration` - Ejecución disciplinada con quality gates
+- `project-workflow-analysis-blueprint-generator` - Desglose y blueprint de workflows complejos
+- `create-github-action-workflow-specification` - Diseño de especificaciones para workflows de GitHub Actions
 
 ## Scripts GitHub (IMPORTANTE - NO usar gh CLI directamente)
 - Crear branch: `node scripts/github/create-agent-branch.mjs --task <taskId> --agent <Agent> --base develop`

@@ -38,3 +38,6 @@ El CLI hace append sobre `docs/internal/registry/docs_registry.jsonl`; la últim
 - **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
 - **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
 - **Artifact offload:** contenido largo debe vivir en spec/guide/report; MCP lleva resumen operativo corto y trazable.
+
+## Skills instaladas
+- `api-reference-documentation`

@@ -62,3 +62,7 @@ Trabajas bajo las órdenes directas del `Orchestrator`, y solo eres invocado par
 - **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
 - **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
 - **Artifact offload:** detalles largos del plan deben ir en artefactos (`docs/internal/plans`, reportes), no en payloads extensos del evento.
+
+## Skills instaladas
+- `planning-workflow`
+- `template`

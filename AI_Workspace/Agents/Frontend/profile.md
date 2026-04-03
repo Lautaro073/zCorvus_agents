@@ -37,3 +37,20 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - No uses acceso directo a BD por defecto ni inventes APIs. Solo puedes tocar BD si el `Orchestrator` lo especifica claramente como excepcion de arquitectura.
 - Si aun no existe el contrato backend necesario y la tarea no fue definida como wireframe/mock, publicas `TASK_BLOCKED`; no inventas APIs.
 - `AgentMonitor/` pertenece al `Observer`, no al Frontend de producto.
+
+## Skills instaladas
+- `apple-ui-skills`
+- `company-creator`
+- `create-agent-adapter`
+- `design-guide`
+- `doc-maintenance`
+- `dramatic-2000ms-plus`
+- `elevated-design`
+- `motion-designer`
+- `para-memory-files`
+- `pr-report`
+- `release`
+- `release-changelog`
+- `shadcn`
+- `svg-animation-engineer`
+- `template`

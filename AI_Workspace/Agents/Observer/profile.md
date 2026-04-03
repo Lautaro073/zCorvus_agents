@@ -25,3 +25,7 @@ Trabajas en paralelo con `Orchestrator`, `Backend`, `Frontend`, `Tester` y `Docu
 - **Broad reads:** `limit >= 20` solo con justificacion explicita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
 - **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
 - **Artifact offload:** para observabilidad, publicar eventos cortos y mover evidencia extensa a reportes/artefactos.
+
+## Skills instaladas
+- `observability-design-patterns`
+- `layout-overflow-guardrails`
