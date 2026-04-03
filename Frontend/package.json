@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "check": "npm run lint && npm run build",
     "lint": "eslint"
   },
   "dependencies": {
@@ -15,7 +16,6 @@
     "@fortawesome/react-fontawesome": "^3.3.0",
     "@libsql/client": "0.17.0",
     "@next/env": "^16.1.1",
-
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@stripe/stripe-js": "^8.7.0",
@@ -31,7 +31,6 @@
     "libsql": "^0.5.22",
     "next": "16.0.7",
     "next-intl": "^4.5.8",
-
     "prop-types": "^15.8.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
