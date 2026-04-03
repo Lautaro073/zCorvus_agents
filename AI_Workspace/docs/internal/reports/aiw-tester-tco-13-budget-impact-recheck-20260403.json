@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-04-03T01:47:28.364Z",
+  "selectors": {
+    "assignedTo": "AI_Workspace_Optimizer",
+    "taskId": "aiw-opt-canvas-skills-20260327-01",
+    "correlationId": "canvas-skills-20260327"
+  },
+  "comparisons": [
+    {
+      "label": "agent_inbox",
+      "baselineBytes": 13240,
+      "enforcedBytes": 6905,
+      "bytesReductionPercent": 47.85,
+      "baselineTokens": 3151,
+      "enforcedTokens": 1568,
+      "truncatedBaseline": true,
+      "truncatedEnforced": true,
+      "nextCursorEnforced": {
+        "scope": "tasks",
+        "offset": 4,
+        "total": 10
+      }
+    },
+    {
+      "label": "task_snapshot",
+      "baselineBytes": 2864,
+      "enforcedBytes": 2862,
+      "bytesReductionPercent": 0.07,
+      "baselineTokens": 557,
+      "enforcedTokens": 557,
+      "truncatedBaseline": false,
+      "truncatedEnforced": false,
+      "nextCursorEnforced": null
+    },
+    {
+      "label": "correlation_snapshot",
+      "baselineBytes": 2613,
+      "enforcedBytes": 2611,
+      "bytesReductionPercent": 0.08,
+      "baselineTokens": 493,
+      "enforcedTokens": 493,
+      "truncatedBaseline": false,
+      "truncatedEnforced": false,
+      "nextCursorEnforced": null
+    }
+  ]
+}

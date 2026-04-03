@@ -1,0 +1,28 @@
+✔ monitor server rebuilds sidecars and exposes provenance (286.8315ms)
+✖ monitor server detects corrupted sidecar and rebuilds safely (266.4369ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 664.7451
+
+✖ failing tests:
+
+test at scripts\monitor-sidecars.test.mjs:75:1
+✖ monitor server detects corrupted sidecar and rebuilds safely (266.4369ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+  
+  'sha256:corrupted'
+      at TestContext.<anonymous> (file:///C:/Users/El%20Yisus%20Pai/Desktop/zCorvus/AI_Workspace/scripts/monitor-sidecars.test.mjs:112:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'sha256:corrupted',
+    expected: 'sha256:corrupted',
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,35 @@
+{
+  "view": "agent_inbox",
+  "schemaVersion": "ctx-contract.v1",
+  "generatedAt": "2026-04-02T05:20:00.000Z",
+  "buildVersion": "context-snapshot@1.0.0",
+  "maxAgeMs": 5000,
+  "sourceEventId": "a8b4f2b0-efa6-41a0-8ffb-80e72bd125f3",
+  "sourceWatermark": "jsonl:780",
+  "integrityHash": "sha256:fixture-agent-inbox-v1",
+  "rebuiltAt": "2026-04-02T05:20:00.000Z",
+  "stale": false,
+  "degradedMode": false,
+  "decisionSafety": "safe_for_triage",
+  "agent": "AI_Workspace_Optimizer",
+  "openTaskCount": 1,
+  "blockedTaskCount": 0,
+  "needsAttentionCount": 1,
+  "tasks": [
+    {
+      "taskId": "aiw-opt-tco-01a-schema-evolution-policy-20260402-01",
+      "correlationId": "aiw-token-context-optimization-20260331",
+      "status": "in_progress",
+      "priority": "high",
+      "latestEventType": "TASK_IN_PROGRESS",
+      "latestSummary": "Defining schema evolution and compatibility policy",
+      "updatedAt": "2026-04-02T05:28:01.200Z",
+      "nextAction": "Publish TCO-01A policy spec",
+      "artifactPaths": [
+        "AI_Workspace/docs/internal/specs/token-context-schema-evolution-policy-v1.md"
+      ]
+    }
+  ],
+  "nextExpansionHint": null,
+  "truncated": false
+}

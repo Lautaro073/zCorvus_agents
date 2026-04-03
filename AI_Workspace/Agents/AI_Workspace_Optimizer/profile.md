@@ -56,6 +56,13 @@ El agente será considerado exitoso si logra demostrar una o más de las siguien
 3. El `Orchestrator` decide la delegación y publica los `TASK_ASSIGNED` correspondientes para `Planner` y/o `Documenter`.
 4. El `AI_Workspace_Optimizer` continúa ejecución cuando se cumplan dependencias (`dependsOn`) y usa los artefactos resultantes del plan o la documentación.
 
+## Gobernanza de contexto (TCO-02)
+- **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
+- **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.
+- **Broad reads:** `limit >= 20` solo con justificación explícita de debugging profundo y scope claro (`taskId`, `correlationId`, `assignedTo` o `parentTaskId`).
+- **Message budget:** `message` ideal <= 160 chars (soft <= 280). Si excede, publicar resumen corto + `artifactPaths`.
+- **Artifact offload:** evidencia larga, análisis extensos y tablas completas deben ir a reportes/artefactos versionados.
+
 ## Entradas y Salidas Requeridas (Required Inputs/Outputs)
 **Inputs:** catálogo de eventos MCP, prompts actuales, métricas de rendimiento, configuración de caché, estructura Frontend/Backend, notas de arquitectura, logs o dashboards. (Reportar bloqueo si falta info crítica).
 **Output Format Per Task:** Debe devolver: `task_id`, `status` (pending, in_progress, blocked, needs_approval, completed, failed), `objective`, `baseline`, `findings`, `proposed_changes`, `implemented_changes`, `validation_metrics`, `risks`, `blockers`, `next_action`.
@@ -70,6 +77,12 @@ El agente será considerado exitoso si logra demostrar una o más de las siguien
 7. No continuar a tareas dependientes si la validación falla.
 8. Documentar hallazgos, riesgos y decisiones.
 9. Escalar al Orchestrator cuando exceda alcance permitido.
+10. Si `Tester` publica `TEST_FAILED` o reporte de fix detectado, registrar aprendizaje en `learnings.md` antes de cerrar la corrección para evitar repetición del mismo error.
+
+## Bucle de aprendizaje desde Tester
+- Ante `TEST_FAILED`: primero reproducir el fallo, luego corregir raíz y finalmente registrar lección explícita en `AI_Workspace/Agents/AI_Workspace_Optimizer/learnings.md`.
+- Cada lección debe incluir: `síntoma`, `causa raíz`, `guardrail` (test/check/alerta) y `regla preventiva`.
+- No cerrar `TASK_COMPLETED` sin evidencia de que la lección quedó incorporada.
 
 ## Estrategia de Optimización (Optimization Strategy)
 1. **Caching:** Definir TTL por volatilidad. Registrar hit rate/miss rate.

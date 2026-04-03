@@ -1,0 +1,489 @@
+{
+  "methodology": {
+    "generatedAt": "2026-04-03T01:22:31.506Z",
+    "environment": {
+      "platform": "win32",
+      "arch": "x64",
+      "nodeVersion": "v24.14.0",
+      "cpuModel": "AMD Ryzen 5 5600X 6-Core Processor             ",
+      "logicalCpuCount": 12,
+      "memoryGB": 15.94
+    },
+    "contextInput": {
+      "contextPath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\MCP_Server\\shared_context.jsonl",
+      "fileBytes": 844309,
+      "fileMB": 0.81,
+      "parsedEvents": 910
+    },
+    "definitions": {
+      "broadRead": "Consulta por ventana amplia (default limit >= 20), típicamente sin foco fuerte por taskId/correlationId.",
+      "intakeCostByAgent": "Costo estimado por consulta inicial de cada agente según su query por defecto en profile.md y payload actual.",
+      "tokenEstimation": "Aproximación heurística: tokens ~= bytes/4."
+    },
+    "benchmark": {
+      "sampleSize": 120,
+      "warmupRuns": 20,
+      "benchmarkTarget": "/api/events broad read simulation (limit=50, include nested task events)"
+    }
+  },
+  "baseline": {
+    "fileBytes": 844309,
+    "fileMB": 0.81,
+    "fileEstimatedTokens": 211077,
+    "totalLines": 910,
+    "parsedEvents": 910,
+    "dateRange": {
+      "first": "2026-03-23T07:06:31.902Z",
+      "last": "2026-04-03T01:21:20.827Z"
+    },
+    "topByType": {
+      "TASK_ASSIGNED": 204,
+      "TASK_COMPLETED": 193,
+      "TASK_ACCEPTED": 169,
+      "TASK_IN_PROGRESS": 146,
+      "ARTIFACT_PUBLISHED": 71,
+      "SUBTASK_REQUESTED": 23,
+      "TEST_PASSED": 22,
+      "TEST_FAILED": 21,
+      "PLAN_PROPOSED": 13,
+      "DOC_UPDATED": 11
+    },
+    "topByAgent": {
+      "Orchestrator": 226,
+      "Tester": 188,
+      "AI_Workspace_Optimizer": 159,
+      "Observer": 108,
+      "Planner": 82,
+      "Frontend": 80,
+      "Documenter": 58,
+      "Backend": 9
+    },
+    "topByStatus": {
+      "completed": 288,
+      "assigned": 224,
+      "in_progress": 179,
+      "accepted": 170,
+      "failed": 21,
+      "passed": 17,
+      "unknown": 4,
+      "blocked": 4,
+      "cancelled": 3
+    },
+    "openTaskCount": 25
+  },
+  "messageLengthDistribution": {
+    "messagesCount": 876,
+    "totalChars": 138054,
+    "averageChars": 157.6,
+    "p50Chars": 123,
+    "p90Chars": 302,
+    "p95Chars": 362,
+    "p99Chars": 475,
+    "maxChars": 972,
+    "over160": 325,
+    "over280": 115,
+    "over500": 5
+  },
+  "intakeCostByAgent": {
+    "rows": [
+      {
+        "agent": "Backend",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Backend\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Backend\", limit: 5"
+      },
+      {
+        "agent": "Documenter",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Documenter\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Documenter\", limit: 5"
+      },
+      {
+        "agent": "Frontend",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Frontend\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Frontend\", limit: 5"
+      },
+      {
+        "agent": "Observer",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Observer\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Observer\", limit: 5"
+      },
+      {
+        "agent": "Orchestrator",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Orchestrator\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "/api/events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "/api/events?assignedTo=<Agent>&limit=5"
+      },
+      {
+        "agent": "Planner",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Planner\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Planner\", limit: 5"
+      },
+      {
+        "agent": "Tester",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\Tester\\profile.md",
+        "intakeQueryCount": 1,
+        "defaultQuerySource": "get_events",
+        "defaultLimit": 5,
+        "broadWindow": false,
+        "scopedQuery": true,
+        "estimatedGetEventsTokens": 1635,
+        "estimatedApiEventsTokens": 3711,
+        "querySnippet": "typeFilter: \"TASK_ASSIGNED\", assignedTo: \"Tester\", limit: 5"
+      },
+      {
+        "agent": "AI_Workspace_Optimizer",
+        "profilePath": "C:\\Users\\El Yisus Pai\\Desktop\\zCorvus\\AI_Workspace\\Agents\\AI_Workspace_Optimizer\\profile.md",
+        "intakeQueryCount": 0,
+        "defaultQuerySource": null,
+        "defaultLimit": null,
+        "broadWindow": false,
+        "scopedQuery": null,
+        "estimatedGetEventsTokens": null,
+        "estimatedApiEventsTokens": null,
+        "querySnippet": null
+      }
+    ],
+    "summary": {
+      "profilesScanned": 8,
+      "profilesWithIntakeQuery": 7,
+      "profilesWithDefaultLimit": 7,
+      "broadWindowProfiles": 0,
+      "broadWindowRatePercent": 0,
+      "unscopedProfiles": 0,
+      "unscopedRatePercent": 0
+    }
+  },
+  "eventVolumeByType": [
+    {
+      "key": "TASK_ASSIGNED",
+      "count": 204,
+      "percent": 22.42
+    },
+    {
+      "key": "TASK_COMPLETED",
+      "count": 193,
+      "percent": 21.21
+    },
+    {
+      "key": "TASK_ACCEPTED",
+      "count": 169,
+      "percent": 18.57
+    },
+    {
+      "key": "TASK_IN_PROGRESS",
+      "count": 146,
+      "percent": 16.04
+    },
+    {
+      "key": "ARTIFACT_PUBLISHED",
+      "count": 71,
+      "percent": 7.8
+    },
+    {
+      "key": "SUBTASK_REQUESTED",
+      "count": 23,
+      "percent": 2.53
+    },
+    {
+      "key": "TEST_PASSED",
+      "count": 22,
+      "percent": 2.42
+    },
+    {
+      "key": "TEST_FAILED",
+      "count": 21,
+      "percent": 2.31
+    },
+    {
+      "key": "PLAN_PROPOSED",
+      "count": 13,
+      "percent": 1.43
+    },
+    {
+      "key": "DOC_UPDATED",
+      "count": 11,
+      "percent": 1.21
+    },
+    {
+      "key": "LEARNING_RECORDED",
+      "count": 8,
+      "percent": 0.88
+    },
+    {
+      "key": "GITHUB_PR_OPENED",
+      "count": 5,
+      "percent": 0.55
+    },
+    {
+      "key": "GITHUB_BRANCH_CREATED",
+      "count": 4,
+      "percent": 0.44
+    },
+    {
+      "key": "UI_COMPONENT_BUILT",
+      "count": 4,
+      "percent": 0.44
+    },
+    {
+      "key": "TASK_BLOCKED",
+      "count": 4,
+      "percent": 0.44
+    },
+    {
+      "key": "GITHUB_ISSUE_CREATED",
+      "count": 3,
+      "percent": 0.33
+    },
+    {
+      "key": "TASK_CANCELLED",
+      "count": 3,
+      "percent": 0.33
+    },
+    {
+      "key": "SKILL_CREATED",
+      "count": 2,
+      "percent": 0.22
+    },
+    {
+      "key": "ENDPOINT_CREATED",
+      "count": 2,
+      "percent": 0.22
+    },
+    {
+      "key": "PLAN_REVIEWED",
+      "count": 1,
+      "percent": 0.11
+    },
+    {
+      "key": "PLAN_APPROVED",
+      "count": 1,
+      "percent": 0.11
+    }
+  ],
+  "eventVolumeByAgent": [
+    {
+      "key": "Orchestrator",
+      "count": 226,
+      "percent": 24.84
+    },
+    {
+      "key": "Tester",
+      "count": 188,
+      "percent": 20.66
+    },
+    {
+      "key": "AI_Workspace_Optimizer",
+      "count": 159,
+      "percent": 17.47
+    },
+    {
+      "key": "Observer",
+      "count": 108,
+      "percent": 11.87
+    },
+    {
+      "key": "Planner",
+      "count": 82,
+      "percent": 9.01
+    },
+    {
+      "key": "Frontend",
+      "count": 80,
+      "percent": 8.79
+    },
+    {
+      "key": "Documenter",
+      "count": 58,
+      "percent": 6.37
+    },
+    {
+      "key": "Backend",
+      "count": 9,
+      "percent": 0.99
+    }
+  ],
+  "eventVolumeByStatus": [
+    {
+      "key": "completed",
+      "count": 288,
+      "percent": 31.65
+    },
+    {
+      "key": "assigned",
+      "count": 224,
+      "percent": 24.62
+    },
+    {
+      "key": "in_progress",
+      "count": 179,
+      "percent": 19.67
+    },
+    {
+      "key": "accepted",
+      "count": 170,
+      "percent": 18.68
+    },
+    {
+      "key": "failed",
+      "count": 21,
+      "percent": 2.31
+    },
+    {
+      "key": "passed",
+      "count": 17,
+      "percent": 1.87
+    },
+    {
+      "key": "unknown",
+      "count": 4,
+      "percent": 0.44
+    },
+    {
+      "key": "blocked",
+      "count": 4,
+      "percent": 0.44
+    },
+    {
+      "key": "cancelled",
+      "count": 3,
+      "percent": 0.33
+    }
+  ],
+  "payloadCost": {
+    "getEventsLimit50": {
+      "bytes": 61749,
+      "estimatedTokens": 15437
+    },
+    "apiEventsLimit50": {
+      "bytes": 128195,
+      "estimatedTokens": 32049
+    },
+    "apiEventsLimit50WithoutNestedTaskEvents": {
+      "bytes": 66337,
+      "estimatedTokens": 16584
+    },
+    "duplicationFactor": 2.08,
+    "nestedTaskEventsOverheadPercent": 48.25
+  },
+  "broadReadLatencyAndRate": {
+    "jsonlReadParseDisk": {
+      "label": "jsonl_read_parse_disk",
+      "samples": 120,
+      "warmup": 20,
+      "avgMs": 10.569,
+      "p50Ms": 10.334,
+      "p95Ms": 13.398,
+      "minMs": 7.348,
+      "maxMs": 23.698,
+      "broadReadsPerSecondByAvg": 94.62,
+      "broadReadsPerSecondByP50": 96.77,
+      "throughputReadsPerSecond": 94.57
+    },
+    "broadApiPayloadBuildLimit50": {
+      "label": "broad_api_payload_build_limit50",
+      "samples": 120,
+      "warmup": 20,
+      "avgMs": 0.677,
+      "p50Ms": 0.569,
+      "p95Ms": 1.033,
+      "minMs": 0.399,
+      "maxMs": 2.687,
+      "broadReadsPerSecondByAvg": 1476.1,
+      "broadReadsPerSecondByP50": 1757.47,
+      "throughputReadsPerSecond": 1473.16
+    },
+    "broadEndToEndSimulationLimit50": {
+      "label": "broad_end_to_end_sim_limit50",
+      "samples": 120,
+      "warmup": 20,
+      "avgMs": 11.919,
+      "p50Ms": 11.262,
+      "p95Ms": 15.962,
+      "minMs": 8.248,
+      "maxMs": 30.845,
+      "broadReadsPerSecondByAvg": 83.9,
+      "broadReadsPerSecondByP50": 88.8,
+      "throughputReadsPerSecond": 83.88
+    },
+    "compactEndToEndSimulationLimit10NoNested": {
+      "label": "compact_end_to_end_sim_limit10_no_nested",
+      "samples": 120,
+      "warmup": 20,
+      "avgMs": 10.747,
+      "p50Ms": 10.151,
+      "p95Ms": 15.033,
+      "minMs": 6.974,
+      "maxMs": 19.999,
+      "broadReadsPerSecondByAvg": 93.05,
+      "broadReadsPerSecondByP50": 98.51,
+      "throughputReadsPerSecond": 93.03
+    }
+  },
+  "contextQualityKpisBaseline": {
+    "intakeBroadWindowRatePercent": 0,
+    "intakeDefaultLimitAverage": 5,
+    "intakeDefaultLimitMedian": 5,
+    "estimatedEventsReadToStartTask": 5,
+    "taskSnapshotAvailabilityPercent": 0,
+    "correlationSnapshotAvailabilityPercent": 0,
+    "snapshotsSufficientWithoutExpansionPercent": 0,
+    "handoffShortByCompletedTaskPercent": 62.5,
+    "tasksRequiringFallbackBroadScanPercent": 0,
+    "profileConformanceRatePercent": 100,
+    "compactReadLatencyP50Ms": 10.151,
+    "compactReadLatencyP95Ms": 15.033,
+    "compactReadLatencyAvgMs": 10.747
+  },
+  "optimizationPotential": {
+    "latestPerTask": {
+      "bytes": 198740,
+      "estimatedTokens": 49685,
+      "savedPercentVsAllEvents": 76.44
+    },
+    "redundantCanonicalFieldsRemoval": {
+      "bytesAfter": 657764,
+      "estimatedTokensAfter": 164441,
+      "savedPercentVsAllEvents": 22.03
+    }
+  }
+}

@@ -1,7 +1,6 @@
-import type { McpEvent } from '@/types/mcp';
 import { getMcpWsUrl } from '@/lib/mcpEndpoints';
 
-type MessageHandler = (event: McpEvent) => void;
+type MessageHandler = (message: unknown) => void;
 type ConnectionHandler = () => void;
 
 export class WebSocketClient {
@@ -36,7 +35,7 @@ export class WebSocketClient {
 
       this.ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data) as McpEvent;
+          const data = JSON.parse(event.data) as unknown;
           this.messageHandlers.forEach((handler) => handler(data));
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);

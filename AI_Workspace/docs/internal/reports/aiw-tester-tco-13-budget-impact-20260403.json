@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-04-03T01:22:42.121Z",
+  "selectors": {
+    "assignedTo": "AI_Workspace_Optimizer",
+    "taskId": "aiw-tester-pixel-tooltip-v2-20260327-01",
+    "correlationId": "aiw-agentmonitor-pixel-experience-20260326"
+  },
+  "comparisons": [
+    {
+      "label": "agent_inbox",
+      "baselineBytes": 13248,
+      "enforcedBytes": 7234,
+      "bytesReductionPercent": 45.4,
+      "baselineTokens": 3153,
+      "enforcedTokens": 1651,
+      "truncatedBaseline": true,
+      "truncatedEnforced": true,
+      "nextCursorEnforced": {
+        "scope": "tasks",
+        "offset": 4,
+        "total": 10
+      }
+    },
+    {
+      "label": "task_snapshot",
+      "baselineBytes": 2736,
+      "enforcedBytes": 2734,
+      "bytesReductionPercent": 0.07,
+      "baselineTokens": 525,
+      "enforcedTokens": 525,
+      "truncatedBaseline": false,
+      "truncatedEnforced": false,
+      "nextCursorEnforced": null
+    },
+    {
+      "label": "correlation_snapshot",
+      "baselineBytes": 14618,
+      "enforcedBytes": 13379,
+      "bytesReductionPercent": 8.48,
+      "baselineTokens": 3493,
+      "enforcedTokens": 3184,
+      "truncatedBaseline": true,
+      "truncatedEnforced": true,
+      "nextCursorEnforced": {
+        "scope": "correlation_tasks",
+        "offset": 18,
+        "total": 20
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-04-03T01:47:54.971Z",
+  "policyVersion": "ctx-observability.v1",
+  "sampleLimit": 240,
+  "sampleSizes": {
+    "snapshotReads": 1,
+    "sidecarCycles": 2,
+    "apiEventsReads": 0
+  },
+  "sli": {
+    "staleRate": 0,
+    "degradedRate": 0,
+    "truncatedRate": 1,
+    "broadFallbackRate": 0,
+    "rebuildSuccessRate": 1,
+    "watermarkLagEventsP95": 0,
+    "watermarkLagEventsCurrent": 0,
+    "watermarkLagMsCurrent": 175,
+    "legacyModeHitRate": 0
+  },
+  "thresholds": {
+    "staleRate": {
+      "warning": 0.01,
+      "critical": 0.02
+    },
+    "rebuildSuccessRate": {
+      "warning": 0.995,
+      "critical": 0.99
+    },
+    "watermarkLagEventsP95": {
+      "warning": 5,
+      "critical": 20
+    },
+    "legacyModeHitRate": {
+      "warning": 0,
+      "critical": 0.05
+    }
+  },
+  "alerts": [],
+  "runbooks": {
+    "primary": "AI_Workspace/docs/internal/guides/token-context-observability-runbook-20260403.md",
+    "spec": "AI_Workspace/docs/internal/specs/token-context-observability-slo-v1.md"
+  }
+}

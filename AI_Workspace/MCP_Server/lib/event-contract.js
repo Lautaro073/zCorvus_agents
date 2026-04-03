@@ -1,6 +1,46 @@
+import { createHash } from "crypto";
+
 export const TASK_STATUSES = new Set(["assigned", "accepted", "in_progress", "blocked", "completed", "failed", "cancelled"]);
 export const TASK_EVENT_TYPES = new Set(["TASK_ASSIGNED", "TASK_ACCEPTED", "TASK_IN_PROGRESS", "TASK_BLOCKED", "TASK_COMPLETED", "TASK_FAILED", "TASK_CANCELLED"]);
 export const TASK_TERMINAL_EVENT_TYPES = new Set(["TASK_COMPLETED", "TASK_CANCELLED", "TASK_BLOCKED", "TASK_FAILED", "TEST_PASSED", "TEST_FAILED"]);
+export const DEDUPE_DEFAULTS = Object.freeze({
+  enabled: true,
+  windowMs: 15 * 60 * 1000,
+});
+export const CANONICAL_PAYLOAD_FIELDS = Object.freeze([
+  "taskId",
+  "assignedTo",
+  "status",
+  "priority",
+  "correlationId",
+  "parentTaskId",
+  "dependsOn",
+  "artifactPaths",
+  "payloadVersion",
+]);
+export const MESSAGE_BUDGET_DEFAULTS = Object.freeze({
+  targetChars: 160,
+  softLimitChars: 280,
+  hardLimitEnabled: false,
+});
+const REDACTED_VALUE = "[REDACTED]";
+const SENSITIVE_KEY_PATTERN =
+  /(password|passwd|secret|api[_-]?key|token|authorization|cookie|session|private[_-]?key|client[_-]?secret|access[_-]?token|refresh[_-]?token)/i;
+const SENSITIVE_TEXT_PATTERNS = [
+  {
+    regex: /(Bearer\s+)[A-Za-z0-9\-._~+/]+=*/gi,
+    replacement: (_match, prefix) => `${prefix}${REDACTED_VALUE}`,
+  },
+  { regex: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, replacement: REDACTED_VALUE },
+  {
+    regex:
+      /((?:api[_-]?key|token|secret|password|authorization)\s*[:=]\s*)(["']?)[^\s"',;]+\2/gi,
+    replacement: (_match, prefix) => `${prefix}${REDACTED_VALUE}`,
+  },
+  { regex: /\b(?:sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,})\b/g, replacement: REDACTED_VALUE },
+];
+const MEMORY_SAFETY_PATTERN =
+  /(ignore\s+(?:all\s+)?previous\s+instructions|system\s+prompt|developer\s+message|jailbreak|override\s+instructions|act\s+as\s+a?n?\s+)/i;
 export const TASK_EVENT_STATUS_BY_TYPE = Object.freeze({
   TASK_ASSIGNED: "assigned",
   TASK_ACCEPTED: "accepted",
@@ -45,6 +85,164 @@ function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function jsonLikeEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function summarizeToLimit(value, limit) {
+  if (value.length <= limit) {
+    return value;
+  }
+
+  const safeLimit = Math.max(1, limit - 1);
+  return `${value.slice(0, safeLimit).trimEnd()}…`;
+}
+
+function sanitizeSensitiveText(value) {
+  let output = value;
+  let redactionCount = 0;
+
+  for (const pattern of SENSITIVE_TEXT_PATTERNS) {
+    output = output.replace(pattern.regex, (...args) => {
+      redactionCount += 1;
+      return typeof pattern.replacement === "function"
+        ? pattern.replacement(...args)
+        : pattern.replacement;
+    });
+  }
+
+  return {
+    text: output,
+    redactionCount,
+  };
+}
+
+function sanitizeMemorySafetyText(value) {
+  if (!MEMORY_SAFETY_PATTERN.test(value)) {
+    return {
+      text: value,
+      flagged: false,
+    };
+  }
+
+  const cleaned = value.replace(MEMORY_SAFETY_PATTERN, "[instruction-redacted]");
+  return {
+    text: cleaned,
+    flagged: true,
+  };
+}
+
+function redactSensitivePayloadValue(value, counters) {
+  if (typeof value === "string") {
+    const result = sanitizeSensitiveText(value);
+    counters.redactedStrings += result.redactionCount;
+    return result.text;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => redactSensitivePayloadValue(entry, counters));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const output = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (SENSITIVE_KEY_PATTERN.test(key)) {
+      output[key] = REDACTED_VALUE;
+      counters.redactedFields += 1;
+      continue;
+    }
+
+    output[key] = redactSensitivePayloadValue(entry, counters);
+  }
+
+  return output;
+}
+
+export function applySnapshotSafetyPolicy(payload, options = {}) {
+  const normalizedPayload = assertPlainObject(payload, "payload");
+  const redactionEnabled = options.redactionEnabled !== false;
+  const memorySafetyEnabled = options.memorySafetyEnabled !== false;
+
+  let output = { ...normalizedPayload };
+  const counters = {
+    redactedFields: 0,
+    redactedStrings: 0,
+  };
+
+  if (redactionEnabled) {
+    output = redactSensitivePayloadValue(output, counters);
+  }
+
+  let memorySafetyFlag = false;
+  if (memorySafetyEnabled && typeof output.message === "string") {
+    const memorySafety = sanitizeMemorySafetyText(output.message);
+    output.message = memorySafety.text;
+    memorySafetyFlag = memorySafety.flagged;
+  }
+
+  const guardrails = {
+    redactionEnabled,
+    memorySafetyEnabled,
+    redactedFields: counters.redactedFields,
+    redactedStrings: counters.redactedStrings,
+    memorySafetyFlag,
+  };
+
+  if (
+    guardrails.redactedFields > 0 ||
+    guardrails.redactedStrings > 0 ||
+    guardrails.memorySafetyFlag
+  ) {
+    output.memorySafety = {
+      ...(output.memorySafety && typeof output.memorySafety === "object" ? output.memorySafety : {}),
+      ...guardrails,
+    };
+  }
+
+  return {
+    payload: output,
+    guardrails,
+  };
+}
+
+export function sanitizeSnapshotSummary(value, options = {}) {
+  const redactionEnabled = options.redactionEnabled !== false;
+  const memorySafetyEnabled = options.memorySafetyEnabled !== false;
+
+  if (typeof value !== "string") {
+    return {
+      summary: null,
+      redacted: false,
+      memorySafetyFlag: false,
+    };
+  }
+
+  let output = value;
+  let redacted = false;
+  let memorySafetyFlag = false;
+
+  if (redactionEnabled) {
+    const redaction = sanitizeSensitiveText(output);
+    output = redaction.text;
+    redacted = redaction.redactionCount > 0;
+  }
+
+  if (memorySafetyEnabled) {
+    const memorySafety = sanitizeMemorySafetyText(output);
+    output = memorySafety.text;
+    memorySafetyFlag = memorySafety.flagged;
+  }
+
+  return {
+    summary: output,
+    redacted,
+    memorySafetyFlag,
+  };
+}
+
 function getEventField(event, fieldName) {
   if (!event || typeof event !== "object") {
     return undefined;
@@ -52,6 +250,143 @@ function getEventField(event, fieldName) {
 
   const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
   return event[fieldName] ?? payload[fieldName];
+}
+
+function hashObject(value) {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function normalizeDedupePayload(payload = {}) {
+  const normalizedPayload = payload && typeof payload === "object" ? payload : {};
+  const normalizeList = (value) =>
+    Array.isArray(value)
+      ? value.map((entry) => normalizeString(entry)).filter((entry) => entry)
+      : [];
+
+  const normalizeInteger = (value) =>
+    Number.isInteger(value) ? value : null;
+
+  return {
+    message: normalizeString(normalizedPayload.message) || null,
+    description: normalizeString(normalizedPayload.description) || null,
+    nextAction: normalizeString(normalizedPayload.nextAction) || null,
+    rootCause: normalizeString(normalizedPayload.rootCause) || null,
+    triggeredByType: normalizeString(normalizedPayload.triggeredByType) || null,
+    retryCount: normalizeInteger(normalizedPayload.retryCount),
+    autoRecovery: normalizedPayload.autoRecovery === true,
+    rolledBack: normalizedPayload.rolledBack === true,
+    rollbackBlocked: normalizedPayload.rollbackBlocked === true,
+    rollbackPath: normalizeString(normalizedPayload.rollbackPath) || null,
+    dependsOn: normalizeList(normalizedPayload.dependsOn),
+    artifactPaths: normalizeList(normalizedPayload.artifactPaths),
+    rollbackConflicts: normalizeList(normalizedPayload.rollbackConflicts),
+    acceptanceCriteria: normalizeList(normalizedPayload.acceptanceCriteria),
+    blockers: normalizeList(normalizedPayload.blockers),
+    specRefs: normalizeList(normalizedPayload.specRefs),
+    featureSlug: normalizeString(normalizedPayload.featureSlug) || null,
+    docType: normalizeString(normalizedPayload.docType) || null,
+  };
+}
+
+function buildDedupeSignature(eventLike, fallbackAgent) {
+  const payload = eventLike && typeof eventLike.payload === "object" ? eventLike.payload : {};
+  const taskId = normalizeString(getEventField(eventLike, "taskId"));
+  const status = normalizeString(getEventField(eventLike, "status"));
+  const type = normalizeString(eventLike?.type);
+  const agent = normalizeString(eventLike?.agent) || normalizeString(fallbackAgent);
+  const semanticPayload = normalizeDedupePayload(payload);
+
+  return {
+    taskId,
+    status,
+    type,
+    agent,
+    semanticHash: hashObject(semanticPayload),
+  };
+}
+
+export function evaluateDeterministicDedupe(type, payload, history = [], options = {}) {
+  const dedupeEnabled = options.enabled !== false;
+  if (!dedupeEnabled) {
+    return { suppressed: false, reason: "dedupe_disabled" };
+  }
+
+  const normalizedType = normalizeString(type);
+  if (!TASK_EVENT_TYPES.has(normalizedType)) {
+    return { suppressed: false, reason: "unsupported_event_type" };
+  }
+
+  const taskId = normalizeString(payload?.taskId);
+  const status = normalizeString(payload?.status);
+  const agent = normalizeString(options.agent);
+  if (!taskId || !status || !agent) {
+    return { suppressed: false, reason: "missing_dedupe_key_fields" };
+  }
+
+  const latestTaskLifecycleEvent = Array.isArray(history)
+    ? [...history]
+        .reverse()
+        .find((event) => {
+          const eventTaskId = normalizeString(getEventField(event, "taskId"));
+          return eventTaskId === taskId && TASK_EVENT_TYPES.has(normalizeString(event?.type));
+        })
+    : null;
+
+  if (!latestTaskLifecycleEvent) {
+    return { suppressed: false, reason: "no_previous_lifecycle_event" };
+  }
+
+  const candidateSignature = buildDedupeSignature(
+    {
+      type: normalizedType,
+      payload,
+      taskId,
+      status,
+      agent,
+    },
+    agent
+  );
+  const lastSignature = buildDedupeSignature(latestTaskLifecycleEvent, agent);
+
+  if (
+    candidateSignature.type !== lastSignature.type ||
+    candidateSignature.status !== lastSignature.status ||
+    candidateSignature.agent !== lastSignature.agent
+  ) {
+    return { suppressed: false, reason: "latest_transition_differs" };
+  }
+
+  if (candidateSignature.semanticHash !== lastSignature.semanticHash) {
+    return { suppressed: false, reason: "semantic_payload_differs" };
+  }
+
+  const windowMs =
+    Number.isInteger(options.windowMs) && options.windowMs >= 0
+      ? options.windowMs
+      : DEDUPE_DEFAULTS.windowMs;
+  const nowTimestamp =
+    Number.isFinite(options.nowTimestamp)
+      ? options.nowTimestamp
+      : Date.now();
+  const lastTimestamp = Date.parse(latestTaskLifecycleEvent.timestamp || "");
+
+  if (!Number.isFinite(lastTimestamp)) {
+    return { suppressed: false, reason: "invalid_previous_timestamp" };
+  }
+
+  const ageMs = Math.max(0, nowTimestamp - lastTimestamp);
+  if (ageMs > windowMs) {
+    return { suppressed: false, reason: "outside_dedupe_window", ageMs, windowMs };
+  }
+
+  return {
+    suppressed: true,
+    reason: "duplicate_lifecycle_replay",
+    dedupeKey: `${taskId}|${candidateSignature.type}|${candidateSignature.status}|${agent}`,
+    matchedEventId: normalizeString(latestTaskLifecycleEvent.eventId) || null,
+    ageMs,
+    windowMs,
+  };
 }
 
 function assertNonEmptyString(value, fieldName) {
@@ -77,6 +412,121 @@ function assertArray(value, fieldName) {
   }
 
   return value;
+}
+
+export function normalizeEventPayloadForStorage(payload, topLevelFields = {}, options = {}) {
+  const normalizedPayload = assertPlainObject(payload, "payload");
+  const legacyPayloadMode = Boolean(options.legacyPayloadMode);
+
+  if (legacyPayloadMode) {
+    return { ...normalizedPayload };
+  }
+
+  const compactPayload = { ...normalizedPayload };
+
+  for (const fieldName of CANONICAL_PAYLOAD_FIELDS) {
+    if (!(fieldName in compactPayload)) {
+      continue;
+    }
+
+    if (!(fieldName in topLevelFields)) {
+      continue;
+    }
+
+    const topLevelValue = topLevelFields[fieldName];
+    if (topLevelValue === undefined) {
+      continue;
+    }
+
+    if (jsonLikeEqual(compactPayload[fieldName], topLevelValue)) {
+      delete compactPayload[fieldName];
+    }
+  }
+
+  return compactPayload;
+}
+
+export function applyMessageBudgetPolicy(payload, options = {}) {
+  const normalizedPayload = assertPlainObject(payload, "payload");
+  const policyVersion = "1.0";
+  const targetChars = Number.isInteger(options.targetChars) && options.targetChars > 0
+    ? options.targetChars
+    : MESSAGE_BUDGET_DEFAULTS.targetChars;
+  const softLimitChars = Number.isInteger(options.softLimitChars) && options.softLimitChars >= targetChars
+    ? options.softLimitChars
+    : Math.max(targetChars, MESSAGE_BUDGET_DEFAULTS.softLimitChars);
+  const hardLimitEnabled = Boolean(options.hardLimitEnabled);
+
+  const message = normalizeString(normalizedPayload.message);
+  if (!message) {
+    return {
+      payload: { ...normalizedPayload },
+      budget: null,
+      warning: null,
+    };
+  }
+
+  const artifactPaths = Array.isArray(normalizedPayload.artifactPaths)
+    ? normalizedPayload.artifactPaths
+        .map((entry) => normalizeString(entry))
+        .filter((entry) => entry)
+    : [];
+  const hasArtifacts = artifactPaths.length > 0;
+  const originalLength = message.length;
+
+  const payloadWithBudget = { ...normalizedPayload };
+  let warning = null;
+  let normalizedMessage = message;
+  let state = "within_target";
+  let offloadRequired = false;
+
+  if (originalLength > targetChars) {
+    normalizedMessage = summarizeToLimit(message, targetChars);
+
+    if (originalLength > softLimitChars) {
+      offloadRequired = true;
+      if (hardLimitEnabled && !hasArtifacts) {
+        throw new Error(
+          `payload.message exceeds soft limit (${originalLength} > ${softLimitChars}) without artifactPaths. Add artifact offload or disable MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED.`
+        );
+      }
+
+      state = hasArtifacts ? "trimmed_with_artifact_offload" : "trimmed_offload_suggested";
+      warning = hasArtifacts
+        ? `Message trimmed to ${targetChars} chars with artifact offload.`
+        : `Message exceeds soft limit; trimmed to ${targetChars} chars. Add artifactPaths for full detail offload.`;
+    } else {
+      state = "trimmed_to_target";
+      warning = `Message trimmed to ${targetChars} chars (target budget).`;
+    }
+  }
+
+  payloadWithBudget.message = normalizedMessage;
+  payloadWithBudget.messageBudget = {
+    policyVersion,
+    targetChars,
+    softLimitChars,
+    hardLimitEnabled,
+    originalLength,
+    normalizedLength: normalizedMessage.length,
+    state,
+    offloadRequired,
+    artifactPathsPresent: hasArtifacts,
+  };
+
+  if (offloadRequired && !hasArtifacts) {
+    payloadWithBudget.offloadHint = {
+      reason: "message_over_soft_limit",
+      recommendedAction: "Write full detail to report and include artifactPaths",
+      recommendedPathTemplate: "docs/internal/reports/<taskId>-details.md",
+    };
+  }
+
+  return {
+    payload: payloadWithBudget,
+    budget: payloadWithBudget.messageBudget,
+    warning,
+  };
 }
 
 function assertStatus(value, fieldName = "payload.status") {

@@ -1,0 +1,19 @@
+✔ sidecar content fingerprint is idempotent for same events (10.589ms)
+✔ sidecar validator detects integrity tampering (1.5878ms)
+✔ sidecar validator detects invalid sourceWatermark (0.4043ms)
+✔ readValidatedSidecars rejects watermark mismatch across sidecars (199.1835ms)
+✔ readValidatedSidecars rejects incomplete sidecar file (45.09ms)
+✔ sidecar payloads include compact handoff summaries (0.591ms)
+✔ relevance-first endpoints return v1 compact snapshots (298.7977ms)
+✔ relevance-first endpoints audit broad fallback when sidecars are disabled (250.6478ms)
+✔ relevance-first endpoints enforce hard token limits with truncation metadata (240.9002ms)
+✔ runtime read mode changes when relevance reads are toggled (462.1206ms)
+✔ token budget flag disables budget metadata and truncation enforcement (445.9436ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1828.4108

@@ -5,6 +5,7 @@ import { SummaryGrid } from '@/components/dashboard/SummaryGrid';
 import { FilterPanel } from '@/components/filters/FilterPanel';
 import { DEFAULT_FILTERS, type FilterState } from '@/components/filters/filterState';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -12,11 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useMcpEvents } from '@/hooks/useMcpEvents';
+import { useMcpEvents, type DebugExpansionResult } from '@/hooks/useMcpEvents';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 import { getNormalizedEventStatus } from '@/lib/mcpStatus';
 import { formatRelativeTime, formatShortTime } from '@/lib/timestamp';
-import type { AgentName, McpEvent } from '@/types/mcp';
+import type { AgentName, ContextViewHealth, McpEvent } from '@/types/mcp';
 
 const AgentStage = lazy(async () => {
   const mod = await import('@/components/agentStage/AgentStage');
@@ -136,7 +137,18 @@ function toAgentStatus(event: McpEvent):
 }
 
 function App() {
-  const { events, isLoading, isConnected } = useMcpEvents();
+  const {
+    events,
+    isLoading,
+    isConnected,
+    contextViews,
+    observability,
+    waveCanary,
+    expandTaskDebug,
+    debugAudits,
+    debugExpansions,
+    expandingTaskId,
+  } = useMcpEvents();
   const liveEvents = events.length > 0 ? events : fallbackEvents;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -188,6 +200,12 @@ function App() {
   }, [liveEvents, normalizedQuery]);
 
   const metrics = useDashboardMetrics(filteredEvents);
+  const contextHealth = useMemo(() => summarizeContextViews(contextViews), [contextViews]);
+  const activeObservabilityAlerts = observability?.alerts ?? [];
+  const criticalObservabilityAlerts = activeObservabilityAlerts.filter(
+    (alert) => alert.severity === 'critical'
+  ).length;
+  const canaryFreezeActive = waveCanary?.freeze.active === true;
   const sortedEvents = useMemo(
     () => [...filteredEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
     [filteredEvents]
@@ -214,6 +232,7 @@ function App() {
 
   const [selectedAgent, setSelectedAgent] = useState<AgentName | null>(null);
   const effectiveSelectedAgent = selectedAgent ?? agentCards[0]?.name ?? null;
+  const selectedDebugExpansion = selectedEvent?.taskId ? debugExpansions[selectedEvent.taskId] : null;
 
   const focused = useMemo(
     () => agentCards.find((agent) => agent.name === effectiveSelectedAgent) || agentCards[0],
@@ -267,6 +286,68 @@ function App() {
           />
 
           <SummaryGrid metrics={metrics.metrics} isLoading={isLoading} />
+
+          <section
+            className="rounded-xl border border-border/70 bg-card/50 p-3"
+            data-testid="context-health-panel"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Lectura por defecto: snapshots compactos</span>
+              <Badge variant="secondary">views {contextHealth.total}</Badge>
+              <Badge variant={contextHealth.degraded > 0 ? 'destructive' : 'outline'}>
+                degraded {contextHealth.degraded}
+              </Badge>
+              <Badge variant={contextHealth.stale > 0 ? 'destructive' : 'outline'}>
+                stale {contextHealth.stale}
+              </Badge>
+              <Badge variant={contextHealth.truncated > 0 ? 'secondary' : 'outline'}>
+                truncated {contextHealth.truncated}
+              </Badge>
+              <Badge variant={contextHealth.requiresExpansion > 0 ? 'destructive' : 'outline'}>
+                requiresExpansion {contextHealth.requiresExpansion}
+              </Badge>
+              <Badge variant={contextHealth.broadFallback > 0 ? 'destructive' : 'outline'}>
+                broadFallback {contextHealth.broadFallback}
+              </Badge>
+              <Badge
+                variant={criticalObservabilityAlerts > 0 ? 'destructive' : 'outline'}
+                data-testid="context-observability-alerts"
+              >
+                sloAlerts {activeObservabilityAlerts.length}
+              </Badge>
+              <Badge
+                variant={canaryFreezeActive ? 'destructive' : 'outline'}
+                data-testid="context-canary-freeze"
+              >
+                canaryFreeze {canaryFreezeActive ? 'on' : 'off'}
+              </Badge>
+              <Badge variant="outline" data-testid="context-canary-wave">
+                activeWave {waveCanary?.activeWaveId || 'unknown'}
+              </Badge>
+              <Badge variant="outline">debug expansions {debugAudits.length}</Badge>
+            </div>
+            {activeObservabilityAlerts.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {activeObservabilityAlerts.slice(0, 3).map((alert) => (
+                  <span
+                    key={`${alert.id}-${alert.severity}`}
+                    className={`rounded-md border px-2 py-1 ${
+                      alert.severity === 'critical'
+                        ? 'border-red-500/40 bg-red-500/10 text-red-400'
+                        : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                    }`}
+                  >
+                    {alert.id}: {alert.message}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {waveCanary?.freeze.reasons && waveCanary.freeze.reasons.length > 0 ? (
+              <p className="mt-2 text-xs text-red-400">
+                freezeReasons: {waveCanary.freeze.reasons.join(', ')}
+              </p>
+            ) : null}
+          </section>
         </section>
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -323,6 +404,9 @@ function App() {
       </div>
       <EventDetailDialog
         event={selectedEvent}
+        debugExpansion={selectedDebugExpansion}
+        expandingTaskId={expandingTaskId}
+        onExpandDebug={expandTaskDebug}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedEvent(null);
@@ -333,11 +417,39 @@ function App() {
   );
 }
 
+function summarizeContextViews(views: ContextViewHealth[]) {
+  return views.reduce(
+    (acc, view) => {
+      acc.total += 1;
+      if (view.stale) acc.stale += 1;
+      if (view.degradedMode) acc.degraded += 1;
+      if (view.truncated) acc.truncated += 1;
+      if (view.decisionSafety === 'requires_expansion') acc.requiresExpansion += 1;
+      if (view.broadFallbackUsed) acc.broadFallback += 1;
+      return acc;
+    },
+    {
+      total: 0,
+      stale: 0,
+      degraded: 0,
+      truncated: 0,
+      requiresExpansion: 0,
+      broadFallback: 0,
+    }
+  );
+}
+
 function EventDetailDialog({
   event,
+  debugExpansion,
+  expandingTaskId,
+  onExpandDebug,
   onOpenChange,
 }: {
   event: McpEvent | null;
+  debugExpansion: DebugExpansionResult | null;
+  expandingTaskId: string | null;
+  onExpandDebug: (event: McpEvent) => Promise<unknown>;
   onOpenChange: (open: boolean) => void;
 }) {
   const [copyState, setCopyState] = useState<{
@@ -394,6 +506,14 @@ function EventDetailDialog({
               <Button size="sm" variant="secondary" onClick={handleCopy}>
                 Copiar taskId
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onExpandDebug(event)}
+                disabled={expandingTaskId === event.taskId}
+              >
+                {expandingTaskId === event.taskId ? 'Expandiendo...' : 'Expandir debug'}
+              </Button>
               {copyState.state === 'success' && copyState.taskId === event.taskId ? (
                 <span className="text-xs text-emerald-600">Copiado</span>
               ) : null}
@@ -401,6 +521,23 @@ function EventDetailDialog({
                 <span className="text-xs text-destructive">No se pudo copiar</span>
               ) : null}
             </div>
+
+            {debugExpansion ? (
+              <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground">Audit de expansion debug</p>
+                <p>
+                  Modo: {debugExpansion.audit.readMode} · broadFallback:{' '}
+                  {debugExpansion.audit.broadFallbackUsed ? 'si' : 'no'} · decisionSafety:{' '}
+                  {debugExpansion.audit.decisionSafety}
+                </p>
+                <p>
+                  stale: {debugExpansion.audit.stale ? 'si' : 'no'} · degraded:{' '}
+                  {debugExpansion.audit.degradedMode ? 'si' : 'no'} · truncated:{' '}
+                  {debugExpansion.audit.truncated ? 'si' : 'no'}
+                </p>
+                <p>Eventos expandido: {debugExpansion.audit.expandedEventsCount}</p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </DialogContent>

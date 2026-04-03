@@ -110,6 +110,9 @@ jobs:
       - name: Run docs registry tests
         run: node --test scripts/docs-registry.test.mjs
 
+      - name: Run profile/context conformance checker
+        run: node scripts/check-profile-context-conformance.mjs
+
       - name: Run MCP event contract tests
         run: node --test scripts/mcp-event-contract.test.mjs
 

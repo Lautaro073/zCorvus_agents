@@ -161,6 +161,9 @@ Estas skills son **candidatas**. Los installs, stars o popularidad sirven como s
 
 1. **Memory compaction / merge de contexto**
    - Skill: `github/awesome-copilot@memory-merger`
+   - **Agente asignado para piloto:** `AI_Workspace_Optimizer`
+   - **Agente secundario (consumo):** `Documenter`
+   - **Ruta de instalación objetivo:** `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/` (y opcionalmente `AI_Workspace/Agents/Documenter/skills/`)
    - Senales externas: **9.4K installs**, repo `github/awesome-copilot` con **27.9k stars**.
    - Uso esperado: consolidar memoria, snapshots y handoffs sin perder señal.
    - Comando candidato:
@@ -171,6 +174,9 @@ npx skills add github/awesome-copilot@memory-merger
 
 2. **Memory safety / reglas para no contaminar contexto**
    - Skill: `wshobson/agents@memory-safety-patterns`
+   - **Agente asignado para piloto:** `AI_Workspace_Optimizer`
+   - **Agente secundario (gobernanza):** `Orchestrator`
+   - **Ruta de instalación objetivo:** `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/` (y opcionalmente `AI_Workspace/Agents/Orchestrator/skills/`)
    - Senales externas: **4.2K installs**, repo `wshobson/agents` con **32.6k stars**.
    - Uso esperado: definir que resumir, que no resumir, y como evitar snapshots engañosos.
    - Comando candidato:
@@ -183,6 +189,9 @@ npx skills add wshobson/agents@memory-safety-patterns
 
 3. **Context engineering collection**
    - Skill: `muratcankoylan/agent-skills-for-context-engineering@context-engineering-collection`
+   - **Agente asignado para piloto:** `AI_Workspace_Optimizer`
+   - **Agente secundario (validación):** `Planner`
+   - **Ruta de instalación objetivo:** `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/`
    - Senales externas: **727 installs**.
    - Uso esperado: patrones de diseño de contexto y retrieval discipline.
    - Recomendacion: instalar solo en piloto.
@@ -193,6 +202,9 @@ npx skills add muratcankoylan/agent-skills-for-context-engineering@context-engin
 
 4. **Context compression**
    - Skill: `sickn33/antigravity-awesome-skills@context-compression`
+   - **Agente asignado para piloto:** `AI_Workspace_Optimizer`
+   - **Agente secundario (QA de riesgo):** `Tester`
+   - **Ruta de instalación objetivo:** `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/`
    - Senales externas: **410 installs**.
    - Uso esperado: compresion segura de sesiones extensas.
    - Recomendacion: instalar solo en piloto y validar calidad antes de generalizar.
@@ -203,6 +215,9 @@ npx skills add sickn33/antigravity-awesome-skills@context-compression
 
 5. **Summarization**
    - Skill: `jwynia/agent-skills@summarization`
+   - **Agente asignado para piloto:** `Documenter`
+   - **Agente secundario (aplicación técnica):** `AI_Workspace_Optimizer`
+   - **Ruta de instalación objetivo:** `AI_Workspace/Agents/Documenter/skills/` (y opcionalmente `AI_Workspace/Agents/AI_Workspace_Optimizer/skills/`)
    - Senales externas: **333 installs**, repo con **42 stars**.
    - Uso esperado: resumir handoffs y snapshots en formato corto y consistente.
    - Recomendacion: opcional; util para `TCO-10` y `TCO-14`, pero validar calidad antes de estandarizar.
@@ -212,6 +227,12 @@ npx skills add jwynia/agent-skills@summarization
 ```
 
 ### Politica de adopcion de skills externas
+
+**Asignación operativa para esta EPIC (obligatoria):**
+- `AI_Workspace_Optimizer`: owner de evaluación técnica e instalación piloto de `memory-merger`, `memory-safety-patterns`, `context-engineering-collection`, `context-compression`.
+- `Documenter`: owner de `summarization` y validación de calidad de handoffs/documentación.
+- `Tester`: gate de calidad para todas las skills externas (debe emitir `TEST_PASSED` antes de adopción general).
+- `Orchestrator`: decide adopción final o rollback por skill según evidencia de piloto.
 
 - Ninguna tarea critica del EPIC puede depender de una skill externa no validada.
 - Toda skill externa se trata como piloto optativo, no como prerequisito de exito.
@@ -521,6 +542,9 @@ AI_Workspace/tests/fixtures/context/
 - **acceptanceCriteria:**
   - Script baseline expandido con metricas de message length y retrieval patterns.
   - Reporte con baseline de context quality y cost KPIs.
+  - Todos los KPIs marcados como `TBD` en este plan quedan numericos (sin placeholders) al cerrar TCO-00.
+  - Latencia definida con metodologia explicita: p50/p95, endpoint medido, tamano de muestra y entorno.
+  - Se publica artefacto de baseline reproducible con comando exacto y timestamp.
   - Evidencia reproducible documentada.
 - **skillsAvailable:**
   - **Optimizer:** `cost-optimization`, `task-coordination-strategies`
@@ -902,9 +926,29 @@ TCO-11A + TCO-12B + TCO-12C + TCO-13 -> TCO-12A -> TCO-14
 
 ---
 
+## Mapeo de tareas para orquestación MCP
+
+> `TCO-*` se mantiene como alias documental. Para ejecución real, Orchestrator debe emitir `taskId` MCP con prefijo `aiw-`.
+
+### Convención obligatoria
+- Formato: `aiw-<agente>-tco-<NN>-<slug>-20260331-01`
+- Ejemplos:
+  - `TCO-00` -> `aiw-opt-tco-00-baseline-expansion-20260331-01`
+  - `TCO-01` -> `aiw-opt-tco-01-context-contract-20260331-01`
+  - `TCO-13` -> `aiw-tester-tco-13-regression-benchmark-20260331-01`
+
+### Regla de trazabilidad
+- Cada task MCP debe incluir en `payload.message` la referencia al alias documental (`TCO-XX`) y ruta del plan.
+- Cada cierre debe adjuntar `artifactPaths` y evidence KPI cuando aplique.
+
+---
+
 ## Gates de calidad
 
 ### Gate A - Antes de implementar cambios de schema
+- **Owner gate:** Orchestrator
+- **Validación primaria:** Tester
+- **Señal de avance:** `TEST_PASSED` sobre TCO-00/TCO-01/TCO-01A/TCO-02/TCO-02A
 - Baseline extendido listo.
 - Spec de contrato aprobada con schemas minimos `v1`.
 - Politica de evolucion/compatibilidad de schemas definida.
@@ -912,6 +956,9 @@ TCO-11A + TCO-12B + TCO-12C + TCO-13 -> TCO-12A -> TCO-14
 - Campos de freshness/provenance definidos.
 
 ### Gate B - Antes de sidecars y retrieval nuevo
+- **Owner gate:** Orchestrator
+- **Validación primaria:** Tester
+- **Señal de avance:** `TEST_PASSED` sobre TCO-03/TCO-04/TCO-05/TCO-05A/TCO-05B
 - `/api/events` slim funcionando.
 - Normalizacion sin romper lectores legacy.
 - Message budget activo.
@@ -921,6 +968,9 @@ TCO-11A + TCO-12B + TCO-12C + TCO-13 -> TCO-12A -> TCO-14
 - Escrituras atomicas y rebuild idempotente definidos.
 
 ### Gate C - Antes de rollout general a agentes
+- **Owner gate:** Orchestrator
+- **Validación primaria:** Tester + Observer
+- **Señal de avance:** `TEST_PASSED` sobre TCO-06/TCO-06A/TCO-07/TCO-07A/TCO-08/TCO-10/TCO-11
 - Snapshots por task/correlation/agente disponibles.
 - AgentMonitor usando vistas compactas.
 - Handoff summaries funcionando.
@@ -931,6 +981,9 @@ TCO-11A + TCO-12B + TCO-12C + TCO-13 -> TCO-12A -> TCO-14
 - Criterios de salida de Wave 1 satisfechos.
 
 ### Gate D - Cierre del EPIC
+- **Owner gate:** Orchestrator
+- **Validación primaria:** Tester + Documenter
+- **Señal de cierre:** `TEST_PASSED` final (TCO-13/TCO-13A) + `TASK_COMPLETED` de TCO-14
 - KPIs de costo medidos.
 - KPIs de contexto medidos.
 - SLOs y alertas operativas activas.
