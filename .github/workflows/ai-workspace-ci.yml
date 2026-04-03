@@ -30,18 +30,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: Backend/package-lock.json
+          cache-dependency-path: AI_Workspace/Backend/package-lock.json
 
       - name: Install backend dependencies
-        working-directory: Backend
+        working-directory: AI_Workspace/Backend
         run: npm ci
 
       - name: Run backend checks
-        working-directory: Backend
+        working-directory: AI_Workspace/Backend
         run: npm run check
 
       - name: Run backend smoke tests
-        run: node --test scripts/backend-smoke.test.mjs
+        run: node --test AI_Workspace/scripts/backend-smoke.test.mjs
 
   frontend:
     name: Frontend
@@ -56,18 +56,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: Frontend/package-lock.json
+          cache-dependency-path: AI_Workspace/Frontend/package-lock.json
 
       - name: Install frontend dependencies
-        working-directory: Frontend
+        working-directory: AI_Workspace/Frontend
         run: npm ci
 
       - name: Run frontend checks
-        working-directory: Frontend
+        working-directory: AI_Workspace/Frontend
         run: npm run check
 
       - name: Build frontend bootstrap
-        working-directory: Frontend
+        working-directory: AI_Workspace/Frontend
         run: npm run build
 
   workspace:
@@ -84,43 +84,43 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: |
-            MCP_Server/package-lock.json
-            Backend/package-lock.json
-            Frontend/package-lock.json
+            AI_Workspace/MCP_Server/package-lock.json
+            AI_Workspace/Backend/package-lock.json
+            AI_Workspace/Frontend/package-lock.json
 
       - name: Install MCP server dependencies
-        working-directory: MCP_Server
+        working-directory: AI_Workspace/MCP_Server
         run: npm ci
 
       - name: Install backend dependencies
-        working-directory: Backend
+        working-directory: AI_Workspace/Backend
         run: npm ci
 
       - name: Install frontend dependencies
-        working-directory: Frontend
+        working-directory: AI_Workspace/Frontend
         run: npm ci
 
       - name: Run MCP and monitor checks
-        working-directory: MCP_Server
+        working-directory: AI_Workspace/MCP_Server
         run: npm run check
 
       - name: Run rollback runtime tests
-        run: node --test scripts/rollback.test.mjs
+        run: node --test AI_Workspace/scripts/rollback.test.mjs
 
       - name: Run docs registry tests
-        run: node --test scripts/docs-registry.test.mjs
+        run: node --test AI_Workspace/scripts/docs-registry.test.mjs
 
       - name: Run profile/context conformance checker
-        run: node scripts/check-profile-context-conformance.mjs
+        run: node AI_Workspace/scripts/check-profile-context-conformance.mjs
 
       - name: Run MCP event contract tests
-        run: node --test scripts/mcp-event-contract.test.mjs
+        run: node --test AI_Workspace/scripts/mcp-event-contract.test.mjs
 
       - name: Run MCP smoke tests
-        run: node --test scripts/mcp-smoke.test.mjs
+        run: node --test AI_Workspace/scripts/mcp-smoke.test.mjs
 
       - name: Run GitHub agent flow tests
-        run: node --test scripts/github/github-agent-flow.test.mjs
+        run: node --test AI_Workspace/scripts/github/github-agent-flow.test.mjs
 
       - name: Run GitHub agent CLI dry-run tests
-        run: node --test scripts/github/github-cli-dryrun.test.mjs
+        run: node --test AI_Workspace/scripts/github/github-cli-dryrun.test.mjs
