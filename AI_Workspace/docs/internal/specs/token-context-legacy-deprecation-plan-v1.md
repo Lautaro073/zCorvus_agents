@@ -67,6 +67,13 @@ Immediate rollback to temporary legacy compatibility is allowed only if any is t
 3. Keep compact snapshot diagnostics active for recovery.
 4. Re-attempt retirement only after a fresh full stable window passes.
 
+### Runtime rollback semantics (verification contract)
+When emergency rollback is enabled (`MCP_CONTEXT_LEGACY_PAYLOAD_MODE=true`), runtime must satisfy:
+1. `/api/events` defaults to expanded payload mode (`filters.includeTaskEvents=true`, `contract.payloadMode=expanded`).
+2. `contextLegacyPayloadMode=true` is visible in `/api/health`.
+3. `legacy_mode_hit_rate` alert is active in `/api/context/observability` until rollback is cleared.
+4. Expanded mode remains debug-compatible while compact context endpoints stay available for recovery verification.
+
 ## References
 - `docs/internal/specs/token-context-contract-v1.md`
 - `docs/internal/specs/token-context-observability-slo-v1.md`

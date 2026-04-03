@@ -596,9 +596,9 @@ function normalizeFilters(filters = {}) {
   const parsedLimit = Number.parseInt(filters.limit, 10);
   const since = normalizeString(filters.since);
 
-  const includeTaskEventsDefault = MCP_CONTEXT_SLIM_API_EVENTS_ENABLED
-    ? false
-    : MCP_CONTEXT_LEGACY_PAYLOAD_MODE;
+  const includeTaskEventsDefault = MCP_CONTEXT_LEGACY_PAYLOAD_MODE
+    ? true
+    : !MCP_CONTEXT_SLIM_API_EVENTS_ENABLED;
 
   return {
     agentFilter: normalizeString(filters.agentFilter),
@@ -613,6 +613,19 @@ function normalizeFilters(filters = {}) {
     sinceTimestamp: since ? Date.parse(since) : Number.NaN,
     limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50,
   };
+}
+
+function hasActiveTaskConsistencyFilters(filters) {
+  return Boolean(
+    filters.agentFilter ||
+      filters.typeFilter ||
+      filters.assignedTo ||
+      filters.taskId ||
+      filters.parentTaskId ||
+      filters.status ||
+      filters.correlationId ||
+      filters.since
+  );
 }
 
 async function ensureContextFile() {
@@ -1025,8 +1038,14 @@ async function buildMonitorResponse(rawFilters = {}) {
   let tasks = buildTaskGroups(events, { includeTaskEvents: filters.includeTaskEvents });
   let sidecarProvenance = null;
   let relevanceReadMode = "event_scan";
+  const filteredRead = hasActiveTaskConsistencyFilters(filters);
 
-  if (MCP_CONTEXT_RELEVANCE_READS_ENABLED && !filters.includeTaskEvents && contextSnapshot.sidecars) {
+  if (
+    MCP_CONTEXT_RELEVANCE_READS_ENABLED &&
+    !filters.includeTaskEvents &&
+    !filteredRead &&
+    contextSnapshot.sidecars
+  ) {
     const sidecarSelection = selectTaskGroupsFromSidecars(contextSnapshot.sidecars, filters);
     if (sidecarSelection) {
       tasks = sidecarSelection.tasks;

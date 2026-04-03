@@ -41,3 +41,16 @@
   - Evaluar cada subtask y tomar decisión inmediata: aceptar (asignar task concreta) o rechazar/cancelar con motivo.
   - No dejar subtasks "colgadas" en estado intermedio.
   - Registrar siempre la decisión en MCP para trazabilidad limpia.
+
+## 2026-04-03 - Review técnico obligatorio antes de aprobar/mergear PR
+- Trigger: Se intentó avanzar PR #19 con checks operativos, pero el code review profundo detectó issues críticos de runtime-safety.
+- Regla aprendida: Nunca aprobar ni intentar mergear una PR sin review técnico formal previo (además de lint/build/tests).
+- Prevencion futura:
+  - Flujo obligatorio pre-merge:
+    1) Verificación operativa (lint/build/tests)
+    2) Review técnico estructurado (runtime safety, compatibilidad, datos, rollback)
+    3) Corrección de issues críticos/importantes
+    4) Recheck QA
+    5) Recién ahí aprobar/mergear
+  - Si el review da `NEEDS_FIXES`, bloquear aprobación/merge hasta resolver y revalidar.
+  - Registrar en MCP la decisión de "pide correcciones" con tasks explícitas para evitar ambigüedad.

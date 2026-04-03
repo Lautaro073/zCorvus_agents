@@ -41,6 +41,8 @@ const SENSITIVE_TEXT_PATTERNS = [
 ];
 const MEMORY_SAFETY_PATTERN =
   /(ignore\s+(?:all\s+)?previous\s+instructions|system\s+prompt|developer\s+message|jailbreak|override\s+instructions|act\s+as\s+a?n?\s+)/i;
+const MEMORY_SAFETY_CRITICAL_FIELD_PATTERN =
+  /(message|summary|description|title|nextAction|rootCause|details|blocker|acceptanceCriteria|reason|note|instruction)/i;
 export const TASK_EVENT_STATUS_BY_TYPE = Object.freeze({
   TASK_ASSIGNED: "assigned",
   TASK_ACCEPTED: "accepted",
@@ -132,6 +134,39 @@ function sanitizeMemorySafetyText(value) {
   };
 }
 
+function isMemorySafetyCriticalField(fieldName) {
+  return typeof fieldName === "string" && MEMORY_SAFETY_CRITICAL_FIELD_PATTERN.test(fieldName);
+}
+
+function sanitizeMemorySafetyPayloadValue(value, counters, fieldName) {
+  if (typeof value === "string") {
+    if (!isMemorySafetyCriticalField(fieldName)) {
+      return value;
+    }
+
+    const memorySafety = sanitizeMemorySafetyText(value);
+    if (memorySafety.flagged) {
+      counters.memorySafetyFields += 1;
+    }
+    return memorySafety.text;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeMemorySafetyPayloadValue(entry, counters, fieldName));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const output = {};
+  for (const [key, entry] of Object.entries(value)) {
+    output[key] = sanitizeMemorySafetyPayloadValue(entry, counters, key);
+  }
+
+  return output;
+}
+
 function redactSensitivePayloadValue(value, counters) {
   if (typeof value === "string") {
     const result = sanitizeSensitiveText(value);
@@ -170,6 +205,7 @@ export function applySnapshotSafetyPolicy(payload, options = {}) {
   const counters = {
     redactedFields: 0,
     redactedStrings: 0,
+    memorySafetyFields: 0,
   };
 
   if (redactionEnabled) {
@@ -177,10 +213,9 @@ export function applySnapshotSafetyPolicy(payload, options = {}) {
   }
 
   let memorySafetyFlag = false;
-  if (memorySafetyEnabled && typeof output.message === "string") {
-    const memorySafety = sanitizeMemorySafetyText(output.message);
-    output.message = memorySafety.text;
-    memorySafetyFlag = memorySafety.flagged;
+  if (memorySafetyEnabled) {
+    output = sanitizeMemorySafetyPayloadValue(output, counters, null);
+    memorySafetyFlag = counters.memorySafetyFields > 0;
   }
 
   const guardrails = {
@@ -188,6 +223,7 @@ export function applySnapshotSafetyPolicy(payload, options = {}) {
     memorySafetyEnabled,
     redactedFields: counters.redactedFields,
     redactedStrings: counters.redactedStrings,
+    memorySafetyFields: counters.memorySafetyFields,
     memorySafetyFlag,
   };
 

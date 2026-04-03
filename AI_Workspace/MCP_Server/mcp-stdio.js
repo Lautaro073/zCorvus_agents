@@ -24,7 +24,11 @@ import {
   normalizeEventPayloadForStorage,
   validateEventPayload,
 } from "./lib/event-contract.js";
-import { buildSidecarPayloads, writeSidecarsAtomically } from "./lib/context-sidecars.js";
+import {
+  buildSidecarPayloads,
+  readValidatedSidecars,
+  writeSidecarsAtomically,
+} from "./lib/context-sidecars.js";
 import {
   buildAgentInboxSnapshot,
   buildCorrelationSnapshot,
@@ -34,7 +38,10 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CONTEXT_FILE = path.join(__dirname, "shared_context.jsonl");
-const SIDECAR_DIR = path.join(__dirname, "sidecars");
+const SIDECAR_DIR = path.resolve(
+  __dirname,
+  process.env.MCP_CONTEXT_SIDECARS_DIR || "sidecars"
+);
 const MCP_CONTEXT_LEGACY_PAYLOAD_MODE =
   (process.env.MCP_CONTEXT_LEGACY_PAYLOAD_MODE || "false").toLowerCase() === "true";
 const MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED =
@@ -695,13 +702,35 @@ async function buildReadContext() {
       }),
   });
 
-  await writeSidecarsAtomically(SIDECAR_DIR, sidecars);
-  const context = {
-    events,
-    sidecars,
-    degradedMode: false,
-    fallbackReason: null,
-  };
+  let context;
+  try {
+    await writeSidecarsAtomically(SIDECAR_DIR, sidecars);
+    context = {
+      events,
+      sidecars,
+      degradedMode: false,
+      fallbackReason: null,
+    };
+  } catch (error) {
+    console.error("Failed to persist sidecars for compact read tools:", error);
+
+    const diskFallback = await readValidatedSidecars(SIDECAR_DIR);
+    if (diskFallback.ok) {
+      context = {
+        events,
+        sidecars: diskFallback.payloads,
+        degradedMode: false,
+        fallbackReason: "sidecar_write_failed_disk_sidecar_used",
+      };
+    } else {
+      context = {
+        events,
+        sidecars,
+        degradedMode: false,
+        fallbackReason: "sidecar_write_failed_in_memory_sidecar_used",
+      };
+    }
+  }
 
   cachedReadContextFingerprint = contextFingerprint;
   cachedReadContext = context;

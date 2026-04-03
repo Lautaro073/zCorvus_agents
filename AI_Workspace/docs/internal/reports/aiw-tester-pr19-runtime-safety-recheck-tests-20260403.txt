@@ -1,0 +1,60 @@
+node --test scripts/mcp-stdio-read-fallback.test.mjs scripts/monitor-api-events-consistency.test.mjs scripts/mcp-event-contract.test.mjs scripts/relevance-read-modes.test.mjs scripts/context-observability.test.mjs scripts/monitor-sidecars.test.mjs scripts/context-sidecars.test.mjs scripts/context-read-modes.test.mjs
+
+✔ context observability endpoint exposes SLO metrics
+✔ legacy payload mode triggers observability alert
+✔ wave canary endpoint exposes policy and freeze state
+✔ critical observability alerts activate canary freeze
+✔ decision matrix marks normal snapshots as safe_for_triage
+✔ stale sensitive snapshot forces expansion policy
+✔ stale+degraded snapshot requires expansion
+✔ agent inbox keeps critical tasks when truncated
+✔ task snapshot exposes compact handoff summary
+✔ task handoff summary remains available for completed tasks
+✔ agent inbox enforces hard budget and returns nextCursor
+✔ correlation snapshot keeps critical task under hard budget
+✔ sidecar content fingerprint is idempotent for same events
+✔ sidecar validator detects integrity tampering
+✔ sidecar validator detects invalid sourceWatermark
+✔ readValidatedSidecars rejects watermark mismatch across sidecars
+✔ readValidatedSidecars rejects incomplete sidecar file
+✔ sidecar payloads include compact handoff summaries
+✔ valid TASK_ASSIGNED payload passes validation
+✔ invalid TASK_ASSIGNED without description fails
+✔ invalid TASK_ASSIGNED without acceptanceCriteria fails
+✔ invalid TASK_* without correlationId fails
+✔ invalid TASK event with mismatched status fails
+✔ PLAN_PROPOSED requires well formed proposedTasks
+✔ DOC_UPDATED with required metadata passes validation
+✔ DOC_UPDATED requires path or artifactPaths
+✔ TEST_FAILED requires message or rootCause
+✔ sequence rejects TASK_COMPLETED without TASK_IN_PROGRESS
+✔ sequence rejects terminal event after terminal already reached
+✔ sequence override allows controlled completion without in_progress
+✔ normalizeEventPayloadForStorage removes duplicated canonical fields
+✔ normalizeEventPayloadForStorage keeps payload unchanged in legacy mode
+✔ applyMessageBudgetPolicy trims message to target budget
+✔ applyMessageBudgetPolicy suggests offload over soft limit without artifacts
+✔ applyMessageBudgetPolicy enforces hard limit when artifact offload missing
+✔ applyMessageBudgetPolicy allows hard limit when artifact offload present
+✔ applySnapshotSafetyPolicy redacts sensitive key/value pairs
+✔ applySnapshotSafetyPolicy sanitizes instruction-like message content
+✔ applySnapshotSafetyPolicy sanitizes instruction-like content in summary fields
+✔ sanitizeSnapshotSummary returns safe redacted summary
+✔ evaluateDeterministicDedupe suppresses exact lifecycle replay in window
+✔ evaluateDeterministicDedupe keeps lifecycle transition with different status
+✔ evaluateDeterministicDedupe keeps replay outside dedupe window
+✔ mcp-stdio read tools fallback when sidecar writes fail
+✔ /api/events keeps tasks consistent with active task/type filters
+✔ legacy payload mode forces expanded /api/events default
+✔ monitor server rebuilds sidecars and exposes provenance
+✔ monitor server detects corrupted sidecar and rebuilds safely
+✔ relevance-first endpoints return v1 compact snapshots
+✔ relevance-first endpoints audit broad fallback when sidecars are disabled
+✔ relevance-first endpoints enforce hard token limits with truncation metadata
+✔ runtime read mode changes when relevance reads are toggled
+✔ token budget flag disables budget metadata and truncation enforcement
+
+tests: 53
+pass: 53
+fail: 0
+duration_ms: 3923.7835
