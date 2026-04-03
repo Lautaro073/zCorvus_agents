@@ -1,0 +1,126 @@
+name: AI Workspace CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-workspace-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: Backend
+        run: npm ci
+
+      - name: Run backend checks
+        working-directory: Backend
+        run: npm run check
+
+      - name: Run backend smoke tests
+        run: node --test scripts/backend-smoke.test.mjs
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Run frontend checks
+        working-directory: Frontend
+        run: npm run check
+
+      - name: Build frontend bootstrap
+        working-directory: Frontend
+        run: npm run build
+
+  workspace:
+    name: Workspace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            MCP_Server/package-lock.json
+            Backend/package-lock.json
+            Frontend/package-lock.json
+
+      - name: Install MCP server dependencies
+        working-directory: MCP_Server
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: Backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Run MCP and monitor checks
+        working-directory: MCP_Server
+        run: npm run check
+
+      - name: Run rollback runtime tests
+        run: node --test scripts/rollback.test.mjs
+
+      - name: Run docs registry tests
+        run: node --test scripts/docs-registry.test.mjs
+
+      - name: Run profile/context conformance checker
+        run: node scripts/check-profile-context-conformance.mjs
+
+      - name: Run MCP event contract tests
+        run: node --test scripts/mcp-event-contract.test.mjs
+
+      - name: Run MCP smoke tests
+        run: node --test scripts/mcp-smoke.test.mjs
+
+      - name: Run GitHub agent flow tests
+        run: node --test scripts/github/github-agent-flow.test.mjs
+
+      - name: Run GitHub agent CLI dry-run tests
+        run: node --test scripts/github/github-cli-dryrun.test.mjs
