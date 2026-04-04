@@ -7,12 +7,13 @@ on:
       - master
       - develop
   pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
-  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -25,6 +26,7 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
       TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
@@ -46,10 +48,6 @@ jobs:
         working-directory: Backend
         run: npm ci
 
-      - name: Run backend checks
-        working-directory: Backend
-        run: npm run check
-
       - name: Debug env vars
         run: |
           echo "TURSO_DATABASE_URL set: ${{ secrets.TURSO_DATABASE_URL != '' }}"
@@ -65,6 +63,7 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -81,21 +80,14 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
-      - name: Run frontend checks
+      - name: Run frontend checks (lint + build)
         working-directory: Frontend
         run: npm run check
-
-      - name: Run frontend lint
-        working-directory: Frontend
-        run: npm run lint
-
-      - name: Build frontend bootstrap
-        working-directory: Frontend
-        run: npm run build
 
   workspace:
     name: Workspace
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository

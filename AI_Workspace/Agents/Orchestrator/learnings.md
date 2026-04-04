@@ -54,3 +54,11 @@
     5) Recién ahí aprobar/mergear
   - Si el review da `NEEDS_FIXES`, bloquear aprobación/merge hasta resolver y revalidar.
   - Registrar en MCP la decisión de "pide correcciones" con tasks explícitas para evitar ambigüedad.
+
+## 2026-04-03 - PR template obligatorio y skill de workflow
+- Trigger: Se detectó que al crear PRs no siempre se usa `.github/pull_request_template.md` ni se documenta la justificación/checklist esperada.
+- Regla aprendida: Todo PR debe usar la plantilla de `.github/pull_request_template.md` (Que cambia, Por que, Checklist, Riesgos, Como validar localmente).
+- Prevencion futura:
+  - Antes de abrir PR, completar explícitamente cada sección de la plantilla.
+  - Si el PR impacta CI/workflows, revisar `create-github-action-workflow-specification` para validar consistencia de triggers, permisos, jobs, quality gates y contratos de entrada/salida.
+  - No marcar PR como listo para merge sin checklist de la plantilla completo o con N/A justificado.
