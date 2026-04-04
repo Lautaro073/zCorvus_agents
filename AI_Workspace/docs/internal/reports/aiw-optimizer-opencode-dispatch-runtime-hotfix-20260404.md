@@ -46,7 +46,7 @@ Observed evidence (pre-hotfix):
 ```bash
 opencode --version
 opencode run --help
-opencode run --session ses_2d2a38f49ffeIuock0vn7moQKl "[dispatcher smoke] Confirm session is alive; reply with OK only."
+opencode -s ses_2d2a38f49ffeIuock0vn7moQKl "[dispatcher smoke] Confirm session is alive; reply with OK only."
 node --test AI_Workspace/scripts/opencode-dispatcher-validation.test.mjs
 node AI_Workspace/scripts/opencode-task-dispatcher.mjs --live --config AI_Workspace/scripts/opencode-dispatch.config.json --poll-ms 400
 node AI_Workspace/scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --task aiw-documenter-opencode-hotfix-smoke-1775280432806 --assignedTo Documenter --status assigned --priority high --correlation aiw-opencode-autonomy-20260404 --description "Smoke validation: Documenter dispatch after runtime hotfix"

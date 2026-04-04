@@ -172,7 +172,7 @@ When installing skills from skills.sh, ALWAYS ask Orchestrator which agent shoul
 
 ### Dispatcher false-negative recovery memory
 
-- **Symptom:** dispatcher logged `Dispatch FAILED, will retry next poll` on `opencode run --session` timeout/non-zero even when the assigned agent had already advanced the task (`TASK_ACCEPTED`/`TASK_IN_PROGRESS`).
+- **Symptom:** dispatcher logged `Dispatch FAILED, will retry next poll` on `opencode -s` timeout/non-zero even when the assigned agent had already advanced the task (`TASK_ACCEPTED`/`TASK_IN_PROGRESS`).
 - **Root cause:** failure handling relied only on process exit code and ignored downstream MCP lifecycle evidence for the same `taskId`.
 - **Applied fix:** added post-failure reconciliation window in dispatcher (`dispatchFailureReconcileMs` + polling) to scan `shared_context.jsonl` for task lifecycle-advance events and mark dispatch as recovered (no retry loop).
 - **Prevention rule:** in async dispatch systems, treat runner exit status as advisory and reconcile with source-of-truth lifecycle events before retrying.

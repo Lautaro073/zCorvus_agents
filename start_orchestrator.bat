@@ -28,7 +28,7 @@ start http://127.0.0.1:4311/monitor
 
 :: 4. Iniciar dispatcher automatico TASK_ASSIGNED -> opencode run
 echo [3/4] Iniciando dispatcher autonomo de tareas...
-start "zCorvus Task Dispatcher" /MIN cmd /c "node AI_Workspace\scripts\opencode-task-dispatcher.mjs --live --config %DISPATCH_CONFIG%"
+start "zCorvus Task Dispatcher" /MIN cmd /c "node AI_Workspace\scripts\opencode-task-dispatcher.mjs --live --config AI_Workspace\scripts\opencode-dispatch.config.json"
 
 :: 5. Ejecutar opencode (El Orquestador)
 echo [4/4] Iniciando los Agentes Orchestrator...

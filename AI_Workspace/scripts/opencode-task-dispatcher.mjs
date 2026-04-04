@@ -9,14 +9,30 @@
  *   node opencode-task-dispatcher.mjs [options]
  *
  * Options:
- *   --config  <path>   Path to config JSON  (default: ./opencode-dispatch.config.json)
- *   --state   <path>   Path to state file   (default: .runtime/opencode-task-dispatcher.state.json)
- *   --log     <path>   Path to log file     (default: .runtime/opencode-task-dispatcher.log)
- *   --poll-ms <ms>     Polling interval ms  (default: 1500)
+ *   --config  <path>   Path to config JSON   (default: ./opencode-dispatch.config.json)
+ *   --state   <path>   Path to state file    (default: .runtime/opencode-task-dispatcher.state.json)
+ *   --log     <path>   Path to log file      (default: .runtime/opencode-task-dispatcher.log)
+ *   --poll-ms <ms>     Polling interval ms   (default: 1500)
  *   --live             Actually invoke OpenCode (default: dry-run)
  *   --help             Show this message
  *
+ * OpenCode CLI used:
+ *   With session:    opencode run -s <sessionId> "<intake-prompt>"
+ *   Without session: opencode run "<intake-prompt>"
+ *
+ * System prompt note:
+ *   OpenCode does not support injecting a system prompt via CLI flags.
+ *   Agent identity in fresh-run mode comes from the project's AGENTS.md
+ *   or the agent's OpenCode session configuration.
+ *   For full identity control, configure a persistent session per agent
+ *   and fill the "sessions" map in the config.
+ *
  * zCorvus AI Workspace — OpenCode edition
+ *
+ * Contract notes:
+ * - TASK_ASSIGNED detection uses event.type (MCP event contract).
+ * - Lifecycle reconciliation uses event.type signals.
+ * - Deduplication key is eventId, with taskId as fallback when eventId is absent.
  */
 
 import fs from 'node:fs';
@@ -41,24 +57,25 @@ if (args.includes('--help')) {
   console.log(`
 opencode-task-dispatcher.mjs — zCorvus AI Workspace
 
-  --config  <path>   Config file path    (default: ./opencode-dispatch.config.json)
-  --state   <path>   State file path     (default: .runtime/opencode-task-dispatcher.state.json)
-  --log     <path>   Log file path       (default: .runtime/opencode-task-dispatcher.log)
-  --poll-ms <n>      Poll interval in ms (default: 1500)
+  --config  <path>   Config file path     (default: ./opencode-dispatch.config.json)
+  --state   <path>   State file path      (default: .runtime/opencode-task-dispatcher.state.json)
+  --log     <path>   Log file path        (default: .runtime/opencode-task-dispatcher.log)
+  --poll-ms <n>      Poll interval in ms  (default: 1500)
   --live             Enable live OpenCode dispatch (default: dry-run)
   --help             This message
 
 Dry-run logs what would be dispatched without invoking OpenCode.
-Live mode calls: opencode run --session <id> "<intake-prompt>" (or --prompt fallback)
+Live mode (with session):    opencode run -s <id> "<intake-prompt>"
+Live mode (without session): opencode run "<intake-prompt>"
 `);
   process.exit(0);
 }
 
-const IS_LIVE   = args.includes('--live');
-const POLL_MS   = parseInt(argValue('--poll-ms') ?? '1500', 10);
-const CFG_PATH  = argValue('--config') ?? path.join(__dirname, 'opencode-dispatch.config.json');
+const IS_LIVE = args.includes('--live');
+const POLL_MS = parseInt(argValue('--poll-ms') ?? '1500', 10);
+const CFG_PATH = argValue('--config') ?? path.join(__dirname, 'opencode-dispatch.config.json');
 const STATE_PATH = argValue('--state') ?? path.join(__dirname, '..', '.runtime', 'opencode-task-dispatcher.state.json');
-const LOG_PATH  = argValue('--log')   ?? path.join(__dirname, '..', '.runtime', 'opencode-task-dispatcher.log');
+const LOG_PATH = argValue('--log') ?? path.join(__dirname, '..', '.runtime', 'opencode-task-dispatcher.log');
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -73,7 +90,7 @@ ensureDir(STATE_PATH);
 const logStream = fs.createWriteStream(LOG_PATH, { flags: 'a' });
 
 function log(level, msg, data = null) {
-  const ts  = new Date().toISOString();
+  const ts = new Date().toISOString();
   const tag = `[${ts}] [${level.toUpperCase().padEnd(5)}]`;
   const line = data ? `${tag} ${msg} ${JSON.stringify(data)}` : `${tag} ${msg}`;
   console.log(line);
@@ -82,53 +99,29 @@ function log(level, msg, data = null) {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-/**
- * Config shape:
- * {
- *   "sharedContextPath": "..\\MCP_Server\\shared_context.jsonl",
- *   "systemPromptsDir": "..\\scripts\\agent-prompts",
- *   "agentMap": {
- *     "Orchestrator":          "orchestrator",
- *     "Planner":               "planner",
- *     "Observer":              "observer",
- *     "Frontend":              "frontend",
- *     "Backend":               "backend",
- *     "Tester":                "tester",
- *     "Documenter":            "documenter",
- *     "AI_Workspace_Optimizer":"ai_workspace_optimizer"
- *   },
- *   "sessions": {
- *     "Orchestrator": "session-id-here-or-empty"
- *   },
- *   "dedupeMemorySize": 500,
- *   "opencodeBin": "opencode",
- *   "opencodeTimeout": 120000
- * }
- */
-
 const DEFAULT_CONFIG = {
   sharedContextPath: path.join(__dirname, '..', 'MCP_Server', 'shared_context.jsonl'),
-  systemPromptsDir:  path.join(__dirname, 'agent-prompts'),
+  systemPromptsDir: path.join(__dirname, 'agent-prompts'),
   agentMap: {
-    Orchestrator:           'orchestrator',
-    Planner:                'planner',
-    Observer:               'observer',
-    Frontend:               'frontend',
-    Backend:                'backend',
-    Tester:                 'tester',
-    Documenter:             'documenter',
+    Orchestrator: 'orchestrator',
+    Planner: 'planner',
+    Observer: 'observer',
+    Frontend: 'frontend',
+    Backend: 'backend',
+    Tester: 'tester',
+    Documenter: 'documenter',
     AI_Workspace_Optimizer: 'ai_workspace_optimizer',
   },
-  sessions:          {},
-  startFromEnd:      true,
-  dedupeMemorySize:  500,
-  dispatchFailureReconcileMs: 30000,
+  sessions: {},
+  startFromEnd: true,
+  dedupeMemorySize: 500,
+  dispatchFailureReconcileMs: 30_000,
   dispatchFailureReconcileInitialPollMs: 400,
-  dispatchFailureReconcileMaxPollMs: 4000,
-  dispatchRetryBaseDelayMs: 2000,
-  dispatchRetryMaxDelayMs: 30000,
-  opencodeBin:       'opencode',
-  opencodeTimeout:   120_000,
+  dispatchFailureReconcileMaxPollMs: 4_000,
+  dispatchRetryBaseDelayMs: 2_000,
+  dispatchRetryMaxDelayMs: 30_000,
+  opencodeBin: 'opencode',
+  opencodeTimeout: 120_000,
 };
 
 function loadConfig() {
@@ -139,7 +132,6 @@ function loadConfig() {
   try {
     const raw = JSON.parse(fs.readFileSync(CFG_PATH, 'utf8'));
     const cfg = { ...DEFAULT_CONFIG, ...raw };
-    // Resolve relative paths from the config file's directory
     const base = path.dirname(CFG_PATH);
     if (!path.isAbsolute(cfg.sharedContextPath))
       cfg.sharedContextPath = path.resolve(base, cfg.sharedContextPath);
@@ -161,13 +153,14 @@ function loadState() {
       isNew: true,
     };
   }
-
   try {
     const parsed = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
     return {
       state: {
         offset: Number.isFinite(parsed?.offset) ? parsed.offset : 0,
-        processedEventIds: Array.isArray(parsed?.processedEventIds) ? parsed.processedEventIds : [],
+        processedEventIds: Array.isArray(parsed?.processedEventIds)
+          ? parsed.processedEventIds
+          : [],
         failedDispatches:
           parsed?.failedDispatches && typeof parsed.failedDispatches === 'object'
             ? parsed.failedDispatches
@@ -187,17 +180,26 @@ function saveState(state, cfg) {
   if (!state.failedDispatches || typeof state.failedDispatches !== 'object') {
     state.failedDispatches = {};
   }
-
-  for (const processedEventId of state.processedEventIds) {
-    delete state.failedDispatches[processedEventId];
+  // Clean up failedDispatches for already-processed events
+  for (const id of state.processedEventIds) {
+    delete state.failedDispatches[id];
   }
-
   // Keep dedupe memory bounded
   if (state.processedEventIds.length > cfg.dedupeMemorySize) {
     state.processedEventIds = state.processedEventIds.slice(-cfg.dedupeMemorySize);
   }
-
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');
+}
+
+function shouldBootstrapFromEnd(isNew, state) {
+  if (isNew) return true;
+
+  const hasOffset = Number.isFinite(state?.offset) && state.offset > 0;
+  const hasProcessed = Array.isArray(state?.processedEventIds) && state.processedEventIds.length > 0;
+  const hasFailed = state?.failedDispatches && Object.keys(state.failedDispatches).length > 0;
+
+  // Estado "vacío" (por reset/manual edit): evitar replay histórico.
+  return !hasOffset && !hasProcessed && !hasFailed;
 }
 
 // ─── JSONL incremental reader ─────────────────────────────────────────────────
@@ -206,20 +208,27 @@ function readNewLines(filePath, fromOffset) {
   if (!fs.existsSync(filePath)) return { lines: [], newOffset: fromOffset };
 
   const stat = fs.statSync(filePath);
-  if (stat.size <= fromOffset) return { lines: [], newOffset: stat.size };
 
-  const fd     = fs.openSync(filePath, 'r');
+  // FIX-6: file was rotated/truncated — reset offset to 0 so we don't miss events
+  if (stat.size < fromOffset) {
+    log('warn', 'shared_context.jsonl shrank (rotation or truncation), resetting offset to 0');
+    return { lines: [], newOffset: 0 };
+  }
+
+  if (stat.size === fromOffset) return { lines: [], newOffset: fromOffset };
+
+  const fd = fs.openSync(filePath, 'r');
   const length = stat.size - fromOffset;
-  const buf    = Buffer.allocUnsafe(length);
+  const buf = Buffer.allocUnsafe(length);
   fs.readSync(fd, buf, 0, length, fromOffset);
   fs.closeSync(fd);
 
-  const text  = buf.toString('utf8');
+  const text = buf.toString('utf8');
   const lines = text.split('\n').filter(l => l.trim().length > 0);
   return { lines, newOffset: stat.size };
 }
 
-// ─── Event parsing ────────────────────────────────────────────────────────────
+// ─── Event parsing & normalization ───────────────────────────────────────────
 
 function parseEvent(line) {
   try {
@@ -229,6 +238,39 @@ function parseEvent(line) {
   }
 }
 
+/**
+ * FIX-7: Single normalization helper — all field access goes through here.
+ * zCorvus MCP events are flat. .payload fallback is kept for backward compat
+ * with older events that may have been written with a nested structure.
+ */
+function normalizeEvent(event) {
+  if (!event || typeof event !== 'object') return null;
+  const p = event.payload ?? {};
+  return {
+    eventId: event.eventId ?? p.eventId ?? null,
+    type: event.type ?? p.type ?? null,
+    status: event.status ?? p.status ?? null,
+    taskId: event.taskId ?? p.taskId ?? null,
+    assignedTo: event.assignedTo ?? p.assignedTo ?? null,
+    correlationId: event.correlationId ?? p.correlationId ?? null,
+    parentTaskId: event.parentTaskId ?? p.parentTaskId ?? null,
+    timestamp: event.timestamp ?? p.timestamp ?? null,
+    message: event.message ?? event.description ?? p.message ?? p.description ?? null,
+    objective: event.objective ?? p.objective ?? null,
+    dependsOn: Array.isArray(event.dependsOn) ? event.dependsOn :
+      Array.isArray(p.dependsOn) ? p.dependsOn : [],
+    acceptanceCriteria: Array.isArray(event.acceptanceCriteria) ? event.acceptanceCriteria :
+      Array.isArray(p.acceptanceCriteria) ? p.acceptanceCriteria : [],
+    deliverables: Array.isArray(event.deliverables) ? event.deliverables :
+      Array.isArray(p.deliverables) ? p.deliverables : [],
+    scope: Array.isArray(event.scope) ? event.scope :
+      Array.isArray(p.scope) ? p.scope : [],
+    constraints: Array.isArray(event.constraints) ? event.constraints :
+      Array.isArray(p.constraints) ? p.constraints : [],
+    _raw: event,
+  };
+}
+
 const TASK_LIFECYCLE_ADVANCE_TYPES = new Set([
   'TASK_ACCEPTED',
   'TASK_IN_PROGRESS',
@@ -236,24 +278,33 @@ const TASK_LIFECYCLE_ADVANCE_TYPES = new Set([
   'TEST_PASSED',
 ]);
 
-function eventTimestampMs(event) {
-  const parsed = Date.parse(event?.timestamp || '');
+function eventTimestampMs(norm) {
+  const parsed = Date.parse(norm?.timestamp || '');
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function isLifecycleAdvanceForTask(candidate, assignmentEvent) {
-  if (!candidate || typeof candidate !== 'object') return false;
-  if (!TASK_LIFECYCLE_ADVANCE_TYPES.has(candidate.type)) return false;
-  if (candidate.taskId !== assignmentEvent.taskId) return false;
+function isTaskAssigned(raw) {
+  const n = normalizeEvent(raw);
+  return (
+    n !== null &&
+    n.type === 'TASK_ASSIGNED' &&
+    typeof n.assignedTo === 'string' && n.assignedTo.length > 0 &&
+    typeof n.taskId === 'string' && n.taskId.length > 0
+  );
+}
 
-  const assignmentAgent = assignmentEvent.assignedTo || assignmentEvent.payload?.assignedTo;
-  const candidateAgent = candidate.assignedTo || candidate.payload?.assignedTo;
-  if (assignmentAgent && candidateAgent && assignmentAgent !== candidateAgent) {
+function isLifecycleAdvanceForTask(candidateRaw, assignmentNorm) {
+  const n = normalizeEvent(candidateRaw);
+  if (!n) return false;
+  if (!TASK_LIFECYCLE_ADVANCE_TYPES.has(n.type)) return false;
+  if (n.taskId !== assignmentNorm.taskId) return false;
+
+  if (assignmentNorm.assignedTo && n.assignedTo && assignmentNorm.assignedTo !== n.assignedTo) {
     return false;
   }
 
-  const assignmentTs = eventTimestampMs(assignmentEvent);
-  const candidateTs = eventTimestampMs(candidate);
+  const assignmentTs = eventTimestampMs(assignmentNorm);
+  const candidateTs = eventTimestampMs(n);
   if (assignmentTs !== null && candidateTs !== null && candidateTs < assignmentTs) {
     return false;
   }
@@ -263,152 +314,109 @@ function isLifecycleAdvanceForTask(candidate, assignmentEvent) {
 
 function readAllEvents(filePath) {
   if (!fs.existsSync(filePath)) return [];
-
   try {
-    const text = fs.readFileSync(filePath, 'utf8');
-    return text
+    return fs.readFileSync(filePath, 'utf8')
       .split('\n')
-      .map((line) => parseEvent(line.trim()))
+      .map(line => parseEvent(line.trim()))
       .filter(Boolean);
   } catch {
     return [];
   }
 }
 
-function findLifecycleAdvanceEvent(filePath, assignmentEvent) {
+function findLifecycleAdvanceEvent(filePath, assignmentNorm) {
   const events = readAllEvents(filePath);
-  for (let index = events.length - 1; index >= 0; index -= 1) {
-    const candidate = events[index];
-    if (isLifecycleAdvanceForTask(candidate, assignmentEvent)) {
-      return candidate;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (isLifecycleAdvanceForTask(events[i], assignmentNorm)) {
+      return normalizeEvent(events[i]);
     }
   }
-
   return null;
 }
 
-function getBackoffDelayMs(cfg, attempts) {
-  const baseMs = Number.isFinite(cfg.dispatchRetryBaseDelayMs)
-    ? Math.max(100, cfg.dispatchRetryBaseDelayMs)
-    : DEFAULT_CONFIG.dispatchRetryBaseDelayMs;
-  const maxMs = Number.isFinite(cfg.dispatchRetryMaxDelayMs)
-    ? Math.max(baseMs, cfg.dispatchRetryMaxDelayMs)
-    : DEFAULT_CONFIG.dispatchRetryMaxDelayMs;
-  const safeAttempts = Number.isFinite(attempts) ? Math.max(1, attempts) : 1;
+// ─── Backoff & reconciliation ─────────────────────────────────────────────────
 
-  return Math.min(maxMs, baseMs * (2 ** (safeAttempts - 1)));
+function getBackoffDelayMs(cfg, attempts) {
+  const base = Math.max(100, cfg.dispatchRetryBaseDelayMs ?? DEFAULT_CONFIG.dispatchRetryBaseDelayMs);
+  const max = Math.max(base, cfg.dispatchRetryMaxDelayMs ?? DEFAULT_CONFIG.dispatchRetryMaxDelayMs);
+  const safe = Number.isFinite(attempts) ? Math.max(1, attempts) : 1;
+  return Math.min(max, base * (2 ** (safe - 1)));
 }
 
-async function reconcileFailedDispatch(cfg, assignmentEvent, options = {}) {
+async function reconcileFailedDispatch(cfg, assignmentNorm, options = {}) {
   const reconcileMs = Number.isFinite(options.reconcileMs)
     ? Math.max(0, options.reconcileMs)
-    : Number.isFinite(cfg.dispatchFailureReconcileMs)
-    ? Math.max(0, cfg.dispatchFailureReconcileMs)
-    : 0;
-  const initialPollMs = Number.isFinite(cfg.dispatchFailureReconcileInitialPollMs)
-    ? Math.max(50, cfg.dispatchFailureReconcileInitialPollMs)
-    : DEFAULT_CONFIG.dispatchFailureReconcileInitialPollMs;
-  const maxPollMs = Number.isFinite(cfg.dispatchFailureReconcileMaxPollMs)
-    ? Math.max(initialPollMs, cfg.dispatchFailureReconcileMaxPollMs)
-    : DEFAULT_CONFIG.dispatchFailureReconcileMaxPollMs;
+    : Math.max(0, cfg.dispatchFailureReconcileMs ?? 0);
 
-  if (reconcileMs === 0) {
-    const immediateMatch = findLifecycleAdvanceEvent(cfg.sharedContextPath, assignmentEvent);
-    if (immediateMatch) {
-      return {
-        recovered: true,
-        matchedType: immediateMatch.type,
-        matchedEventId: immediateMatch.eventId || null,
-      };
-    }
+  const initialPollMs = Math.max(50,
+    cfg.dispatchFailureReconcileInitialPollMs ?? DEFAULT_CONFIG.dispatchFailureReconcileInitialPollMs);
+  const maxPollMs = Math.max(initialPollMs,
+    cfg.dispatchFailureReconcileMaxPollMs ?? DEFAULT_CONFIG.dispatchFailureReconcileMaxPollMs);
 
-    return { recovered: false, matchedType: null, matchedEventId: null };
-  }
+  const check = () => {
+    const matched = findLifecycleAdvanceEvent(cfg.sharedContextPath, assignmentNorm);
+    return matched
+      ? { recovered: true, matchedType: matched.type, matchedTaskId: matched.taskId }
+      : { recovered: false, matchedType: null, matchedTaskId: null };
+  };
 
+  // Always do an immediate check first
+  const immediate = check();
+  if (immediate.recovered || reconcileMs === 0) return immediate;
+
+  // Polling window
   const deadline = Date.now() + reconcileMs;
   let pollMs = initialPollMs;
 
-  while (Date.now() <= deadline) {
-    const matched = findLifecycleAdvanceEvent(cfg.sharedContextPath, assignmentEvent);
-    if (matched) {
-      return {
-        recovered: true,
-        matchedType: matched.type,
-        matchedEventId: matched.eventId || null,
-      };
-    }
-
-    if (Date.now() >= deadline) {
-      break;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollMs));
+  while (Date.now() < deadline) {
+    const wait = Math.min(pollMs, deadline - Date.now());
+    await new Promise(r => setTimeout(r, wait));
+    const result = check();
+    if (result.recovered) return result;
     pollMs = Math.min(maxPollMs, Math.ceil(pollMs * 1.5));
   }
 
-  return { recovered: false, matchedType: null, matchedEventId: null };
-}
-
-function isTaskAssigned(event) {
-  const eventType = event?.type || event?.payload?.type;
-  const taskId = event?.taskId || event?.payload?.taskId;
-  const assignedTo = event?.assignedTo || event?.payload?.assignedTo;
-
-  return (
-    event &&
-    typeof event === 'object' &&
-    eventType === 'TASK_ASSIGNED' &&
-    typeof assignedTo === 'string' &&
-    typeof taskId === 'string'
-  );
+  return { recovered: false, matchedType: null, matchedTaskId: null };
 }
 
 // ─── Intake prompt builder ────────────────────────────────────────────────────
 
 /**
- * Builds the deterministic intake message sent to the agent.
- * This is the user turn — the system prompt comes from the agent's JSONL file.
+ * Reads from normalized event fields.
  */
-function buildIntakePrompt(event) {
-  const taskId = event.taskId || event.payload?.taskId || '(missing-task-id)';
-  const correlationId = event.correlationId || event.payload?.correlationId || '(no especificado)';
-  const assignedTo = event.assignedTo || event.payload?.assignedTo || '(no especificado)';
-  const description =
-    event.payload?.description ||
-    event.payload?.message ||
-    event.message ||
-    null;
-  const dependsOn =
-    (Array.isArray(event.dependsOn) && event.dependsOn.length > 0
-      ? event.dependsOn
-      : Array.isArray(event.payload?.dependsOn)
-      ? event.payload.dependsOn
-      : []);
-  const acceptanceCriteria =
-    (Array.isArray(event.acceptanceCriteria) && event.acceptanceCriteria.length > 0
-      ? event.acceptanceCriteria
-      : Array.isArray(event.payload?.acceptanceCriteria)
-      ? event.payload.acceptanceCriteria
-      : []);
-
+function buildIntakePrompt(norm) {
   const lines = [
     `Revisá shared_context.jsonl: te fue asignada una tarea nueva.`,
     ``,
-    `taskId:        ${taskId}`,
-    `correlationId: ${correlationId}`,
-    `assignedTo:    ${assignedTo}`,
+    `taskId:        ${norm.taskId}`,
+    `correlationId: ${norm.correlationId ?? '(no especificado)'}`,
+    `assignedTo:    ${norm.assignedTo}`,
     `status:        TASK_ASSIGNED`,
-    `timestamp:     ${event.timestamp ?? new Date().toISOString()}`,
+    `timestamp:     ${norm.timestamp ?? new Date().toISOString()}`,
   ];
 
-  if (event.parentTaskId) lines.push(`parentTaskId:  ${event.parentTaskId}`);
-  if (description)      lines.push(``, `Descripción:`, description);
-  if (dependsOn.length > 0) {
-    lines.push(``, `dependsOn: ${dependsOn.join(', ')}`);
+  if (norm.parentTaskId) lines.push(`parentTaskId:  ${norm.parentTaskId}`);
+  if (norm.objective) lines.push(`objetivo:      ${norm.objective}`);
+  if (norm.message) lines.push(``, `Descripción:`, norm.message);
+
+  if (norm.dependsOn.length > 0) {
+    lines.push(``, `dependsOn: ${norm.dependsOn.join(', ')}`);
   }
-  if (acceptanceCriteria.length > 0) {
+  if (norm.scope.length > 0) {
+    lines.push(``, `Scope permitido (paths):`);
+    norm.scope.forEach(s => lines.push(`  - ${s}`));
+  }
+  if (norm.deliverables.length > 0) {
+    lines.push(``, `Entregables esperados:`);
+    norm.deliverables.forEach(d => lines.push(`  - ${d}`));
+  }
+  if (norm.acceptanceCriteria.length > 0) {
     lines.push(``, `Criterios de aceptación:`);
-    acceptanceCriteria.forEach(c => lines.push(`  - ${c}`));
+    norm.acceptanceCriteria.forEach(c => lines.push(`  - ${c}`));
+  }
+  if (norm.constraints.length > 0) {
+    lines.push(``, `Restricciones:`);
+    norm.constraints.forEach(c => lines.push(`  - ${c}`));
   }
 
   lines.push(
@@ -418,76 +426,42 @@ function buildIntakePrompt(event) {
     `2. Publicá TASK_ACCEPTED en shared_context.jsonl.`,
     `3. Resumí en máximo 5 pasos qué harás.`,
     `4. Publicá TASK_IN_PROGRESS y comenzá.`,
+    `5. Si falta contexto crítico, publicá TASK_BLOCKED con preguntas concretas (no avances a ciegas).`,
   );
 
   return lines.join('\n');
 }
 
-// ─── System prompt loader ─────────────────────────────────────────────────────
-
-/**
- * Loads the system prompt from the agent's JSONL file.
- * File format: single JSON line {"role":"system","content":"..."}
- */
-function loadSystemPrompt(cfg, agentName) {
-  const slug     = cfg.agentMap[agentName];
-  if (!slug) return null;
-  const filePath = path.join(cfg.systemPromptsDir, `${slug}.jsonl`);
-  if (!fs.existsSync(filePath)) {
-    log('warn', `System prompt file not found for ${agentName}`, { filePath });
-    return null;
-  }
-  try {
-    const raw = fs.readFileSync(filePath, 'utf8').trim().split('\n')[0];
-    const obj = JSON.parse(raw);
-    return obj.content ?? null;
-  } catch (err) {
-    log('warn', `Failed to parse system prompt for ${agentName}`, { err: err.message });
-    return null;
-  }
-}
-
 // ─── OpenCode dispatch ────────────────────────────────────────────────────────
 
 /**
- * Dispatches a task to an agent via OpenCode.
+ * OpenCode CLI invocation.
  *
  * OpenCode non-interactive usage:
- *   opencode run --session <id> "prompt"        — send into an existing session
- *   opencode run --prompt "..." "prompt"        — fresh run with custom prompt
- *   opencode run --format json "prompt"          — structured output
+ *   opencode run "<message>"                — fresh run, responds and exits
+ *   opencode run -s <sessionId> "<message>" — send into an existing session
  *
- * The dispatcher prefers an active session (from config.sessions[agentName]).
- * If no session is configured, it starts a fresh non-interactive run with
- * the system prompt from the agent's JSONL file.
+ * System prompt cannot be injected via CLI in fresh-run mode.
+ * Agent identity comes from the project's AGENTS.md or session configuration.
+ * The systemPromptsDir / JSONL files are kept for documentation purposes and
+ * may be used by future OpenCode versions that support --system-prompt.
  */
-async function dispatchToAgent(cfg, event, intakePrompt, systemPrompt) {
-  const agentName   = event.assignedTo;
-  const sessionId   = cfg.sessions?.[agentName];
+async function dispatchToAgent(cfg, norm) {
+  const agentName = norm.assignedTo;
+  const sessionId = cfg.sessions?.[agentName];
   const opencodeBin = cfg.opencodeBin ?? 'opencode';
+  const intakePrompt = buildIntakePrompt(norm);
 
-  // Build the command arguments
   const cmdArgs = ['run'];
-
   if (sessionId) {
-    // Send to an existing named session
-    cmdArgs.push('--session', sessionId);
-  } else {
-    // No session — pass prompt override if available
-    if (systemPrompt) {
-      cmdArgs.push('--prompt', systemPrompt);
-    }
+    cmdArgs.push('-s', sessionId);
   }
-
-  // Non-interactive: print output and exit
-  // OpenCode exits after responding when a message is passed as argument
-  cmdArgs.push('--format', 'default');
   cmdArgs.push(intakePrompt);
 
   log('info', `Dispatching to ${agentName}`, {
-    taskId:    event.taskId,
-    sessionId: sessionId ?? '(new session)',
-    live:      IS_LIVE,
+    taskId: norm.taskId,
+    sessionId: sessionId ?? '(fresh run)',
+    live: IS_LIVE,
   });
 
   if (!IS_LIVE) {
@@ -499,7 +473,6 @@ async function dispatchToAgent(cfg, event, intakePrompt, systemPrompt) {
     const { stdout, stderr } = await execFileAsync(opencodeBin, cmdArgs, {
       timeout: cfg.opencodeTimeout ?? 120_000,
       env: process.env,
-      // Windows-safe: don't use shell, execFile handles PATH lookup
     });
 
     if (stdout) log('info', `[${agentName}] stdout`, { preview: stdout.slice(0, 300) });
@@ -508,117 +481,125 @@ async function dispatchToAgent(cfg, event, intakePrompt, systemPrompt) {
     return { success: true };
   } catch (err) {
     log('warn', `Dispatch command failed; entering reconciliation`, {
-      taskId: event.taskId,
-      code:   err.code,
-      msg:    err.message?.slice(0, 300),
+      taskId: norm.taskId,
+      code: err.code,
+      msg: err.message?.slice(0, 300),
     });
     return { success: false, error: err.message, code: err.code };
   }
 }
 
-async function processAssignmentEvent(cfg, state, event, eventId, options = {}) {
+// ─── Assignment event processor ───────────────────────────────────────────────
+
+async function processAssignmentEvent(cfg, state, rawEvent, options = {}) {
   const fromRetryQueue = options.fromRetryQueue === true;
-  const existingFailure = state.failedDispatches[eventId] || null;
+
+  const norm = normalizeEvent(rawEvent);
+  if (!norm) return;
+
+  const eventId = norm.eventId || norm.taskId;
 
   if (state.processedEventIds.includes(eventId)) {
     delete state.failedDispatches[eventId];
     return;
   }
 
-  if (!cfg.agentMap[event.assignedTo]) {
-    log('warn', `No agentMap entry for '${event.assignedTo}', skipping`, { taskId: event.taskId });
+  if (!cfg.agentMap[norm.assignedTo]) {
+    log('warn', `No agentMap entry for '${norm.assignedTo}', skipping`, { taskId: norm.taskId });
     state.processedEventIds.push(eventId);
     delete state.failedDispatches[eventId];
     return;
   }
 
+  const existingFailure = state.failedDispatches[eventId] ?? null;
+
+  // Pre-retry reconciliation: maybe the agent already picked it up
   if (existingFailure) {
-    const reconciliationBeforeRetry = await reconcileFailedDispatch(cfg, event, { reconcileMs: 0 });
-    if (reconciliationBeforeRetry.recovered) {
+    const preCheck = await reconcileFailedDispatch(cfg, norm, { reconcileMs: 0 });
+    if (preCheck.recovered) {
       state.processedEventIds.push(eventId);
       delete state.failedDispatches[eventId];
-      log('warn', fromRetryQueue
-        ? `Dispatch recovered before retry via lifecycle evidence`
-        : `Dispatch recovered via lifecycle evidence`, {
-        agentName: event.assignedTo,
-        taskId: event.taskId,
-        matchedType: reconciliationBeforeRetry.matchedType,
-        matchedEventId: reconciliationBeforeRetry.matchedEventId,
+      log('info', `Recovered via lifecycle evidence${fromRetryQueue ? ' (retry queue)' : ''}`, {
+        agentName: norm.assignedTo,
+        taskId: norm.taskId,
+        matchedType: preCheck.matchedType,
       });
       return;
     }
 
+    // Still in backoff window?
     if (Number.isFinite(existingFailure.nextRetryAtMs) && Date.now() < existingFailure.nextRetryAtMs) {
       log('debug', 'Skipping dispatch during retry backoff', {
-        taskId: event.taskId,
+        taskId: norm.taskId,
         retryInMs: existingFailure.nextRetryAtMs - Date.now(),
-        attempts: existingFailure.attempts || 0,
+        attempts: existingFailure.attempts ?? 0,
       });
       return;
     }
   }
 
-  const intakePrompt = buildIntakePrompt(event);
-  const systemPrompt = loadSystemPrompt(cfg, event.assignedTo);
-  const result = await dispatchToAgent(cfg, event, intakePrompt, systemPrompt);
+  const result = await dispatchToAgent(cfg, norm);
 
   if (result.success) {
     state.processedEventIds.push(eventId);
     delete state.failedDispatches[eventId];
     log('info', `Dispatch OK`, {
-      agentName: event.assignedTo,
-      taskId: event.taskId,
+      agentName: norm.assignedTo,
+      taskId: norm.taskId,
       dryRun: result.dryRun ?? false,
-      retryAttempt: existingFailure?.attempts || 0,
+      retryAttempt: existingFailure?.attempts ?? 0,
     });
     return;
   }
 
+  // Dispatch failed — try to reconcile via lifecycle events in the JSONL
   log('warn', 'Dispatch pending reconciliation', {
-    agentName: event.assignedTo,
-    taskId: event.taskId,
+    agentName: norm.assignedTo,
+    taskId: norm.taskId,
     reconcileMs: cfg.dispatchFailureReconcileMs,
   });
 
-  const reconciliation = await reconcileFailedDispatch(cfg, event);
+  const reconciliation = await reconcileFailedDispatch(cfg, norm);
   if (reconciliation.recovered) {
     state.processedEventIds.push(eventId);
     delete state.failedDispatches[eventId];
-    log('warn', `Dispatch recovered via lifecycle evidence`, {
-      agentName: event.assignedTo,
-      taskId: event.taskId,
+    log('info', `Dispatch recovered via lifecycle evidence`, {
+      agentName: norm.assignedTo,
+      taskId: norm.taskId,
       matchedType: reconciliation.matchedType,
-      matchedEventId: reconciliation.matchedEventId,
       originalError: result.error?.slice(0, 200),
     });
     return;
   }
 
+  // Schedule retry with exponential backoff
   const attempts = Number.isFinite(existingFailure?.attempts) ? existingFailure.attempts + 1 : 1;
   const retryDelayMs = getBackoffDelayMs(cfg, attempts);
+
   state.failedDispatches[eventId] = {
     attempts,
     nextRetryAtMs: Date.now() + retryDelayMs,
     lastFailedAt: new Date().toISOString(),
-    lastError: result.error || null,
-    lastCode: result.code || null,
+    lastError: result.error ?? null,
+    lastCode: result.code ?? null,
     assignmentEvent: {
-      eventId: event.eventId,
-      type: event.type,
-      taskId: event.taskId,
-      assignedTo: event.assignedTo,
-      correlationId: event.correlationId,
-      parentTaskId: event.parentTaskId,
-      timestamp: event.timestamp,
-      payload: event.payload,
-      dependsOn: event.dependsOn,
-      acceptanceCriteria: event.acceptanceCriteria,
+      eventId: norm.eventId,
+      type: norm.type,
+      status: norm.status,
+      taskId: norm.taskId,
+      assignedTo: norm.assignedTo,
+      correlationId: norm.correlationId,
+      parentTaskId: norm.parentTaskId,
+      timestamp: norm.timestamp,
+      message: norm.message,
+      dependsOn: norm.dependsOn,
+      acceptanceCriteria: norm.acceptanceCriteria,
     },
   };
 
   log('error', `Dispatch unreconciled; retry scheduled`, {
-    agentName: event.assignedTo,
-    taskId: event.taskId,
+    agentName: norm.assignedTo,
+    taskId: norm.taskId,
     attempts,
     retryDelayMs,
   });
@@ -627,71 +608,75 @@ async function processAssignmentEvent(cfg, state, event, eventId, options = {}) 
 // ─── Main poll loop ───────────────────────────────────────────────────────────
 
 async function pollOnce(cfg, state) {
-  state.failedDispatches = state.failedDispatches && typeof state.failedDispatches === 'object'
+  state.failedDispatches = (state.failedDispatches && typeof state.failedDispatches === 'object')
     ? state.failedDispatches
     : {};
 
+  // Process retry queue first (Object.entries snapshots keys, safe to mutate during loop)
   for (const [eventId, failureRecord] of Object.entries(state.failedDispatches)) {
     if (state.processedEventIds.includes(eventId)) {
       delete state.failedDispatches[eventId];
       continue;
     }
 
-    const event = failureRecord?.assignmentEvent;
-    if (!isTaskAssigned(event)) {
+    const raw = failureRecord?.assignmentEvent;
+    if (!isTaskAssigned(raw)) {
+      log('warn', `Stale/invalid failure record, removing`, { eventId });
       delete state.failedDispatches[eventId];
       continue;
     }
 
-    await processAssignmentEvent(cfg, state, event, eventId, { fromRetryQueue: true });
+    await processAssignmentEvent(cfg, state, raw, { fromRetryQueue: true });
   }
 
+  // Read new lines from JSONL
   const { lines, newOffset } = readNewLines(cfg.sharedContextPath, state.offset);
-
-  if (lines.length === 0) return;
-
   state.offset = newOffset;
 
   for (const line of lines) {
-    const event = parseEvent(line);
-    if (!isTaskAssigned(event)) continue;
+    const raw = parseEvent(line);
+    if (!isTaskAssigned(raw)) continue;
 
-    // Deduplicate
-    const eventId = event.eventId || line;
+    const norm = normalizeEvent(raw);
+    const eventId = norm.eventId || norm.taskId;
+
     if (state.processedEventIds.includes(eventId)) {
-      log('debug', `Skipping already-processed event`, { taskId: event.taskId });
+      log('debug', `Skipping already-processed event`, { taskId: eventId });
       continue;
     }
 
-    await processAssignmentEvent(cfg, state, event, eventId, { fromRetryQueue: false });
+    await processAssignmentEvent(cfg, state, raw, { fromRetryQueue: false });
   }
 }
 
+// ─── Entry point ─────────────────────────────────────────────────────────────
+
 async function main() {
-  const cfg   = loadConfig();
-  const loadedState = loadState();
-  const state = loadedState.state;
+  const cfg = loadConfig();
+  const { state, isNew } = loadState();
 
   log('info', `Dispatcher starting`, {
-    mode:     IS_LIVE ? 'LIVE' : 'DRY-RUN',
-    pollMs:   POLL_MS,
+    mode: IS_LIVE ? 'LIVE' : 'DRY-RUN',
+    pollMs: POLL_MS,
     watching: cfg.sharedContextPath,
-    config:   CFG_PATH,
-    state:    STATE_PATH,
+    config: CFG_PATH,
+    state: STATE_PATH,
   });
 
   if (!fs.existsSync(cfg.sharedContextPath)) {
-    log('warn', `shared_context.jsonl not found at ${cfg.sharedContextPath} — will retry when it appears`);
-  } else if (loadedState.isNew && cfg.startFromEnd !== false) {
+    log('warn', `shared_context.jsonl not found at ${cfg.sharedContextPath} — will wait`);
+  } else if (cfg.startFromEnd !== false && shouldBootstrapFromEnd(isNew, state)) {
+    // First run (o estado vacío): saltar histórico y consumir solo eventos nuevos
     const stat = fs.statSync(cfg.sharedContextPath);
     state.offset = stat.size;
     saveState(state, cfg);
-    log('info', `State bootstrap startFromEnd=true`, { offset: state.offset });
+    log('info', `State bootstrap: startFromEnd=true, skipping ${stat.size} bytes of existing content`, {
+      reason: isNew ? 'new-state' : 'empty-state',
+    });
   }
 
-  // Graceful shutdown
   let running = true;
-  process.on('SIGINT',  () => { log('info', 'SIGINT received, shutting down'); running = false; });
+  process.on('SIGINT', () => { log('info', 'SIGINT received, shutting down'); running = false; });
   process.on('SIGTERM', () => { log('info', 'SIGTERM received, shutting down'); running = false; });
 
   while (running) {

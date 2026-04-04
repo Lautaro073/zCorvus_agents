@@ -27,7 +27,7 @@ user message.
 2. It filters only `type === TASK_ASSIGNED`.
 3. It builds a deterministic intake prompt from MCP payload fields.
 4. It dispatches by `assignedTo`:
-   - preferred: `opencode run --session <id> --format default "<intake>"`
+   - preferred: `opencode run -s <id> --format default "<intake>"`
    - fallback: `opencode run --prompt "<system-prompt>" --format default "<intake>"`
 5. It persists cursor and dedupe state (`offset`, `processedEventIds`, `failedDispatches`).
 

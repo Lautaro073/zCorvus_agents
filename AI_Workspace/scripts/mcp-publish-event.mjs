@@ -71,6 +71,14 @@ function normalizeStringList(value) {
   return value.map(entry => normalizeString(entry)).filter(entry => entry !== undefined);
 }
 
+function parseCommaListArg(value) {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((entry) => normalizeString(entry))
+    .filter((entry) => entry.length > 0);
+}
+
 function parseArgs(argv) {
   const result = { tags: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -154,10 +162,10 @@ async function normalizeAndValidateEventInput(agent, type, payload, options = {}
 
   let { payload: budgetedPayload, warning: messageBudgetWarning } = messageBudgetEnabled
     ? applyMessageBudgetPolicy(safetyPayload, {
-        targetChars: MCP_CONTEXT_MESSAGE_TARGET_CHARS,
-        softLimitChars: MCP_CONTEXT_MESSAGE_SOFT_LIMIT_CHARS,
-        hardLimitEnabled: MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED,
-      })
+      targetChars: MCP_CONTEXT_MESSAGE_TARGET_CHARS,
+      softLimitChars: MCP_CONTEXT_MESSAGE_SOFT_LIMIT_CHARS,
+      hardLimitEnabled: MCP_CONTEXT_MESSAGE_BUDGET_HARD_ENABLED,
+    })
     : { payload: { ...safetyPayload }, warning: null };
 
   if (!artifactOffloadEnabled) {
@@ -323,6 +331,11 @@ async function main() {
   if (args.parentTask) payload.parentTaskId = args.parentTask;
   if (args.message) payload.message = args.message;
   if (args.description) payload.description = args.description;
+  if (args.objective) payload.objective = args.objective;
+  if (args.deliverables) payload.deliverables = parseCommaListArg(args.deliverables);
+  if (args.acceptance) payload.acceptanceCriteria = parseCommaListArg(args.acceptance);
+  if (args.scope) payload.scope = parseCommaListArg(args.scope);
+  if (args.constraints) payload.constraints = parseCommaListArg(args.constraints);
   if (args.artifact) payload.artifactPaths = args.artifact.split(",");
   if (args.overrideReason) payload.overrideReason = args.overrideReason;
   if (args.allowSequenceOverride) payload.allowSequenceOverride = true;

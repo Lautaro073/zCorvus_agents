@@ -62,3 +62,10 @@
   - Antes de abrir PR, completar explícitamente cada sección de la plantilla.
   - Si el PR impacta CI/workflows, revisar `create-github-action-workflow-specification` para validar consistencia de triggers, permisos, jobs, quality gates y contratos de entrada/salida.
   - No marcar PR como listo para merge sin checklist de la plantilla completo o con N/A justificado.
+
+## 2026-04-04 - TASK_ASSIGNED con prompt estructurado para dispatcher
+- Trigger: asignaciones con descripción genérica producían dispatch pobre y re-trabajo por falta de contexto.
+- Regla aprendida: cada `TASK_ASSIGNED` debe llevar contexto estructurado mínimo (`message`, `objective`, `acceptanceCriteria`) y, cuando aplique, `scope`, `deliverables`, `constraints`.
+- Prevención futura:
+  - Usar `mcp-publish-event.mjs` con `--objective`, `--acceptance`, `--scope`, `--deliverables`, `--constraints`.
+  - Evitar mensajes ambiguos tipo "arregla esto" sin criterio de cierre verificable.

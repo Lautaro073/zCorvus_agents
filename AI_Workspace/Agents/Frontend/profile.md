@@ -40,17 +40,20 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 
 ## Skills instaladas
 - `apple-ui-skills`
+- `accessibility`
 - `company-creator`
 - `create-agent-adapter`
 - `design-guide`
 - `doc-maintenance`
 - `dramatic-2000ms-plus`
 - `elevated-design`
+- `frontend-design`
 - `motion-designer`
 - `para-memory-files`
 - `pr-report`
 - `release`
 - `release-changelog`
+- `seo`
 - `shadcn`
 - `svg-animation-engineer`
 - `template`

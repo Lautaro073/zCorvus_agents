@@ -12,7 +12,7 @@ El prompt de intake que recibe el agente es determinístico: le informa el `task
 
 | Problema en el diseño original | Solución aplicada |
 |---|---|
-| `opencode run --agent <name>` no existe en la CLI de OpenCode | Se usa `opencode run --session <id> "prompt"` o `opencode run --prompt "..." "prompt"` según disponibilidad de sesión |
+| `opencode run --agent <name>` no existe en la CLI de OpenCode | Se usa `opencode run -s <id> "prompt"` o `opencode run --prompt "..." "prompt"` según disponibilidad de sesión |
 | Las "sesiones" no son un concepto de la CLI estándar de OpenCode | Las sesiones son opcionales: si hay una activa se envía ahí; si no, se inicia una corrida no-interactiva nueva con el system prompt del agente desde su `.jsonl` |
 | No había script — solo documentación | El script existe en `scripts/opencode-task-dispatcher.mjs` |
 | `--agent` implica un concepto de agente interno de OpenCode que no coincide con el modelo zCorvus | Los agentes zCorvus se identifican por `assignedTo` en el evento; el system prompt se carga desde `agent-prompts/<slug>.jsonl` |
@@ -118,7 +118,7 @@ El dispatcher tiene dos modos de dispatch por agente:
 Si `sessions["Orchestrator"]` tiene un ID de sesión activa, el dispatcher envía el intake prompt a esa sesión:
 
 ```
-opencode run --session <id> --format default "<intake-prompt>"
+opencode run -s <id> --format default "<intake-prompt>"
 ```
 
 El agente ya tiene contexto de conversación anterior. Útil si el agente mantiene estado entre tareas.

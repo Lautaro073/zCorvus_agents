@@ -298,11 +298,23 @@ function recordSnapshotRead(snapshot) {
   });
 }
 
-function recordApiEventsRead({ includeTaskEvents }) {
+function recordApiEventsRead({
+  includeTaskEvents,
+  taskId,
+  correlationId,
+  assignedTo,
+  parentTaskId,
+  agentFilter,
+}) {
+  const scopedExpansion = Boolean(
+    taskId || correlationId || assignedTo || parentTaskId || agentFilter
+  );
+
   pushBoundedSample(contextSloState.apiEventsReads, {
     timestamp: Date.now(),
     includeTaskEvents: includeTaskEvents === true,
     legacyMode: MCP_CONTEXT_LEGACY_PAYLOAD_MODE,
+    scopedExpansion,
   });
 }
 
@@ -364,9 +376,13 @@ function buildContextSloSnapshot() {
 
   const legacyHitRate =
     apiEventsReads.length > 0
-      ? apiEventsReads.filter(
-          (sample) => sample.includeTaskEvents === true || sample.legacyMode === true
-        ).length / apiEventsReads.length
+      ? apiEventsReads.filter((sample) => {
+          if (sample.legacyMode === true) {
+            return true;
+          }
+
+          return sample.includeTaskEvents === true && sample.scopedExpansion === false;
+        }).length / apiEventsReads.length
       : 0;
 
   const alerts = [];
@@ -1031,7 +1047,14 @@ function buildTaskGroups(events, options = {}) {
 
 async function buildMonitorResponse(rawFilters = {}) {
   const filters = normalizeFilters(rawFilters);
-  recordApiEventsRead({ includeTaskEvents: filters.includeTaskEvents });
+  recordApiEventsRead({
+    includeTaskEvents: filters.includeTaskEvents,
+    taskId: filters.taskId,
+    correlationId: filters.correlationId,
+    assignedTo: filters.assignedTo,
+    parentTaskId: filters.parentTaskId,
+    agentFilter: filters.agentFilter,
+  });
   const contextSnapshot = await ensureSidecarsUpToDate();
   const events = await getEvents(filters, { events: contextSnapshot.events });
 

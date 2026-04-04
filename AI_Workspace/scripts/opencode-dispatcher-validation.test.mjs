@@ -168,13 +168,13 @@ test("dispatcher detects TASK_ASSIGNED by type, supports session/fresh-run, and 
     assert.ok(log.includes("Dispatching to Planner"));
     assert.ok(log.includes('"taskId":"qa-session-dispatch-task"'));
     assert.ok(log.includes('"sessionId":"ses_planner_qa"'));
-    assert.ok(log.includes('Would run: opencode "run" "--session" "ses_planner_qa"'));
+    assert.ok(log.includes('Would run: opencode "run" "-s" "ses_planner_qa"'));
 
     assert.ok(log.includes("Dispatching to Tester"));
     assert.ok(log.includes('"taskId":"qa-fresh-run-dispatch-task"'));
     assert.ok(log.includes('"sessionId":""'));
-    assert.ok(log.includes('Would run: opencode "run" "--prompt" "Tester prompt for QA."'));
-    assert.equal(log.includes('Would run: opencode "run" "--session" ""'), false);
+    assert.ok(log.includes('Would run: opencode "run" "Revisá shared_context.jsonl: te fue asignada una tarea nueva.'));
+    assert.equal(log.includes('Would run: opencode "run" "-s" ""'), false);
   } finally {
     child.kill("SIGTERM");
     await Promise.race([once(child, "exit"), sleep(1500)]);
@@ -190,7 +190,8 @@ test("start_orchestrator uses canonical dispatcher paths and session launches", 
     bat.includes('copy /Y AI_Workspace\\scripts\\opencode-dispatch.config.example.json "%DISPATCH_CONFIG%" > nul')
   );
   assert.ok(
-    bat.includes('start "zCorvus Task Dispatcher" /MIN cmd /c "node AI_Workspace\\scripts\\opencode-task-dispatcher.mjs --live --config %DISPATCH_CONFIG%"')
+    bat.includes('start "zCorvus Task Dispatcher" /MIN cmd /c "node AI_Workspace\\scripts\\opencode-task-dispatcher.mjs --live --config %DISPATCH_CONFIG%"') ||
+      bat.includes('start "zCorvus Task Dispatcher" /MIN cmd /c "node AI_Workspace\\scripts\\opencode-task-dispatcher.mjs --live --config AI_Workspace\\scripts\\opencode-dispatch.config.json"')
   );
   assert.ok(bat.includes("start http://127.0.0.1:4311/monitor"));
 
@@ -407,12 +408,12 @@ test("dispatcher uses retry backoff and recovers before next retry when lifecycl
         assignedTo: "Documenter",
         timestamp: new Date().toISOString(),
       });
-    }, 200);
+    }, 1200);
 
     await waitFor(
       () => {
         const log = fs.readFileSync(logPath, "utf8");
-        return log.includes('Dispatch recovered before retry via lifecycle evidence');
+        return log.includes('Recovered via lifecycle evidence (retry queue)');
       },
       { timeoutMs: 10000, reason: "pre-retry reconciliation" }
     );

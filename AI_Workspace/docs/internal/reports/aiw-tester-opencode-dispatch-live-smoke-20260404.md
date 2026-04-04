@@ -42,11 +42,11 @@ node scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --t
 
 - Same live-smoke log reports:
   - `Dispatch failed for Documenter` after ~120s
-  - command shown in error path: `opencode run --session ... --format default ...`
+  - command shown in error path: `opencode -s ... --format default ...`
 
 ## Root cause (QA)
 
-`opencode run --session ...` can still deliver intake to the target session, but the dispatcher process treats the call as failed when command returns non-zero / timeout (`opencodeTimeout` boundary). This creates a **false-negative dispatch failure** in runtime logs even when downstream agent lifecycle events prove task intake succeeded.
+`opencode -s ...` can still deliver intake to the target session, but the dispatcher process treats the call as failed when command returns non-zero / timeout (`opencodeTimeout` boundary). This creates a **false-negative dispatch failure** in runtime logs even when downstream agent lifecycle events prove task intake succeeded.
 
 ## Acceptance mapping
 

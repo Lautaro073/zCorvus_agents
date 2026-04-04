@@ -18,7 +18,7 @@
     "AI_Workspace_Optimizer": "ai_workspace_optimizer"
   },
 
-  "_comment_sessions": "Map agent names to active OpenCode session IDs. If provided, the dispatcher sends the intake prompt INTO that session (--session <id>). If empty or agent not listed, a fresh non-interactive run is started with the system prompt from the agent's JSONL file. Find session IDs in OpenCode's session list (opencode sessions or .opencode/ folder).",
+  "_comment_sessions": "Map agent names to active OpenCode session IDs. If provided, the dispatcher sends the intake prompt into that session (opencode-s <id>). If empty or agent not listed, a fresh non-interactive run is started with the system prompt from the agent's JSONL file. Find session IDs with opencode session list.",
   "sessions": {
     "Orchestrator": "",
     "Planner": "",

@@ -9,7 +9,7 @@
 
 ## Problem
 Live dispatcher could produce a false-negative failure state:
-- `opencode run --session` returned timeout/non-zero,
+- `opencode -s` returned timeout/non-zero,
 - dispatcher logged `Dispatch FAILED, will retry next poll`,
 - but the assigned agent already published `TASK_ACCEPTED`/`TASK_IN_PROGRESS` for the same `taskId`.
 

@@ -161,3 +161,36 @@ test("critical observability alerts activate canary freeze", async () => {
     child.kill();
   }
 });
+
+test("scoped includeTaskEvents read does not count as legacy hit", async () => {
+  const port = 4441;
+  const child = spawn(process.execPath, [monitorEntry], {
+    cwd: path.join(workspaceRoot, "MCP_Server"),
+    env: {
+      ...process.env,
+      MCP_MONITOR_PORT: String(port),
+      MCP_MONITOR_HOST: "127.0.0.1",
+      MCP_CONTEXT_SIDECARS_ENABLED: "true",
+      MCP_CONTEXT_RELEVANCE_READS_ENABLED: "true",
+    },
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+
+  try {
+    await waitFor(`http://127.0.0.1:${port}/api/health`);
+    await waitFor(
+      `http://127.0.0.1:${port}/api/events?taskId=aiw-observer-monitor-sloalerts-canaryfreeze-20260404-01&includeTaskEvents=true&limit=5`
+    );
+
+    const observabilityResponse = await waitFor(
+      `http://127.0.0.1:${port}/api/context/observability`
+    );
+    const payload = await observabilityResponse.json();
+    const legacyAlert = payload.alerts.find((alert) => alert.id === "legacy_mode_hit_rate");
+
+    assert.equal(legacyAlert, undefined);
+    assert.equal(payload.sli.legacyModeHitRate, 0);
+  } finally {
+    child.kill();
+  }
+});

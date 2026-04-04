@@ -3,7 +3,7 @@ node scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --t
 
 Key log evidence:
 [INFO ] Dispatching to Documenter {"taskId":"aiw-documenter-opencode-live-smoke-20260404-qa4","sessionId":"ses_2d2a38f49ffeIuock0vn7moQKl","live":true}
-[ERROR] Dispatch failed for Documenter {"taskId":"aiw-documenter-opencode-live-smoke-20260404-qa4","code":null,"msg":"Command failed: opencode run --session ..."}
+[ERROR] Dispatch failed for Documenter {"taskId":"aiw-documenter-opencode-live-smoke-20260404-qa4","code":null,"msg":"Command failed: opencode -s ..."}
 
 Key MCP evidence (shared_context.jsonl):
 TASK_ASSIGNED   aiw-documenter-opencode-live-smoke-20260404-qa4
