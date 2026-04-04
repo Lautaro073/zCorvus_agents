@@ -210,3 +210,222 @@ test("start_orchestrator uses canonical dispatcher paths and session launches", 
   const launchCount = (bat.match(/opencode -s /g) ?? []).length;
   assert.ok(launchCount >= 8, "Expected at least 8 OpenCode session launches in start_orchestrator.bat");
 });
+
+test("dispatcher reconciles failed session dispatch when task lifecycle already advanced", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-dispatcher-reconcile-"));
+  const promptsDir = path.join(tempRoot, "agent-prompts");
+  const sharedContextPath = path.join(tempRoot, "shared_context.jsonl");
+  const configPath = path.join(tempRoot, "dispatch.config.json");
+  const statePath = path.join(tempRoot, "dispatch.state.json");
+  const logPath = path.join(tempRoot, "dispatch.log");
+
+  fs.mkdirSync(promptsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(promptsDir, "documenter.jsonl"),
+    `${JSON.stringify({ role: "system", content: "Documenter prompt for reconcile QA." })}\n`,
+    "utf8"
+  );
+
+  const failingBin = path.join(tempRoot, process.platform === "win32" ? "opencode.cmd" : "opencode");
+  const failingContent =
+    process.platform === "win32"
+      ? "@echo off\r\necho simulated failure>&2\r\nexit /b 1\r\n"
+      : "#!/usr/bin/env sh\necho simulated failure >&2\nexit 1\n";
+  fs.writeFileSync(failingBin, failingContent, "utf8");
+  if (process.platform !== "win32") {
+    fs.chmodSync(failingBin, 0o755);
+  }
+
+  const assignmentEvent = {
+    eventId: "reconcile-assigned-event",
+    type: "TASK_ASSIGNED",
+    taskId: "qa-reconcile-task",
+    assignedTo: "Documenter",
+    timestamp: new Date().toISOString(),
+    payload: { description: "Reconciliation scenario" },
+  };
+  appendJsonl(sharedContextPath, assignmentEvent);
+
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(
+      {
+        sharedContextPath,
+        systemPromptsDir: promptsDir,
+        agentMap: {
+          Documenter: "documenter",
+        },
+        sessions: {
+          Documenter: "ses_reconcile_qa",
+        },
+        startFromEnd: false,
+        dedupeMemorySize: 32,
+        dispatchFailureReconcileMs: 3000,
+        dispatchFailureReconcileInitialPollMs: 100,
+        dispatchFailureReconcileMaxPollMs: 400,
+        opencodeBin: failingBin,
+        opencodeTimeout: 1000,
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const child = spawn(
+    process.execPath,
+    [dispatcherEntry, "--live", "--config", configPath, "--state", statePath, "--log", logPath, "--poll-ms", "100"],
+    {
+      cwd: workspaceRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    }
+  );
+
+  try {
+    await waitFor(() => fs.existsSync(logPath), { reason: "dispatcher log file" });
+
+    setTimeout(() => {
+      appendJsonl(sharedContextPath, {
+        eventId: "reconcile-accepted-event",
+        type: "TASK_ACCEPTED",
+        taskId: assignmentEvent.taskId,
+        assignedTo: "Documenter",
+        timestamp: new Date().toISOString(),
+      });
+    }, 300);
+
+    await waitFor(
+      () => {
+        const log = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
+        return log.includes("Dispatch recovered via lifecycle evidence");
+      },
+      { timeoutMs: 10000, reason: "dispatch reconciliation evidence" }
+    );
+
+    const state = readJson(statePath);
+    assert.equal(state.processedEventIds.includes("reconcile-assigned-event"), true);
+
+    const log = fs.readFileSync(logPath, "utf8");
+    assert.ok(log.includes('Dispatch command failed; entering reconciliation'));
+    assert.ok(log.includes('Dispatch pending reconciliation'));
+    assert.ok(log.includes('Dispatch recovered via lifecycle evidence'));
+    assert.equal(log.includes('Dispatch failed; retry scheduled'), false);
+    assert.equal(log.includes('Dispatch unreconciled; retry scheduled'), false);
+  } finally {
+    child.kill("SIGTERM");
+    await Promise.race([once(child, "exit"), sleep(1500)]);
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("dispatcher uses retry backoff and recovers before next retry when lifecycle arrives later", async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-dispatcher-backoff-"));
+  const promptsDir = path.join(tempRoot, "agent-prompts");
+  const sharedContextPath = path.join(tempRoot, "shared_context.jsonl");
+  const configPath = path.join(tempRoot, "dispatch.config.json");
+  const statePath = path.join(tempRoot, "dispatch.state.json");
+  const logPath = path.join(tempRoot, "dispatch.log");
+
+  fs.mkdirSync(promptsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(promptsDir, "documenter.jsonl"),
+    `${JSON.stringify({ role: "system", content: "Documenter prompt for backoff QA." })}\n`,
+    "utf8"
+  );
+
+  const failingBin = path.join(tempRoot, process.platform === "win32" ? "opencode.cmd" : "opencode");
+  const failingContent =
+    process.platform === "win32"
+      ? "@echo off\r\necho simulated failure>&2\r\nexit /b 1\r\n"
+      : "#!/usr/bin/env sh\necho simulated failure >&2\nexit 1\n";
+  fs.writeFileSync(failingBin, failingContent, "utf8");
+  if (process.platform !== "win32") {
+    fs.chmodSync(failingBin, 0o755);
+  }
+
+  const assignmentEvent = {
+    eventId: "backoff-assigned-event",
+    type: "TASK_ASSIGNED",
+    taskId: "qa-backoff-task",
+    assignedTo: "Documenter",
+    timestamp: new Date().toISOString(),
+    payload: { description: "Backoff reconciliation scenario" },
+  };
+  appendJsonl(sharedContextPath, assignmentEvent);
+
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(
+      {
+        sharedContextPath,
+        systemPromptsDir: promptsDir,
+        agentMap: {
+          Documenter: "documenter",
+        },
+        sessions: {
+          Documenter: "ses_backoff_qa",
+        },
+        startFromEnd: false,
+        dedupeMemorySize: 32,
+        dispatchFailureReconcileMs: 0,
+        dispatchRetryBaseDelayMs: 800,
+        dispatchRetryMaxDelayMs: 2000,
+        opencodeBin: failingBin,
+        opencodeTimeout: 1000,
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const child = spawn(
+    process.execPath,
+    [dispatcherEntry, "--live", "--config", configPath, "--state", statePath, "--log", logPath, "--poll-ms", "100"],
+    {
+      cwd: workspaceRoot,
+      stdio: ["ignore", "ignore", "pipe"],
+    }
+  );
+
+  try {
+    await waitFor(() => fs.existsSync(logPath), { reason: "dispatcher log file" });
+
+    await waitFor(
+      () => {
+        const log = fs.readFileSync(logPath, "utf8");
+        return log.includes('Dispatch unreconciled; retry scheduled');
+      },
+      { timeoutMs: 8000, reason: "initial failure scheduling" }
+    );
+
+    setTimeout(() => {
+      appendJsonl(sharedContextPath, {
+        eventId: "backoff-accepted-event",
+        type: "TASK_ACCEPTED",
+        taskId: assignmentEvent.taskId,
+        assignedTo: "Documenter",
+        timestamp: new Date().toISOString(),
+      });
+    }, 200);
+
+    await waitFor(
+      () => {
+        const log = fs.readFileSync(logPath, "utf8");
+        return log.includes('Dispatch recovered before retry via lifecycle evidence');
+      },
+      { timeoutMs: 10000, reason: "pre-retry reconciliation" }
+    );
+
+    const log = fs.readFileSync(logPath, "utf8");
+    assert.equal(log.includes('Dispatch failed; retry scheduled'), false);
+
+    const state = readJson(statePath);
+    assert.equal(state.processedEventIds.includes("backoff-assigned-event"), true);
+    assert.equal(Boolean(state.failedDispatches?.["backoff-assigned-event"]), false);
+  } finally {
+    child.kill("SIGTERM");
+    await Promise.race([once(child, "exit"), sleep(1500)]);
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});

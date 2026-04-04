@@ -1,0 +1,34 @@
+node --test scripts/opencode-dispatcher-validation.test.mjs
+
+✔ dispatcher detects TASK_ASSIGNED by type, supports session/fresh-run, and bootstraps from end
+✔ start_orchestrator uses canonical dispatcher paths and session launches
+✔ dispatcher reconciles failed session dispatch when task lifecycle already advanced
+✔ dispatcher uses retry backoff and recovers before next retry when lifecycle arrives later
+
+tests: 4
+pass: 4
+fail: 0
+
+Live smoke command:
+node scripts/opencode-task-dispatcher.mjs --live --config scripts/opencode-dispatch.config.json --state .runtime/opencode-task-dispatcher.signal-recheck.state.json --log .runtime/opencode-task-dispatcher.signal-recheck.log --poll-ms 300
+node scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --task aiw-documenter-opencode-live-smoke-signal-recheck-20260404-qa1 --assignedTo Documenter --status assigned --priority high --correlation aiw-opencode-autonomy-20260404 --description "QA signal recheck live smoke after log-signal fix"
+
+Runtime log excerpts (same task):
+[INFO ] Dispatching to Documenter {"taskId":"aiw-documenter-opencode-live-smoke-signal-recheck-20260404-qa1",...}
+[WARN ] Dispatch command failed; entering reconciliation {...}
+[WARN ] Dispatch pending reconciliation {...}
+[WARN ] Dispatch recovered via lifecycle evidence {...}
+
+No [ERROR] lines for this task in signal-recheck logs.
+No retry scheduled for this task.
+
+State file excerpt:
+processedEventIds includes assignment event id 84e5638f-a1b7-4e14-b248-344b403471ac
+failedDispatches = {}
+
+MCP lifecycle evidence:
+TASK_ASSIGNED   aiw-documenter-opencode-live-smoke-signal-recheck-20260404-qa1
+TASK_ACCEPTED   aiw-documenter-opencode-live-smoke-signal-recheck-20260404-qa1
+TASK_IN_PROGRESS aiw-documenter-opencode-live-smoke-signal-recheck-20260404-qa1
+
+Result: TEST_PASSED

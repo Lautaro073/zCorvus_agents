@@ -1,72 +1,190 @@
 # OpenCode Autonomous Task Dispatch (MCP -> Agent)
 
+## Metadata
+- sourceTaskId: `aiw-documenter-opencode-autonomy-docs-20260404-01`
+- correlationId: `aiw-opencode-autonomy-20260404`
+- owner: `Documenter`
+- updatedAt: `2026-04-04`
+
 ## Objective
 
-Run agent intake automatically when `TASK_ASSIGNED` is appended to `AI_Workspace/MCP_Server/shared_context.jsonl`, without waiting for a manual user message.
+Run agent intake automatically when a new `TASK_ASSIGNED` event is appended to
+`AI_Workspace/MCP_Server/shared_context.jsonl`, without waiting for a manual
+user message.
 
-## How it works
+## Canonical assets
 
-- Watch new JSONL bytes from `shared_context.jsonl`.
-- Detect fresh `TASK_ASSIGNED` events.
-- Resolve target runner by `assignedTo`:
-  - preferred: existing session via `sessions[assignedTo]`
-  - fallback: `opencode run --prompt <agentPrompt>`
-- Send a deterministic intake prompt so the assigned agent starts immediately.
-- Persist cursor state (`offset` + processed event IDs) to avoid duplicate dispatches.
+- Dispatcher: `AI_Workspace/scripts/opencode-task-dispatcher.mjs`
+- Config template: `AI_Workspace/scripts/opencode-dispatch.config.example.json`
+- Live config: `AI_Workspace/scripts/opencode-dispatch.config.json`
+- Prompts directory: `AI_Workspace/scripts/agent-prompts/`
+- Runtime state/logs: `AI_Workspace/.runtime/`
+- Startup entrypoint: `start_orchestrator.bat`
 
-Script:
+## Architecture overview
 
-- `AI_Workspace/scripts/opencode-task-dispatcher.mjs`
+1. Dispatcher tails new bytes from `shared_context.jsonl`.
+2. It filters only `type === TASK_ASSIGNED`.
+3. It builds a deterministic intake prompt from MCP payload fields.
+4. It dispatches by `assignedTo`:
+   - preferred: `opencode run --session <id> --format default "<intake>"`
+   - fallback: `opencode run --prompt "<system-prompt>" --format default "<intake>"`
+5. It persists cursor and dedupe state (`offset`, `processedEventIds`, `failedDispatches`).
 
 ## Setup
 
-1) Create config from template:
+### 1) Create runtime config
 
-```bash
+```cmd
 copy AI_Workspace\scripts\opencode-dispatch.config.example.json AI_Workspace\scripts\opencode-dispatch.config.json
 ```
 
-2) Fill `sessions` with your active OpenCode session IDs for each agent (recommended).
+### 2) Verify config keys
 
-3) Optional fallback: adjust `agentMap` if you use custom OpenCode agents.
+Required keys:
+- `sharedContextPath`
+- `systemPromptsDir`
+- `agentMap`
+- `sessions`
+- `startFromEnd`
 
-## Run modes
+Recommended hardening keys:
+- `dispatchFailureReconcileMs: 30000`
+- `dispatchFailureReconcileInitialPollMs: 400`
+- `dispatchFailureReconcileMaxPollMs: 4000`
+- `dispatchRetryBaseDelayMs: 2000`
+- `dispatchRetryMaxDelayMs: 30000`
 
-Dry-run (logs dispatch decisions, does not call OpenCode):
+### 3) Ensure prompt files exist
+
+Expected slugs:
+- `orchestrator.jsonl`
+- `planner.jsonl`
+- `observer.jsonl`
+- `frontend.jsonl`
+- `backend.jsonl`
+- `tester.jsonl`
+- `documenter.jsonl`
+- `ai_workspace_optimizer.jsonl`
+
+### 4) Ensure `opencode` is available
+
+```bash
+opencode --version
+opencode run --help
+```
+
+## Session model
+
+Session IDs are configured in `scripts/opencode-dispatch.config.json` under
+`sessions.<AgentName>`. If a session ID is empty, dispatcher falls back to fresh
+non-interactive run with system prompt.
+
+Reference source for session alignment is `start_orchestrator.bat`.
+
+## Run commands
+
+Dry-run:
 
 ```bash
 node AI_Workspace/scripts/opencode-task-dispatcher.mjs --config AI_Workspace/scripts/opencode-dispatch.config.json
 ```
 
-Live mode (actually triggers `opencode run`):
+Live mode:
 
 ```bash
 node AI_Workspace/scripts/opencode-task-dispatcher.mjs --live --config AI_Workspace/scripts/opencode-dispatch.config.json
 ```
 
-Useful options:
+With explicit runtime files:
 
-- `--poll-ms 1200` polling interval.
-- `--state AI_Workspace/.runtime/opencode-task-dispatcher.state.json`
-- `--log AI_Workspace/.runtime/opencode-task-dispatcher.log`
+```bash
+node AI_Workspace/scripts/opencode-task-dispatcher.mjs --live --config AI_Workspace/scripts/opencode-dispatch.config.json --state AI_Workspace/.runtime/opencode-task-dispatcher.state.json --log AI_Workspace/.runtime/opencode-task-dispatcher.log --poll-ms 300
+```
 
-## Operational notes
+## Logging and signal semantics
 
-- Uses incremental read by byte offset; safe to keep running continuously.
-- Keeps a bounded dedupe memory (`processedEventIds`) in state file.
-- Ignores unrelated event types.
-- Requires `opencode` available in PATH.
-- If config is missing, defaults are loaded but no session mapping means dispatch may skip or use generic fallback.
+Current expected signal model:
 
-## Recommended production pattern
+1. `INFO Dispatching to <Agent>`
+2. If command fails: `WARN Dispatch command failed; entering reconciliation`
+3. During waiting: `WARN Dispatch pending reconciliation`
+4. If lifecycle evidence appears: `WARN Dispatch recovered via lifecycle evidence`
+5. Only unreconciled expiry should emit: `ERROR Dispatch unreconciled; retry scheduled`
 
-- Start MCP server.
-- Start one OpenCode session per agent (or define robust `agentMap`).
-- Start dispatcher in `--live` mode as a background process.
-- Keep `.runtime/` logs for audit and incident triage.
+This removes false terminal errors when downstream MCP evidence confirms success.
 
-## Limitations
+## Troubleshooting runbook
 
-- No strict queue locking between multiple dispatcher instances; run a single instance.
-- If agent session dies, dispatch falls back only if `agentMap` is defined.
-- Prompt-based kickoff is best-effort; agent still enforces its own profile rules.
+### Case A: Empty sessions map
+Symptom:
+- dispatcher uses fresh runs unexpectedly.
+
+Fix:
+1. Fill `sessions` in `scripts/opencode-dispatch.config.json`.
+2. Ensure IDs match active OpenCode sessions from `start_orchestrator.bat`.
+
+### Case B: Missing prompt files
+Symptom:
+- log warns `System prompt file not found`.
+
+Fix:
+1. ensure files exist in `scripts/agent-prompts/`.
+2. ensure `agentMap` slugs match filenames exactly.
+
+### Case C: Stale bootstrap state
+Symptom:
+- replay of old `TASK_ASSIGNED` events or cursor mismatch.
+
+Fix:
+1. stop dispatcher,
+2. rotate or remove state file under `.runtime/`,
+3. restart with `startFromEnd=true` for clean bootstrap.
+
+### Case D: False-negative dispatch failure
+Symptom:
+- process command failure appears even though assigned agent already published
+  `TASK_ACCEPTED`/`TASK_IN_PROGRESS`.
+
+Fix path already implemented:
+1. lifecycle reconciliation against MCP events,
+2. 30s reconciliation window,
+3. backoff retry scheduling,
+4. log-signal hardening (warn on recovered path).
+
+If still unresolved, inspect:
+- `.runtime/opencode-task-dispatcher*.log`
+- `.runtime/opencode-task-dispatcher*.state.json`
+- `MCP_Server/shared_context.jsonl`
+
+## QA progression and current gate state
+
+Chronology under correlation `aiw-opencode-autonomy-20260404`:
+
+1. Integration validation: `TEST_PASSED`
+2. Live smoke: `TEST_FAILED` (false-negative)
+3. Live smoke recheck: `TEST_FAILED` (5s window too short)
+4. Final gate recheck: `TEST_FAILED` (false error signal still present)
+5. Signal recheck after log fix: `TEST_PASSED`
+
+Current operational conclusion:
+- autonomous dispatch works,
+- lifecycle recovery works,
+- strict no-false-error signal gate passed in latest Tester recheck.
+
+## Daily operator checklist
+
+1. `opencode --version` returns OK.
+2. MCP monitor server is up (`http://127.0.0.1:4311/monitor`).
+3. Dispatcher is running in live mode with correct config.
+4. `sessions` and prompt files are present for target agents.
+5. Latest smoke/recheck report status is PASS before declaring stable gate.
+
+## Related evidence
+
+- `docs/internal/reports/aiw-optimizer-opencode-dispatch-integration-20260404.md`
+- `docs/internal/reports/aiw-optimizer-opencode-dispatch-runtime-hotfix-20260404.md`
+- `docs/internal/reports/aiw-optimizer-opencode-dispatch-false-negative-fix-20260404.md`
+- `docs/internal/reports/aiw-optimizer-opencode-reconcile-window-hardening-20260404.md`
+- `docs/internal/reports/aiw-optimizer-opencode-dispatch-log-signal-fix-20260404.md`
+- `docs/internal/reports/aiw-tester-opencode-live-smoke-signal-recheck-20260404.md`

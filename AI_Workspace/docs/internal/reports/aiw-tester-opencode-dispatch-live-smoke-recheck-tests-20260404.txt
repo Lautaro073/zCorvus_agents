@@ -1,0 +1,22 @@
+node --test scripts/opencode-dispatcher-validation.test.mjs
+PASS: 3/3
+
+node scripts/opencode-task-dispatcher.mjs --live --config scripts/opencode-dispatch.config.json --state .runtime/opencode-task-dispatcher.live-recheck.state.json --log .runtime/opencode-task-dispatcher.live-recheck.log --poll-ms 300
+node scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --task aiw-documenter-opencode-live-smoke-recheck-20260404-qa1 --assignedTo Documenter --status assigned --priority high --correlation aiw-opencode-autonomy-20260404 --description "QA live smoke recheck after false-negative fix"
+
+Dispatcher log evidence:
+[INFO ] Dispatching to Documenter {"taskId":"aiw-documenter-opencode-live-smoke-recheck-20260404-qa1",...}
+[ERROR] Dispatch failed for Documenter {...}
+[ERROR] Dispatch FAILED, will retry next poll {...}
+
+MCP lifecycle evidence for same taskId:
+TASK_ASSIGNED   aiw-documenter-opencode-live-smoke-recheck-20260404-qa1
+TASK_ACCEPTED   aiw-documenter-opencode-live-smoke-recheck-20260404-qa1
+TASK_IN_PROGRESS aiw-documenter-opencode-live-smoke-recheck-20260404-qa1
+
+Timing evidence:
+failure: 06:16:56.499Z
+retry-loop: 06:17:01.788Z
+lifecycle advance: 06:17:16.824Z / 06:17:16.891Z
+
+Result: TEST_FAILED (reconciliation window too short for real runtime latency).

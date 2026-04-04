@@ -184,7 +184,7 @@ Acción requerida:
 
 ```bash
 # 1. Iniciar MCP Server
-node AI_Workspace/MCP_Server/server.js
+node AI_Workspace/MCP_Server/monitor-server.js
 
 # 2. Iniciar una sesión OpenCode por agente (o dejar que el dispatcher cree runs nuevos)
 opencode  # en terminal separada para cada agente — anotá el session ID en el config
@@ -221,6 +221,6 @@ El config real no va al repo (puede tener session IDs). El ejemplo sí va.
 
 - **Una sola instancia:** no hay locking entre múltiples instancias del dispatcher. Corré solo una.
 - **Si la sesión muere:** el dispatcher cae al fallback de fresh run. Actualizá el `sessions` en el config con el nuevo ID.
-- **El dispatch es best-effort:** si OpenCode falla o tarda más de `opencodeTimeout`, el evento no se marca como procesado y se reintenta en el próximo poll.
+- **Dispatch con reconciliacion:** si OpenCode falla o timeout, el dispatcher reconcilia primero contra evidencia MCP (`TASK_ACCEPTED`/`TASK_IN_PROGRESS`/`TASK_COMPLETED`/`TEST_PASSED`) antes de marcar error definitivo y programar retry.
 - **No hay queue ordering estricto:** si llegan 3 `TASK_ASSIGNED` en el mismo poll, se despachan en orden de aparición en el JSONL, de forma secuencial. No hay paralelismo intencional para evitar conflictos de sesión.
 - **El agente decide:** el dispatcher solo dispara el intake. El agente sigue sus propias reglas de `profile.md` y `learnings.md` una vez que arranca.

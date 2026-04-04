@@ -162,3 +162,31 @@ When installing skills from skills.sh, ALWAYS ask Orchestrator which agent shoul
 - **Root cause:** budget enable flag was declared in runtime but not propagated/enforced end-to-end in compact view budget wiring.
 - **Guardrail:** every feature flag must be asserted at config source and at the final enforcement function (not only at declaration layer).
 - **Prevention rule:** for kill switches, add explicit negative-path tests that validate both metadata absence and behavior absence (no enforcement side effects).
+
+### Dispatcher runtime hotfix memory (OpenCode autonomy)
+
+- **Symptom:** live dispatcher did not dispatch assigned tasks reliably (missing `agent-prompts/*.jsonl`, empty `sessions`, and stale state/replay risk).
+- **Root cause:** runtime prerequisites were not fully provisioned after integration (config lacked active sessions, prompt directory absent, state bootstrap not reset for live run).
+- **Applied fix:** completed `scripts/opencode-dispatch.config.json` sessions from `start_orchestrator.bat`, created `AI_Workspace/scripts/agent-prompts/*.jsonl` for every `agentMap` slug, reset `.runtime/opencode-task-dispatcher.state.json` with clean end-offset bootstrap, and revalidated with a real `TASK_ASSIGNED` dispatch to `Documenter`.
+- **Prevention rule:** for any automation handoff, verify the full runtime chain (config + required files + state + live smoke event) before declaring integration complete.
+
+### Dispatcher false-negative recovery memory
+
+- **Symptom:** dispatcher logged `Dispatch FAILED, will retry next poll` on `opencode run --session` timeout/non-zero even when the assigned agent had already advanced the task (`TASK_ACCEPTED`/`TASK_IN_PROGRESS`).
+- **Root cause:** failure handling relied only on process exit code and ignored downstream MCP lifecycle evidence for the same `taskId`.
+- **Applied fix:** added post-failure reconciliation window in dispatcher (`dispatchFailureReconcileMs` + polling) to scan `shared_context.jsonl` for task lifecycle-advance events and mark dispatch as recovered (no retry loop).
+- **Prevention rule:** in async dispatch systems, treat runner exit status as advisory and reconcile with source-of-truth lifecycle events before retrying.
+
+### Dispatcher reconcile-window hardening memory
+
+- **Symptom:** short reconciliation windows can miss real-world latencies (>20s), causing repeated false failures and noisy retry loops.
+- **Root cause:** reconciliation timing was optimized for fast local feedback, not production-like asynchronous agent response latency.
+- **Applied fix:** increased default reconcile window to 30s, added exponential poll backoff (`initial/max poll`), persisted failed dispatch metadata in state, and introduced retry backoff (`dispatchRetryBaseDelayMs`/`dispatchRetryMaxDelayMs`) with pre-retry lifecycle reconciliation.
+- **Prevention rule:** for async pipelines, default retries must be latency-tolerant and evidence-driven: reconcile first, then retry with bounded backoff.
+
+### Dispatcher log-signal noise memory
+
+- **Symptom:** dispatcher emitted `ERROR` on command non-zero even when reconciliation later proved successful lifecycle progression, creating false alarm noise.
+- **Root cause:** logging severity was tied to transport/process result instead of final delivery outcome after reconciliation.
+- **Applied fix:** switched to two-phase signaling: `warn` for pending/reconciling state, `warn` for recovered outcome, and `error` only when reconciliation expires unrecovered and retry is actually scheduled.
+- **Prevention rule:** severity must represent final business outcome; transient transport failures in async workflows should not be logged as terminal errors until evidence windows are exhausted.

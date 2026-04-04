@@ -122,6 +122,11 @@ const DEFAULT_CONFIG = {
   sessions:          {},
   startFromEnd:      true,
   dedupeMemorySize:  500,
+  dispatchFailureReconcileMs: 30000,
+  dispatchFailureReconcileInitialPollMs: 400,
+  dispatchFailureReconcileMaxPollMs: 4000,
+  dispatchRetryBaseDelayMs: 2000,
+  dispatchRetryMaxDelayMs: 30000,
   opencodeBin:       'opencode',
   opencodeTimeout:   120_000,
 };
@@ -150,19 +155,48 @@ function loadConfig() {
 // ─── State persistence ────────────────────────────────────────────────────────
 
 function loadState() {
-  if (!fs.existsSync(STATE_PATH)) return { state: { offset: 0, processedEventIds: [] }, isNew: true };
+  if (!fs.existsSync(STATE_PATH)) {
+    return {
+      state: { offset: 0, processedEventIds: [], failedDispatches: {} },
+      isNew: true,
+    };
+  }
+
   try {
-    return { state: JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')), isNew: false };
+    const parsed = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+    return {
+      state: {
+        offset: Number.isFinite(parsed?.offset) ? parsed.offset : 0,
+        processedEventIds: Array.isArray(parsed?.processedEventIds) ? parsed.processedEventIds : [],
+        failedDispatches:
+          parsed?.failedDispatches && typeof parsed.failedDispatches === 'object'
+            ? parsed.failedDispatches
+            : {},
+      },
+      isNew: false,
+    };
   } catch {
-    return { state: { offset: 0, processedEventIds: [] }, isNew: true };
+    return {
+      state: { offset: 0, processedEventIds: [], failedDispatches: {} },
+      isNew: true,
+    };
   }
 }
 
 function saveState(state, cfg) {
+  if (!state.failedDispatches || typeof state.failedDispatches !== 'object') {
+    state.failedDispatches = {};
+  }
+
+  for (const processedEventId of state.processedEventIds) {
+    delete state.failedDispatches[processedEventId];
+  }
+
   // Keep dedupe memory bounded
   if (state.processedEventIds.length > cfg.dedupeMemorySize) {
     state.processedEventIds = state.processedEventIds.slice(-cfg.dedupeMemorySize);
   }
+
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');
 }
 
@@ -193,6 +227,126 @@ function parseEvent(line) {
   } catch {
     return null;
   }
+}
+
+const TASK_LIFECYCLE_ADVANCE_TYPES = new Set([
+  'TASK_ACCEPTED',
+  'TASK_IN_PROGRESS',
+  'TASK_COMPLETED',
+  'TEST_PASSED',
+]);
+
+function eventTimestampMs(event) {
+  const parsed = Date.parse(event?.timestamp || '');
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isLifecycleAdvanceForTask(candidate, assignmentEvent) {
+  if (!candidate || typeof candidate !== 'object') return false;
+  if (!TASK_LIFECYCLE_ADVANCE_TYPES.has(candidate.type)) return false;
+  if (candidate.taskId !== assignmentEvent.taskId) return false;
+
+  const assignmentAgent = assignmentEvent.assignedTo || assignmentEvent.payload?.assignedTo;
+  const candidateAgent = candidate.assignedTo || candidate.payload?.assignedTo;
+  if (assignmentAgent && candidateAgent && assignmentAgent !== candidateAgent) {
+    return false;
+  }
+
+  const assignmentTs = eventTimestampMs(assignmentEvent);
+  const candidateTs = eventTimestampMs(candidate);
+  if (assignmentTs !== null && candidateTs !== null && candidateTs < assignmentTs) {
+    return false;
+  }
+
+  return true;
+}
+
+function readAllEvents(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+
+  try {
+    const text = fs.readFileSync(filePath, 'utf8');
+    return text
+      .split('\n')
+      .map((line) => parseEvent(line.trim()))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function findLifecycleAdvanceEvent(filePath, assignmentEvent) {
+  const events = readAllEvents(filePath);
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const candidate = events[index];
+    if (isLifecycleAdvanceForTask(candidate, assignmentEvent)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function getBackoffDelayMs(cfg, attempts) {
+  const baseMs = Number.isFinite(cfg.dispatchRetryBaseDelayMs)
+    ? Math.max(100, cfg.dispatchRetryBaseDelayMs)
+    : DEFAULT_CONFIG.dispatchRetryBaseDelayMs;
+  const maxMs = Number.isFinite(cfg.dispatchRetryMaxDelayMs)
+    ? Math.max(baseMs, cfg.dispatchRetryMaxDelayMs)
+    : DEFAULT_CONFIG.dispatchRetryMaxDelayMs;
+  const safeAttempts = Number.isFinite(attempts) ? Math.max(1, attempts) : 1;
+
+  return Math.min(maxMs, baseMs * (2 ** (safeAttempts - 1)));
+}
+
+async function reconcileFailedDispatch(cfg, assignmentEvent, options = {}) {
+  const reconcileMs = Number.isFinite(options.reconcileMs)
+    ? Math.max(0, options.reconcileMs)
+    : Number.isFinite(cfg.dispatchFailureReconcileMs)
+    ? Math.max(0, cfg.dispatchFailureReconcileMs)
+    : 0;
+  const initialPollMs = Number.isFinite(cfg.dispatchFailureReconcileInitialPollMs)
+    ? Math.max(50, cfg.dispatchFailureReconcileInitialPollMs)
+    : DEFAULT_CONFIG.dispatchFailureReconcileInitialPollMs;
+  const maxPollMs = Number.isFinite(cfg.dispatchFailureReconcileMaxPollMs)
+    ? Math.max(initialPollMs, cfg.dispatchFailureReconcileMaxPollMs)
+    : DEFAULT_CONFIG.dispatchFailureReconcileMaxPollMs;
+
+  if (reconcileMs === 0) {
+    const immediateMatch = findLifecycleAdvanceEvent(cfg.sharedContextPath, assignmentEvent);
+    if (immediateMatch) {
+      return {
+        recovered: true,
+        matchedType: immediateMatch.type,
+        matchedEventId: immediateMatch.eventId || null,
+      };
+    }
+
+    return { recovered: false, matchedType: null, matchedEventId: null };
+  }
+
+  const deadline = Date.now() + reconcileMs;
+  let pollMs = initialPollMs;
+
+  while (Date.now() <= deadline) {
+    const matched = findLifecycleAdvanceEvent(cfg.sharedContextPath, assignmentEvent);
+    if (matched) {
+      return {
+        recovered: true,
+        matchedType: matched.type,
+        matchedEventId: matched.eventId || null,
+      };
+    }
+
+    if (Date.now() >= deadline) {
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
+    pollMs = Math.min(maxPollMs, Math.ceil(pollMs * 1.5));
+  }
+
+  return { recovered: false, matchedType: null, matchedEventId: null };
 }
 
 function isTaskAssigned(event) {
@@ -353,18 +507,145 @@ async function dispatchToAgent(cfg, event, intakePrompt, systemPrompt) {
 
     return { success: true };
   } catch (err) {
-    log('error', `Dispatch failed for ${agentName}`, {
+    log('warn', `Dispatch command failed; entering reconciliation`, {
       taskId: event.taskId,
       code:   err.code,
       msg:    err.message?.slice(0, 300),
     });
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code };
   }
+}
+
+async function processAssignmentEvent(cfg, state, event, eventId, options = {}) {
+  const fromRetryQueue = options.fromRetryQueue === true;
+  const existingFailure = state.failedDispatches[eventId] || null;
+
+  if (state.processedEventIds.includes(eventId)) {
+    delete state.failedDispatches[eventId];
+    return;
+  }
+
+  if (!cfg.agentMap[event.assignedTo]) {
+    log('warn', `No agentMap entry for '${event.assignedTo}', skipping`, { taskId: event.taskId });
+    state.processedEventIds.push(eventId);
+    delete state.failedDispatches[eventId];
+    return;
+  }
+
+  if (existingFailure) {
+    const reconciliationBeforeRetry = await reconcileFailedDispatch(cfg, event, { reconcileMs: 0 });
+    if (reconciliationBeforeRetry.recovered) {
+      state.processedEventIds.push(eventId);
+      delete state.failedDispatches[eventId];
+      log('warn', fromRetryQueue
+        ? `Dispatch recovered before retry via lifecycle evidence`
+        : `Dispatch recovered via lifecycle evidence`, {
+        agentName: event.assignedTo,
+        taskId: event.taskId,
+        matchedType: reconciliationBeforeRetry.matchedType,
+        matchedEventId: reconciliationBeforeRetry.matchedEventId,
+      });
+      return;
+    }
+
+    if (Number.isFinite(existingFailure.nextRetryAtMs) && Date.now() < existingFailure.nextRetryAtMs) {
+      log('debug', 'Skipping dispatch during retry backoff', {
+        taskId: event.taskId,
+        retryInMs: existingFailure.nextRetryAtMs - Date.now(),
+        attempts: existingFailure.attempts || 0,
+      });
+      return;
+    }
+  }
+
+  const intakePrompt = buildIntakePrompt(event);
+  const systemPrompt = loadSystemPrompt(cfg, event.assignedTo);
+  const result = await dispatchToAgent(cfg, event, intakePrompt, systemPrompt);
+
+  if (result.success) {
+    state.processedEventIds.push(eventId);
+    delete state.failedDispatches[eventId];
+    log('info', `Dispatch OK`, {
+      agentName: event.assignedTo,
+      taskId: event.taskId,
+      dryRun: result.dryRun ?? false,
+      retryAttempt: existingFailure?.attempts || 0,
+    });
+    return;
+  }
+
+  log('warn', 'Dispatch pending reconciliation', {
+    agentName: event.assignedTo,
+    taskId: event.taskId,
+    reconcileMs: cfg.dispatchFailureReconcileMs,
+  });
+
+  const reconciliation = await reconcileFailedDispatch(cfg, event);
+  if (reconciliation.recovered) {
+    state.processedEventIds.push(eventId);
+    delete state.failedDispatches[eventId];
+    log('warn', `Dispatch recovered via lifecycle evidence`, {
+      agentName: event.assignedTo,
+      taskId: event.taskId,
+      matchedType: reconciliation.matchedType,
+      matchedEventId: reconciliation.matchedEventId,
+      originalError: result.error?.slice(0, 200),
+    });
+    return;
+  }
+
+  const attempts = Number.isFinite(existingFailure?.attempts) ? existingFailure.attempts + 1 : 1;
+  const retryDelayMs = getBackoffDelayMs(cfg, attempts);
+  state.failedDispatches[eventId] = {
+    attempts,
+    nextRetryAtMs: Date.now() + retryDelayMs,
+    lastFailedAt: new Date().toISOString(),
+    lastError: result.error || null,
+    lastCode: result.code || null,
+    assignmentEvent: {
+      eventId: event.eventId,
+      type: event.type,
+      taskId: event.taskId,
+      assignedTo: event.assignedTo,
+      correlationId: event.correlationId,
+      parentTaskId: event.parentTaskId,
+      timestamp: event.timestamp,
+      payload: event.payload,
+      dependsOn: event.dependsOn,
+      acceptanceCriteria: event.acceptanceCriteria,
+    },
+  };
+
+  log('error', `Dispatch unreconciled; retry scheduled`, {
+    agentName: event.assignedTo,
+    taskId: event.taskId,
+    attempts,
+    retryDelayMs,
+  });
 }
 
 // ─── Main poll loop ───────────────────────────────────────────────────────────
 
 async function pollOnce(cfg, state) {
+  state.failedDispatches = state.failedDispatches && typeof state.failedDispatches === 'object'
+    ? state.failedDispatches
+    : {};
+
+  for (const [eventId, failureRecord] of Object.entries(state.failedDispatches)) {
+    if (state.processedEventIds.includes(eventId)) {
+      delete state.failedDispatches[eventId];
+      continue;
+    }
+
+    const event = failureRecord?.assignmentEvent;
+    if (!isTaskAssigned(event)) {
+      delete state.failedDispatches[eventId];
+      continue;
+    }
+
+    await processAssignmentEvent(cfg, state, event, eventId, { fromRetryQueue: true });
+  }
+
   const { lines, newOffset } = readNewLines(cfg.sharedContextPath, state.offset);
 
   if (lines.length === 0) return;
@@ -382,26 +663,7 @@ async function pollOnce(cfg, state) {
       continue;
     }
 
-    const agentName = event.assignedTo;
-
-    if (!cfg.agentMap[agentName]) {
-      log('warn', `No agentMap entry for '${agentName}', skipping`, { taskId: event.taskId });
-      state.processedEventIds.push(eventId);
-      continue;
-    }
-
-    const intakePrompt = buildIntakePrompt(event);
-    const systemPrompt = loadSystemPrompt(cfg, agentName);
-
-    const result = await dispatchToAgent(cfg, event, intakePrompt, systemPrompt);
-
-    if (result.success) {
-      state.processedEventIds.push(eventId);
-      log('info', `Dispatch OK`, { agentName, taskId: event.taskId, dryRun: result.dryRun ?? false });
-    } else {
-      // Don't mark as processed — retry on next poll
-      log('error', `Dispatch FAILED, will retry next poll`, { agentName, taskId: event.taskId });
-    }
+    await processAssignmentEvent(cfg, state, event, eventId, { fromRetryQueue: false });
   }
 }
 

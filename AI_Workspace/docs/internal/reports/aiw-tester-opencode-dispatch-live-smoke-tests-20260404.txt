@@ -1,0 +1,13 @@
+node scripts/opencode-task-dispatcher.mjs --live --config scripts/opencode-dispatch.config.json --state .runtime/opencode-task-dispatcher.live-smoke2.state.json --log .runtime/opencode-task-dispatcher.live-smoke2.log --poll-ms 300
+node scripts/mcp-publish-event.mjs --agent Orchestrator --type TASK_ASSIGNED --task aiw-documenter-opencode-live-smoke-20260404-qa4 --assignedTo Documenter --status assigned --priority high --correlation aiw-opencode-autonomy-20260404 --description "QA live smoke dispatch verification post-hotfix"
+
+Key log evidence:
+[INFO ] Dispatching to Documenter {"taskId":"aiw-documenter-opencode-live-smoke-20260404-qa4","sessionId":"ses_2d2a38f49ffeIuock0vn7moQKl","live":true}
+[ERROR] Dispatch failed for Documenter {"taskId":"aiw-documenter-opencode-live-smoke-20260404-qa4","code":null,"msg":"Command failed: opencode run --session ..."}
+
+Key MCP evidence (shared_context.jsonl):
+TASK_ASSIGNED   aiw-documenter-opencode-live-smoke-20260404-qa4
+TASK_ACCEPTED   aiw-documenter-opencode-live-smoke-20260404-qa4
+TASK_IN_PROGRESS aiw-documenter-opencode-live-smoke-20260404-qa4
+
+Result: TEST_FAILED (functional dispatch observed, runtime error policy failing).

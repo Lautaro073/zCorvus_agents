@@ -36,6 +36,21 @@
   "_comment_dedupeMemorySize": "Max number of processed event IDs kept in state to avoid duplicate dispatches. Oldest are dropped when limit is reached.",
   "dedupeMemorySize": 500,
 
+  "_comment_dispatchFailureReconcileMs": "How long to reconcile failed dispatches against MCP lifecycle evidence before retrying. Use >=30000 for real live latency.",
+  "dispatchFailureReconcileMs": 30000,
+
+  "_comment_dispatchFailureReconcileInitialPollMs": "Initial poll interval for reconciliation scans (exponential backoff applies until max).",
+  "dispatchFailureReconcileInitialPollMs": 400,
+
+  "_comment_dispatchFailureReconcileMaxPollMs": "Maximum poll interval during reconciliation backoff.",
+  "dispatchFailureReconcileMaxPollMs": 4000,
+
+  "_comment_dispatchRetryBaseDelayMs": "Base retry delay after unreconciled failure; exponential backoff per attempt.",
+  "dispatchRetryBaseDelayMs": 2000,
+
+  "_comment_dispatchRetryMaxDelayMs": "Maximum retry delay cap for repeated unreconciled failures.",
+  "dispatchRetryMaxDelayMs": 30000,
+
   "_comment_opencodeBin": "Path to the opencode binary. 'opencode' works if it's in PATH. Use full path like 'C:\\Users\\...\\opencode.exe' if needed.",
   "opencodeBin": "opencode",
 
