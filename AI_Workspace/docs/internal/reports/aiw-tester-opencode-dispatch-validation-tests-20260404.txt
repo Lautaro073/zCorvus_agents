@@ -1,0 +1,9 @@
+node --test scripts/opencode-dispatcher-validation.test.mjs
+
+✔ dispatcher detects TASK_ASSIGNED by type, supports session/fresh-run, and bootstraps from end
+✔ start_orchestrator uses canonical dispatcher paths and session launches
+
+tests: 2
+pass: 2
+fail: 0
+duration_ms: 1832.05

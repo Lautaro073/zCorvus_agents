@@ -54,6 +54,7 @@ next-env.d.ts
 MCP_Server/*.log
 MCP_Server/monitor-*.log
 MCP_Server/rollback-*.log
+scripts/opencode-dispatch.config.json
 
 # md
 README-BACKEND.md
