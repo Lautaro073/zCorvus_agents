@@ -101,7 +101,6 @@ function log(level, msg, data = null) {
 
 const DEFAULT_CONFIG = {
   sharedContextPath: path.join(__dirname, '..', 'MCP_Server', 'shared_context.jsonl'),
-  systemPromptsDir: path.join(__dirname, 'agent-prompts'),
   agentMap: {
     Orchestrator: 'orchestrator',
     Planner: 'planner',
@@ -135,8 +134,6 @@ function loadConfig() {
     const base = path.dirname(CFG_PATH);
     if (!path.isAbsolute(cfg.sharedContextPath))
       cfg.sharedContextPath = path.resolve(base, cfg.sharedContextPath);
-    if (!path.isAbsolute(cfg.systemPromptsDir))
-      cfg.systemPromptsDir = path.resolve(base, cfg.systemPromptsDir);
     return cfg;
   } catch (err) {
     log('error', 'Failed to parse config, using defaults', { err: err.message });
@@ -443,8 +440,6 @@ function buildIntakePrompt(norm) {
  *
  * System prompt cannot be injected via CLI in fresh-run mode.
  * Agent identity comes from the project's AGENTS.md or session configuration.
- * The systemPromptsDir / JSONL files are kept for documentation purposes and
- * may be used by future OpenCode versions that support --system-prompt.
  */
 async function dispatchToAgent(cfg, norm) {
   const agentName = norm.assignedTo;

@@ -12,10 +12,10 @@ El prompt de intake que recibe el agente es determinístico: le informa el `task
 
 | Problema en el diseño original | Solución aplicada |
 |---|---|
-| `opencode run --agent <name>` no existe en la CLI de OpenCode | Se usa `opencode run -s <id> "prompt"` o `opencode run --prompt "..." "prompt"` según disponibilidad de sesión |
-| Las "sesiones" no son un concepto de la CLI estándar de OpenCode | Las sesiones son opcionales: si hay una activa se envía ahí; si no, se inicia una corrida no-interactiva nueva con el system prompt del agente desde su `.jsonl` |
+| `opencode run --agent <name>` no existe en la CLI de OpenCode | Se usa `opencode run -s <id> "prompt"` o `opencode run "prompt"` según disponibilidad de sesión |
+| Las "sesiones" no son un concepto de la CLI estándar de OpenCode | Las sesiones son opcionales: si hay una activa se envía ahí; si no, se inicia una corrida no-interactiva nueva (`opencode run`) |
 | No había script — solo documentación | El script existe en `scripts/opencode-task-dispatcher.mjs` |
-| `--agent` implica un concepto de agente interno de OpenCode que no coincide con el modelo zCorvus | Los agentes zCorvus se identifican por `assignedTo` en el evento; el system prompt se carga desde `agent-prompts/<slug>.jsonl` |
+| `--agent` implica un concepto de agente interno de OpenCode que no coincide con el modelo zCorvus | Los agentes zCorvus se identifican por `assignedTo` en el evento y por sesión OpenCode cuando aplica |
 | El prompt de intake no estaba definido | El prompt es generado por `buildIntakePrompt(event)` con todos los campos del evento MCP |
 
 ---
@@ -28,15 +28,6 @@ AI_Workspace/
     opencode-task-dispatcher.mjs          ← script principal
     opencode-dispatch.config.example.json ← template de config (copiar y editar)
     opencode-dispatch.config.json         ← tu config real (gitignoreado)
-    agent-prompts/
-      orchestrator.jsonl
-      planner.jsonl
-      observer.jsonl
-      frontend.jsonl
-      backend.jsonl
-      tester.jsonl
-      documenter.jsonl
-      ai_workspace_optimizer.jsonl
   MCP_Server/
     shared_context.jsonl                  ← fuente de eventos MCP
   .runtime/
@@ -65,8 +56,7 @@ cp AI_Workspace/scripts/opencode-dispatch.config.example.json AI_Workspace/scrip
 Abrí `opencode-dispatch.config.json` y revisá:
 
 - **`sharedContextPath`** — ruta a tu `shared_context.jsonl` (relativa a la ubicación del config, o absoluta).
-- **`systemPromptsDir`** — carpeta con los `.jsonl` de cada agente.
-- **`agentMap`** — mapeo de nombre de agente (como aparece en `assignedTo`) al slug del archivo `.jsonl`. No modificar si usás los nombres estándar zCorvus.
+- **`agentMap`** — mapeo de nombre de agente (como aparece en `assignedTo`) a identidad lógica para dispatch.
 - **`sessions`** — acá van los IDs de sesión activa de OpenCode para cada agente (ver sección Sessions abajo). Podés dejarlos vacíos y el dispatcher crea una corrida nueva cada vez.
 - **`opencodeBin`** — si `opencode` no está en PATH, poné la ruta completa.
 
@@ -118,7 +108,7 @@ El dispatcher tiene dos modos de dispatch por agente:
 Si `sessions["Orchestrator"]` tiene un ID de sesión activa, el dispatcher envía el intake prompt a esa sesión:
 
 ```
-opencode run -s <id> --format default "<intake-prompt>"
+opencode run -s <id> "<intake-prompt>"
 ```
 
 El agente ya tiene contexto de conversación anterior. Útil si el agente mantiene estado entre tareas.
@@ -127,13 +117,13 @@ El agente ya tiene contexto de conversación anterior. Útil si el agente mantie
 
 ### Modo fresh run (fallback)
 
-Si no hay session ID configurado para el agente, el dispatcher inicia una corrida no-interactiva con el prompt del agente desde su `.jsonl`:
+Si no hay session ID configurado para el agente, el dispatcher inicia una corrida no-interactiva fresh run:
 
 ```
-opencode run --prompt "<agent-prompt>" --format default "<intake-prompt>"
+opencode run "<intake-prompt>"
 ```
 
-El agente empieza sin contexto previo pero con su identidad, rol y reglas completas.
+El agente empieza sin contexto previo de sesión.
 
 ---
 

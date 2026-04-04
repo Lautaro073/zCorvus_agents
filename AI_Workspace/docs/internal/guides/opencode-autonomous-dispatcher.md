@@ -17,7 +17,6 @@ user message.
 - Dispatcher: `AI_Workspace/scripts/opencode-task-dispatcher.mjs`
 - Config template: `AI_Workspace/scripts/opencode-dispatch.config.example.json`
 - Live config: `AI_Workspace/scripts/opencode-dispatch.config.json`
-- Prompts directory: `AI_Workspace/scripts/agent-prompts/`
 - Runtime state/logs: `AI_Workspace/.runtime/`
 - Startup entrypoint: `start_orchestrator.bat`
 
@@ -27,8 +26,8 @@ user message.
 2. It filters only `type === TASK_ASSIGNED`.
 3. It builds a deterministic intake prompt from MCP payload fields.
 4. It dispatches by `assignedTo`:
-   - preferred: `opencode run -s <id> --format default "<intake>"`
-   - fallback: `opencode run --prompt "<system-prompt>" --format default "<intake>"`
+   - preferred: `opencode run -s <id> "<intake>"`
+   - fallback: `opencode run "<intake>"`
 5. It persists cursor and dedupe state (`offset`, `processedEventIds`, `failedDispatches`).
 
 ## Setup
@@ -43,7 +42,6 @@ copy AI_Workspace\scripts\opencode-dispatch.config.example.json AI_Workspace\scr
 
 Required keys:
 - `sharedContextPath`
-- `systemPromptsDir`
 - `agentMap`
 - `sessions`
 - `startFromEnd`
@@ -55,19 +53,7 @@ Recommended hardening keys:
 - `dispatchRetryBaseDelayMs: 2000`
 - `dispatchRetryMaxDelayMs: 30000`
 
-### 3) Ensure prompt files exist
-
-Expected slugs:
-- `orchestrator.jsonl`
-- `planner.jsonl`
-- `observer.jsonl`
-- `frontend.jsonl`
-- `backend.jsonl`
-- `tester.jsonl`
-- `documenter.jsonl`
-- `ai_workspace_optimizer.jsonl`
-
-### 4) Ensure `opencode` is available
+### 3) Ensure `opencode` is available
 
 ```bash
 opencode --version
@@ -78,7 +64,7 @@ opencode run --help
 
 Session IDs are configured in `scripts/opencode-dispatch.config.json` under
 `sessions.<AgentName>`. If a session ID is empty, dispatcher falls back to fresh
-non-interactive run with system prompt.
+non-interactive run.
 
 Reference source for session alignment is `start_orchestrator.bat`.
 
@@ -124,15 +110,7 @@ Fix:
 1. Fill `sessions` in `scripts/opencode-dispatch.config.json`.
 2. Ensure IDs match active OpenCode sessions from `start_orchestrator.bat`.
 
-### Case B: Missing prompt files
-Symptom:
-- log warns `System prompt file not found`.
-
-Fix:
-1. ensure files exist in `scripts/agent-prompts/`.
-2. ensure `agentMap` slugs match filenames exactly.
-
-### Case C: Stale bootstrap state
+### Case B: Stale bootstrap state
 Symptom:
 - replay of old `TASK_ASSIGNED` events or cursor mismatch.
 
@@ -141,7 +119,7 @@ Fix:
 2. rotate or remove state file under `.runtime/`,
 3. restart with `startFromEnd=true` for clean bootstrap.
 
-### Case D: False-negative dispatch failure
+### Case C: False-negative dispatch failure
 Symptom:
 - process command failure appears even though assigned agent already published
   `TASK_ACCEPTED`/`TASK_IN_PROGRESS`.

@@ -40,23 +40,10 @@ function appendJsonl(filePath, event) {
 
 test("dispatcher detects TASK_ASSIGNED by type, supports session/fresh-run, and bootstraps from end", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-dispatcher-qa-"));
-  const promptsDir = path.join(tempRoot, "agent-prompts");
   const sharedContextPath = path.join(tempRoot, "shared_context.jsonl");
   const configPath = path.join(tempRoot, "dispatch.config.json");
   const statePath = path.join(tempRoot, "dispatch.state.json");
   const logPath = path.join(tempRoot, "dispatch.log");
-
-  fs.mkdirSync(promptsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(promptsDir, "planner.jsonl"),
-    `${JSON.stringify({ role: "system", content: "Planner prompt for QA." })}\n`,
-    "utf8"
-  );
-  fs.writeFileSync(
-    path.join(promptsDir, "tester.jsonl"),
-    `${JSON.stringify({ role: "system", content: "Tester prompt for QA." })}\n`,
-    "utf8"
-  );
 
   appendJsonl(sharedContextPath, {
     eventId: "old-task-event",
@@ -73,7 +60,6 @@ test("dispatcher detects TASK_ASSIGNED by type, supports session/fresh-run, and 
     JSON.stringify(
       {
         sharedContextPath,
-        systemPromptsDir: promptsDir,
         agentMap: {
           Planner: "planner",
           Tester: "tester",
@@ -214,18 +200,10 @@ test("start_orchestrator uses canonical dispatcher paths and session launches", 
 
 test("dispatcher reconciles failed session dispatch when task lifecycle already advanced", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-dispatcher-reconcile-"));
-  const promptsDir = path.join(tempRoot, "agent-prompts");
   const sharedContextPath = path.join(tempRoot, "shared_context.jsonl");
   const configPath = path.join(tempRoot, "dispatch.config.json");
   const statePath = path.join(tempRoot, "dispatch.state.json");
   const logPath = path.join(tempRoot, "dispatch.log");
-
-  fs.mkdirSync(promptsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(promptsDir, "documenter.jsonl"),
-    `${JSON.stringify({ role: "system", content: "Documenter prompt for reconcile QA." })}\n`,
-    "utf8"
-  );
 
   const failingBin = path.join(tempRoot, process.platform === "win32" ? "opencode.cmd" : "opencode");
   const failingContent =
@@ -252,7 +230,6 @@ test("dispatcher reconciles failed session dispatch when task lifecycle already 
     JSON.stringify(
       {
         sharedContextPath,
-        systemPromptsDir: promptsDir,
         agentMap: {
           Documenter: "documenter",
         },
@@ -321,18 +298,10 @@ test("dispatcher reconciles failed session dispatch when task lifecycle already 
 
 test("dispatcher uses retry backoff and recovers before next retry when lifecycle arrives later", async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-dispatcher-backoff-"));
-  const promptsDir = path.join(tempRoot, "agent-prompts");
   const sharedContextPath = path.join(tempRoot, "shared_context.jsonl");
   const configPath = path.join(tempRoot, "dispatch.config.json");
   const statePath = path.join(tempRoot, "dispatch.state.json");
   const logPath = path.join(tempRoot, "dispatch.log");
-
-  fs.mkdirSync(promptsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(promptsDir, "documenter.jsonl"),
-    `${JSON.stringify({ role: "system", content: "Documenter prompt for backoff QA." })}\n`,
-    "utf8"
-  );
 
   const failingBin = path.join(tempRoot, process.platform === "win32" ? "opencode.cmd" : "opencode");
   const failingContent =
@@ -359,7 +328,6 @@ test("dispatcher uses retry backoff and recovers before next retry when lifecycl
     JSON.stringify(
       {
         sharedContextPath,
-        systemPromptsDir: promptsDir,
         agentMap: {
           Documenter: "documenter",
         },
