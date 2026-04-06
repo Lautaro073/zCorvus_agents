@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages } from '@/i18n/server';
 import { Kameron, Kadwa } from "next/font/google";
 import { ViewTransition } from 'react'
 import { Toaster } from "@/components/ui/sonner"
@@ -10,6 +10,7 @@ import "../globals.css";
 import { UIStoreProvider } from "@/store/ui/ui.provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { getServerPreferences } from "@/lib/server/preferences";
+import type { Theme } from "@/types/icons/icons.types";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -33,6 +34,17 @@ interface LocaleLayoutProps {
   params: Promise<{ locale: string }>;
 }
 
+function getThemeBootstrapScript(theme: Theme) {
+  const resolvedTheme = JSON.stringify(theme);
+
+  return `
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(${resolvedTheme});
+    document.documentElement.dataset.theme = ${resolvedTheme};
+    document.documentElement.style.colorScheme = ${resolvedTheme};
+  `;
+}
+
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
 
@@ -49,9 +61,17 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const prefs = await getServerPreferences();
 
   return (
-    <html lang={locale} className={prefs.theme}>
+    <html
+      lang={locale}
+      className={prefs.theme}
+      data-theme={prefs.theme}
+      style={{ colorScheme: prefs.theme }}
+    >
       <body className={`${kameron.variable} ${kadwa.variable} antialiased h-screen transition-all duration-300`}>
         <div className="h-full max-w-[1920px] mx-auto py-6 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 lg:px-12">
+          <Script id="theme-bootstrap" strategy="beforeInteractive">
+            {getThemeBootstrapScript(prefs.theme)}
+          </Script>
           {process.env.NODE_ENV === 'development' && (
             <Script
               src="//unpkg.com/react-scan/dist/auto.global.js"

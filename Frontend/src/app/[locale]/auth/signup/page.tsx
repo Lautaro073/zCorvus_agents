@@ -96,7 +96,7 @@ export default function SignupPage() {
         />
 
         <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-          {isLoading ? t('actions.loading') : t('actions.signUp')}
+          {isLoading ? common('actions.loading') : t('actions.signUp')}
         </Button>
 
         <div className="text-center mt-4">

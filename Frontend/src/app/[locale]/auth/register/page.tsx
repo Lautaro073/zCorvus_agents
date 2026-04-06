@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 
 export default function RegisterPage() {
     const t = useTranslations('auth');
+    const common = useTranslations('common');
     const router = useRouter();
     const { register } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
@@ -25,12 +26,12 @@ export default function RegisterPage() {
         e.preventDefault();
 
         if (formData.password !== formData.confirmPassword) {
-            toast.error(t('errors.passwordMismatch') || 'Las contraseñas no coinciden');
+            toast.error(t('errors.passwordMismatch'));
             return;
         }
 
         if (formData.password.length < 6) {
-            toast.error(t('errors.passwordTooShort') || 'La contraseña debe tener al menos 6 caracteres');
+            toast.error(t('errors.passwordTooShort'));
             return;
         }
 
@@ -39,7 +40,7 @@ export default function RegisterPage() {
         try {
             await register(formData.username, formData.email, formData.password);
 
-            toast.success(t('success.registerSuccess') || '¡Cuenta creada exitosamente!');
+            toast.success(t('success.registerSuccess'));
 
             // Redirigir a home
             router.push('/icons');
@@ -63,7 +64,7 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="username" className="block text-sm font-medium mb-2">
-                            {t('fields.username') || 'Usuario'}
+                            {common('fields.username')}
                         </label>
                         <Input
                             id="username"
@@ -78,7 +79,7 @@ export default function RegisterPage() {
 
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium mb-2">
-                            {t('fields.email')}
+                            {common('fields.email')}
                         </label>
                         <Input
                             id="email"
@@ -93,7 +94,7 @@ export default function RegisterPage() {
 
                     <div>
                         <label htmlFor="password" className="block text-sm font-medium mb-2">
-                            {t('fields.password')}
+                            {common('fields.password')}
                         </label>
                         <Input
                             id="password"
@@ -109,7 +110,7 @@ export default function RegisterPage() {
 
                     <div>
                         <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                            {t('fields.confirmPassword') || 'Confirmar Contraseña'}
+                            {common('fields.confirmPassword')}
                         </label>
                         <Input
                             id="confirmPassword"
@@ -125,7 +126,7 @@ export default function RegisterPage() {
 
                     <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? (
-                            <>{t('actions.loading') || 'Cargando...'}</>
+                            <>{common('actions.loading')}</>
                         ) : (
                             <>{t('actions.signUp')}</>
                         )}

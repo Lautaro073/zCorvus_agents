@@ -10,8 +10,30 @@
     "tryAgain": "Intentar de nuevo",
     "goHome": "Volver al inicio",
     "search": "Buscar...",
+    "layers": "Capas",
     "copy": "Copiar",
-    "download": "Descargar"
+    "download": "Descargar",
+    "showAll": "Mostrar todos"
+  },
+  "toasts": {
+    "iconNameCopied": "¡Nombre del ícono copiado!",
+    "reactCodeCopied": "¡Código React copiado!",
+    "htmlCodeCopied": "¡Código HTML copiado!",
+    "codeSnippetCopied": "¡Fragmento de código copiado!",
+    "errorCopyIcon": "No se pudo copiar el nombre del ícono.",
+    "errorCopyCode": "No se pudo copiar el fragmento de código."
+  },
+  "icons": {
+    "library": "Biblioteca de iconos",
+    "sets": "Conjuntos de iconos",
+    "category": "Categoría",
+    "set": "Conjunto",
+    "pro": "Pro",
+    "categories": {
+      "local": "Local",
+      "external": "Externo",
+      "premium": "Premium"
+    }
   },
   "states": {
     "loading": "Cargando..."

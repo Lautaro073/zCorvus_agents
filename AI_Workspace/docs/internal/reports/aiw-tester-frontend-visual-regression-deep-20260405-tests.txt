@@ -1,0 +1,24 @@
+pnpm exec playwright test --config playwright.config.ts tests/e2e/visual-regression-deep.spec.ts --list
+pnpm exec playwright test --config playwright.config.ts tests/e2e/visual-regression-deep.spec.ts
+
+Discovered matrix:
+- 8 routes
+- 2 themes (light, dark)
+- 2 projects (desktop-chromium, mobile-chromium)
+- 32 tests total
+
+Final run summary:
+- 32 passed
+- 0 failed
+- duration: 52.8s
+
+Representative artifacts:
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/home.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/premium.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/auth-login.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-premium-fa-solid.png
+- Frontend/playwright-report/index.html
+
+Non-blocking warnings during run:
+- middleware file convention deprecated in favor of proxy
+- baseline-browser-mapping package data is stale

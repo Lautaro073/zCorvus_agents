@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 
 import { getIconsSVG } from "@/features/icons-explorer";
 import type { IconTypeInfo, IconSet } from "@/types/icons/icons.types";
+import { useTranslations } from "next-intl";
 
 export type IconExportState = "react" | "svg" | "html";
 
@@ -16,6 +17,7 @@ interface UseIconExportArgs {
 
 const useIconExport = ({ icon, state }: UseIconExportArgs) => {
   const isFontAwesome = icon.type === 'fa-solid' || icon.type === 'fa-regular';
+  const common = useTranslations("common");
   
   const [svgMarkup, setSvgMarkup] = useState<string>("");
 
@@ -107,12 +109,12 @@ const useIconExport = ({ icon, state }: UseIconExportArgs) => {
   const handleCopyIcon = useCallback(() => {
     void navigator.clipboard.writeText(icon.name).then(
       () =>
-        toast.success("Icon name copied!", {
+        toast.success(common("toasts.iconNameCopied"), {
           description: icon.name,
         }),
-      () => toast.error("Could not copy icon name.")
+      () => toast.error(common("toasts.errorCopyIcon"))
     );
-  }, [icon.name]);
+  }, [icon.name, common]);
 
   const handleCopyCode = useCallback(
     (e?: MouseEvent<HTMLButtonElement>) => {
@@ -121,13 +123,13 @@ const useIconExport = ({ icon, state }: UseIconExportArgs) => {
       const snippet = infoByState[state];
       void navigator.clipboard.writeText(snippet).then(
         () =>
-          toast.success("Code snippet copied!", {
+          toast.success(common("toasts.codeSnippetCopied"), {
             description: snippet,
           }),
-        () => toast.error("Could not copy code snippet.")
+        () => toast.error(common("toasts.errorCopyCode"))
       );
     },
-    [infoByState, state]
+    [infoByState, state, common]
   );
 
   const handleDownloadIcon = useCallback(

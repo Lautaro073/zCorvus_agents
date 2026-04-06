@@ -1,0 +1,41 @@
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 PLAYWRIGHT_HEALTHCHECK_URL=http://127.0.0.1:3000/es pnpm exec playwright test --config playwright.config.ts tests/e2e/visual-regression-deep.spec.ts --project desktop-chromium --project mobile-chromium --grep "icons-"
+
+Run summary:
+- visual-regression-deep icons subset: 20 passed, 0 failed
+
+Routes covered:
+- /es/icons
+- /es/icons/local/all
+- /es/icons/premium/all
+- /es/icons/local/core
+- /es/icons/premium/fa-solid
+
+Reviewed screenshots (desktop):
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-index.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-index.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-local-all.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-local-all.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-premium-all.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-premium-all.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-local-core.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-local-core.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-premium-fa-solid.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-premium-fa-solid.png
+
+Reviewed screenshots (mobile):
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-index.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-index.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-local-all.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-local-all.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-premium-all.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-premium-all.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-local-core.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-local-core.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-premium-fa-solid.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-premium-fa-solid.png
+
+Non-blocking i18n observations raised to Orchestrator:
+- Hardcoded text found in icons/home surfaces (Icon library, Category, Set, Show All, Icon sets)
+- Reported as follow-up request; main visual task remains PASS
+
+Final verdict: TEST_PASSED

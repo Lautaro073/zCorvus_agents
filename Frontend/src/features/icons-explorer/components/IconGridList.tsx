@@ -11,6 +11,7 @@ import { IconTypeInfo } from '@/types/icons/icons.types';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 interface IconGridListProps {
   iconsData: IconGroup[]
@@ -26,6 +27,7 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const layer = useUIStore((s) => s.layer);
+  const common = useTranslations("common");
 
   const isCompact = layer === LM.COMPACT;
   const ITEM_WIDTH = isCompact ? 48 : 104;
@@ -75,7 +77,7 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
   const handleCopyIcon = (iconName: string) => {
     if (!iconName) return;
     navigator.clipboard.writeText(iconName);
-    toast.success("Icon name copied!", {
+    toast.success(common("toasts.iconNameCopied"), {
       description: iconName,
     });
   }
@@ -83,7 +85,7 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
   const handleCopyReact = (i: IconTypeInfo) => {
     const codeSnippet = `<ZIcon type="${i.type}" name="${i.name}" variant="${i.variant}" />`;
     navigator.clipboard.writeText(codeSnippet);
-    toast.success("Code REACT copied!", {
+    toast.success(common("toasts.reactCodeCopied"), {
       description: codeSnippet,
     });
   }
@@ -91,7 +93,7 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
   const handleCopyHTML = (i: IconTypeInfo) => {
     const codeSnippet = `<z-icon name="${i.name}" type="${i.type}" variant="${i.variant}" />`;
     navigator.clipboard.writeText(codeSnippet);
-    toast.success("Icon HTML copied!", {
+    toast.success(common("toasts.htmlCodeCopied"), {
       description: codeSnippet,
     });
   }
@@ -173,7 +175,7 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
       {!showAll && !canShowAll && (
         <div className="sticky bottom-0 flex">
           <Button onClick={() => setShowAll(true)} variant="outline" className="ml-auto dark:bg-background">
-            Show All
+            {common("actions.showAll")}
           </Button>
         </div>
       )}

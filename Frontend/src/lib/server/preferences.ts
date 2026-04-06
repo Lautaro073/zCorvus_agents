@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { parseUserPreferencesCookie } from "@/lib/preferences/contract";
 
 /**
  * Obtiene las preferencias del usuario (tema, icono, capa) desde las cookies.
@@ -12,6 +13,5 @@ import { cookies } from "next/headers";
  */
 export async function getServerPreferences() {
   const cookieStore = await cookies();
-  const prefs = JSON.parse(cookieStore.get("user_prefs")?.value || "{}");
-  return prefs;
+  return parseUserPreferencesCookie(cookieStore.get("user_prefs")?.value);
 }

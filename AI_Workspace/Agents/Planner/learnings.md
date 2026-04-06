@@ -48,3 +48,18 @@
 - Prevención futura: Solo reabrir el plan si aparece evidencia real en implementación, como KPIs incumplidos, drift, incidentes de wave, conflictos snapshot-vs-source o problemas operativos con sidecars/snapshots.
 - Criterio de cumplimiento: Si no hay evidencia de implementación, tratar nuevas ideas como follow-up opcional o backlog, no como razón para replanificar el baseline.
 - Falla a evitar: Scope creep, iteración infinita de diseño y retraso innecesario del inicio de ejecución.
+
+## 2026-04-05 - frontend plan rigor and correction review
+- Trigger: USER_PLAN_CORRECTION_REVIEW
+- Regla aprendida: En planes de frontend listos para ejecución, las tareas propuestas deben salir con formato MCP completo y los bloqueos cross-layer deben convertirse en tareas explícitas, no en "decisiones a resolver luego".
+- Prevención futura: Cuando planifique iniciativas de UX/frontend, revisar siempre:
+  - que cada tarea propuesta use `taskId` canónico del workspace (`aiw-<agente>-<slug>-<fecha>-<seq>`) y `correlationId`,
+  - que el `taskId` del documento/PLAN_PROPOSED siga siendo el de la task de planning asignada, aun si el plan tiene revisiones,
+  - que cualquier dependencia servidor-cliente faltante (endpoint, cookie contract, redirect contract) exista como tarea explícita upstream,
+  - que los acceptance criteria nombren el mecanismo real cuando ya se conoce (cookie SSR, locale en redirect URL, root cause técnico),
+  - que el paralelismo posible quede reflejado en `dependsOn` y en el orden recomendado,
+  - que cambios visuales con motion o superficies premium incluyan performance gate antes de QA final,
+  - que los atributos de cookie se definan de forma explícita pero según el flujo real de lectura/escritura; no asumir `HttpOnly: false` si el cliente no necesita leer la cookie directamente,
+  - que las skills disponibles se evalúen por fit real con el producto y el medio; no forzar skills de video, light-mode Apple o motion extrema si chocan con la arquitectura o el lenguaje visual existente.
+- Criterio de cumplimiento: Todo plan frontend de ejecución debe dejar claro qué bloquea a quién, qué mecanismo técnico se implementa y qué parte puede correr en paralelo.
+- Falla a evitar: Planes visualmente ambiciosos pero operativamente ambiguos, o mapeos de skills que lucen completos en papel pero no encajan con el proyecto real.

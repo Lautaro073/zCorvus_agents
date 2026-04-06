@@ -3,7 +3,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 
 /**
  * Obtener tokens del usuario autenticado
- * Solo usuarios Pro pueden ver sus tokens y requieren 2FA habilitado
+ * Usuarios Pro pueden acceder a sus tokens sin 2FA obligatorio (desde 2026-04-06)
  */
 const getMyTokens = async (req, res, next) => {
     try {
@@ -12,17 +12,8 @@ const getMyTokens = async (req, res, next) => {
         // Obtener usuario con información de rol
         const user = await User.findById(userId);
 
-        // Si es usuario Pro (role 3), DEBE tener 2FA habilitado
-        if (user.roles_id === 3) {
-            if (!user.two_factor_enabled) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Pro users must enable 2FA to access their tokens',
-                    requires2FA: true,
-                    setupUrl: '/api/auth/2fa/setup'
-                });
-            }
-        }
+        // 2FA ya no es obligatorio para usuarios Pro ( POLICY CHANGE 2026-04-06 )
+        // El usuario puede acceder a sus tokens con o sin 2FA habilitado
 
         // Obtener token del usuario si tiene
         if (!user.token_id) {

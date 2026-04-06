@@ -13,8 +13,7 @@ export const uiStore = (initialState: Partial<UIStoreState> = {}): UIStoreApi =>
     subscribeWithSelector(
       devtools(
         immer((set, get, store) => ({
-          ...createUISlice(set, get, store),
-          ...initialState,
+          ...createUISlice(set, get, store, initialState),
         }))
       )
     )
