@@ -12,9 +12,7 @@ export default function GlobalLoading() {
         <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
         <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
       </div>
-      <p className="text-muted-foreground animate-pulse">
-        {t("states.loading") || "Cargando..."}
-      </p>
+      <p className="text-muted-foreground animate-pulse">{t("states.loading")}</p>
     </div>
   );
 }

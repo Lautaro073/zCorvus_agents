@@ -1,0 +1,23 @@
+pnpm add -D @playwright/test@1.59.1
+pnpm exec playwright install chromium
+pnpm exec playwright test --config playwright.config.ts --list
+pnpm exec playwright test --config playwright.config.ts
+
+Discovered tests (8 total):
+- desktop-chromium: premium success keeps dark theme on direct open and refresh
+- desktop-chromium: premium cancel keeps dark theme on direct open and refresh
+- desktop-chromium: dark theme persists across home/icons/premium with hard refresh
+- desktop-chromium: dark theme is applied on direct open of premium success and cancel routes
+- mobile-chromium: premium success keeps dark theme on direct open and refresh
+- mobile-chromium: premium cancel keeps dark theme on direct open and refresh
+- mobile-chromium: dark theme persists across home/icons/premium with hard refresh
+- mobile-chromium: dark theme is applied on direct open of premium success and cancel routes
+
+Final run summary:
+- 8 passed
+- 0 failed
+- duration: 29.1s
+
+Primary artifacts:
+- Frontend/playwright-report/index.html
+- Frontend/test-results/

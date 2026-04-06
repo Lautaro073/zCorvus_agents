@@ -1,0 +1,12 @@
+pnpm exec playwright test --config playwright.config.ts tests/e2e/home-auth-visual.spec.ts --project desktop-chromium
+pnpm exec playwright test --config playwright.config.ts tests/e2e/visual-regression-deep.spec.ts --project desktop-chromium --grep "home"
+
+Run summary:
+- home-auth-visual (desktop): 2 passed, 0 failed
+- visual-regression-deep home subset (desktop): 2 passed, 0 failed
+
+Reviewed screenshots:
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/home.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/home.png
+
+Final verdict: TEST_PASSED

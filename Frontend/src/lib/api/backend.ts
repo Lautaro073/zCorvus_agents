@@ -65,6 +65,8 @@ export interface CheckoutSessionResponse {
   url: string;
 }
 
+type CheckoutLocale = 'es' | 'en';
+
 export interface SettingsIcons {
   id: string;
   icon: string;
@@ -87,6 +89,74 @@ export interface TwoFactorVerifyResponse {
 // Variable global para almacenar el token actual desde el AuthContext
 let currentAccessToken: string | null = null;
 
+const REFRESH_TOKEN_STORAGE_KEY = 'refreshToken';
+const REFRESH_TOKEN_EXPIRY_STORAGE_KEY = 'refreshTokenExpiry';
+const REFRESH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
+function isBrowserEnvironment(): boolean {
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+}
+
+function getCookieValue(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const target = `${name}=`;
+  const cookieChunk = document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(target));
+
+  if (!cookieChunk) return null;
+
+  const rawValue = cookieChunk.slice(target.length);
+
+  try {
+    return decodeURIComponent(rawValue);
+  } catch {
+    return rawValue;
+  }
+}
+
+function setCookieValue(name: string, value: string, expiresAt?: string): void {
+  if (!isBrowserEnvironment()) return;
+
+  const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+  const encodedValue = encodeURIComponent(value);
+  const parsedExpiry = expiresAt ? new Date(expiresAt) : null;
+  const hasValidExpiry = Boolean(parsedExpiry && !Number.isNaN(parsedExpiry.getTime()));
+  const expiryDirective = hasValidExpiry
+    ? `; Expires=${parsedExpiry!.toUTCString()}`
+    : `; Max-Age=${REFRESH_TOKEN_MAX_AGE_SECONDS}`;
+
+  document.cookie = `${name}=${encodedValue}; Path=/; SameSite=Lax${expiryDirective}${secureFlag}`;
+}
+
+function removeCookieValue(name: string): void {
+  if (!isBrowserEnvironment()) return;
+
+  const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax${secureFlag}`;
+}
+
+/**
+ * Persistir refresh token de forma unificada entre AuthContext y API client
+ */
+export function setRefreshToken(refreshToken: string, expiresAt?: string | null): void {
+  if (!isBrowserEnvironment()) return;
+
+  localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+  setCookieValue(REFRESH_TOKEN_STORAGE_KEY, refreshToken, expiresAt ?? undefined);
+
+  if (expiresAt) {
+    localStorage.setItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY, expiresAt);
+    setCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY, expiresAt, expiresAt);
+    return;
+  }
+
+  localStorage.removeItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+  removeCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+}
+
 /**
  * Establecer el access token actual (llamado desde AuthContext)
  */
@@ -102,11 +172,33 @@ export function getAccessToken(): string | null {
 }
 
 /**
- * Obtener refresh token (solo desde localStorage)
+ * Obtener refresh token desde persistencia unificada (localStorage/cookie)
  */
 export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('refreshToken');
+  if (!isBrowserEnvironment()) return null;
+
+  const tokenFromStorage = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+  const tokenFromCookie = getCookieValue(REFRESH_TOKEN_STORAGE_KEY);
+
+  if (tokenFromStorage && !tokenFromCookie) {
+    const expiry = localStorage.getItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+    setCookieValue(REFRESH_TOKEN_STORAGE_KEY, tokenFromStorage, expiry ?? undefined);
+    if (expiry) {
+      setCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY, expiry, expiry);
+    }
+    return tokenFromStorage;
+  }
+
+  if (!tokenFromStorage && tokenFromCookie) {
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, tokenFromCookie);
+    const expiryFromCookie = getCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+    if (expiryFromCookie) {
+      localStorage.setItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY, expiryFromCookie);
+    }
+    return tokenFromCookie;
+  }
+
+  return tokenFromStorage ?? tokenFromCookie ?? null;
 }
 
 /**
@@ -114,9 +206,11 @@ export function getRefreshToken(): string | null {
  */
 export function clearTokens() {
   currentAccessToken = null;
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('refreshTokenExpiry');
+  if (isBrowserEnvironment()) {
+    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+    removeCookieValue(REFRESH_TOKEN_STORAGE_KEY);
+    removeCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
   }
 }
 
@@ -389,7 +483,10 @@ export async function getAllTokens(): Promise<TokenIcons[]> {
 /**
  * Crear sesión de checkout de Stripe
  */
-export async function createCheckoutSession(planType: 'pro' | 'enterprise'): Promise<CheckoutSessionResponse> {
+export async function createCheckoutSession(
+  planType: 'pro' | 'enterprise',
+  locale: CheckoutLocale
+): Promise<CheckoutSessionResponse> {
   // Primero obtener el perfil del usuario para tener su ID y email
   const user = await getUserProfile();
   
@@ -408,6 +505,7 @@ export async function createCheckoutSession(planType: 'pro' | 'enterprise'): Pro
     headers: createAuthHeaders(),
     body: JSON.stringify({ 
       planType,
+      locale,
       userId: user.id,
       userEmail: user.email
     }),

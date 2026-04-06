@@ -1,0 +1,23 @@
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 PLAYWRIGHT_HEALTHCHECK_URL=http://127.0.0.1:3000/es pnpm exec playwright test --config playwright.config.ts tests/e2e/auth-session-persistence.spec.ts --project desktop-chromium --project mobile-chromium
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 PLAYWRIGHT_HEALTHCHECK_URL=http://127.0.0.1:3000/es pnpm exec playwright test --config playwright.config.ts tests/e2e/visual-regression-deep.spec.ts --project desktop-chromium --project mobile-chromium --grep "icons-premium-fa-solid|home"
+
+Run summary:
+- auth-session-persistence: 4 passed, 0 failed
+- visual-regression-deep targeted subset: 8 passed, 0 failed
+
+Acceptance checks:
+- login/session preserved from premium icons to home: PASS
+- hard refresh persistence on premium/home: PASS
+- no spurious redirect to /auth/login with valid refresh token: PASS
+
+Screenshots reviewed:
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/home.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/home.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/home.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/home.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/light/icons-premium-fa-solid.png
+- Frontend/test-results/visual-regression-deep/desktop-chromium/dark/icons-premium-fa-solid.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/light/icons-premium-fa-solid.png
+- Frontend/test-results/visual-regression-deep/mobile-chromium/dark/icons-premium-fa-solid.png
+
+Final verdict: TEST_PASSED

@@ -10,8 +10,30 @@
     "tryAgain": "Try again",
     "goHome": "Go home",
     "search": "Search...",
+    "layers": "Layers",
     "copy": "Copy",
-    "download": "Download"
+    "download": "Download",
+    "showAll": "Show all"
+  },
+  "toasts": {
+    "iconNameCopied": "Icon name copied!",
+    "reactCodeCopied": "React code copied!",
+    "htmlCodeCopied": "HTML code copied!",
+    "codeSnippetCopied": "Code snippet copied!",
+    "errorCopyIcon": "Could not copy icon name.",
+    "errorCopyCode": "Could not copy code snippet."
+  },
+  "icons": {
+    "library": "Icon library",
+    "sets": "Icon sets",
+    "category": "Category",
+    "set": "Set",
+    "pro": "Pro",
+    "categories": {
+      "local": "Local",
+      "external": "External",
+      "premium": "Premium"
+    }
   },
   "states": {
     "loading": "Loading..."

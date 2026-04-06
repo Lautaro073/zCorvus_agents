@@ -25,17 +25,17 @@ export default function GlobalError({
         <ZIcon type="mina" name="danger-triangle" className="text-red-600 dark:text-red-400" style={{ fontSize: '2rem' }} />
       </div>
       <h2 className="text-2xl font-bold mb-4">
-        {t("errors.somethingWentWrong") || "Algo salió mal"}
+        {t("errors.somethingWentWrong")}
       </h2>
       <p className="text-muted-foreground mb-8 max-w-md">
-        {t("errors.unexpectedError") || "Ha ocurrido un error inesperado cargando la página. Por favor, intenta de nuevo."}
+        {t("errors.unexpectedError")}
       </p>
       <div className="flex gap-4">
         <Button onClick={() => reset()} variant="default">
-          {t("actions.tryAgain") || "Intentar de nuevo"}
+          {t("actions.tryAgain")}
         </Button>
         <Button onClick={() => window.location.href = '/'} variant="outline">
-          {t("actions.goHome") || "Volver al inicio"}
+          {t("actions.goHome")}
         </Button>
       </div>
     </div>

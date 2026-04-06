@@ -27,6 +27,9 @@ const { createCheckout, handleWebhook } = require('../controllers/stripe.control
  *               planType:
  *                 type: string
  *                 enum: [pro, enterprise]
+ *               locale:
+ *                 type: string
+ *                 enum: [es, en]
  *     responses:
  *       200:
  *         description: Checkout session created

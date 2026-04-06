@@ -11,12 +11,19 @@ function generateNpmToken() {
     return `npm_${randomPart}${padding}`.substring(0, 68);
 }
 
+function normalizeLocale(locale) {
+    return locale === 'en' || locale === 'es' ? locale : 'es';
+}
+
 /**
  * Crear sesión de checkout de Stripe
  */
 exports.createCheckout = async (req, res, next) => {
     try {
-        const { userId, userEmail, userName, planType } = req.body;
+        const { userId, userEmail, userName, planType, locale } = req.body;
+        const resolvedLocale = normalizeLocale(locale);
+        const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const premiumBasePath = `${frontendBaseUrl}/${resolvedLocale}/premium`;
 
         if (!userId || !userEmail) {
             return res.status(400).json({
@@ -48,13 +55,14 @@ exports.createCheckout = async (req, res, next) => {
                 },
             ],
             mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/premium/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/premium`,
+            success_url: `${premiumBasePath}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${premiumBasePath}/cancel`,
             metadata: {
                 userId,
                 userEmail,
                 userName: userName || '',
-                planType: planType || 'pro'
+                planType: planType || 'pro',
+                locale: resolvedLocale,
             }
         });
 

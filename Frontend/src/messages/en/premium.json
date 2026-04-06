@@ -1,11 +1,27 @@
 {
     "title": "Unlock the Full Power of zCorvus",
     "subtitle": "Access thousands of premium icons and get your npm token for unlimited use",
+    "backToIcons": "Back to icons",
     "processing": "Processing...",
     "guarantee": "30-day money-back guarantee. Cancel anytime.",
+    "hero": {
+        "eyebrow": "Premium access",
+        "statusEyebrow": "Access status",
+        "promiseTitle": "What you unlock",
+        "authReady": "Session ready",
+        "authNeeded": "Sign-in required",
+        "highlights": {
+            "instant": "Guided checkout and consistent return flows without losing your visual state.",
+            "token": "Your premium access turns into an npm token ready for real project use.",
+            "support": "Plans built to scale from solo workflows to team distribution."
+        }
+    },
     "plans": {
+        "billing": "Secure billing",
         "pro": {
             "name": "Pro Plan",
+            "badge": "Core access",
+            "summary": "Best for unlocking the premium collection and shipping it into active projects quickly.",
             "cta": "Start Pro Plan",
             "features": {
                 "icons": "Access to all premium icons",
@@ -17,6 +33,7 @@
         "enterprise": {
             "name": "Enterprise Plan",
             "badge": "Most Popular",
+            "summary": "For teams that need priority support, shared licensing, and custom icon work.",
             "cta": "Start Enterprise Plan",
             "features": {
                 "everything": "Everything in Pro Plan",
@@ -27,10 +44,15 @@
         }
     },
     "success": {
+        "eyebrow": "Access activated",
         "title": "Payment Successful!",
         "subtitle": "Welcome to zCorvus Premium",
+        "statusLabel": "Access status",
+        "statusProcessing": "Provisioning your access",
+        "statusReady": "Ready to use",
+        "statusAttention": "Needs your review",
         "generatingToken": "Generating your premium npm token...",
-        "retryAttempt": "Attempt {count} of 10...",
+        "retryAttempt": "Attempt {count} of {total}...",
         "npmToken": "Your NPM Token",
         "npmInstructions": "Use this token to access zCorvus premium packages in your projects.",
         "copyToken": "Copy Token",
@@ -47,10 +69,18 @@
         "retry": "Retry",
         "contactSupport": "If the problem persists, contact support",
         "generatingMessage": "The token is being generated. This may take a few seconds.",
+        "sessionLabel": "Session ID",
+        "setupCardTitle": "Set it up",
+        "quickAccessTitle": "Next step",
         "setupTitle": "How to set up your token:",
         "option1": "Option 1: Click on \"Download .npmrc\" and place the file in your project root",
         "option2": "Option 2: Manually create a .npmrc file in your project root with this content:",
         "installPackage": "Install the package:",
+        "checkpoints": {
+            "auth": "Validating your premium session",
+            "token": "Looking up your npm token",
+            "ready": "Preparing immediate access to the collection"
+        },
         "steps": {
             "createNpmrc": "Create a .npmrc file in your project root",
             "addToken": "Add your token to the file: //registry.npmjs.org/:_authToken=YOUR_TOKEN",
@@ -60,6 +90,7 @@
     "cancel": {
         "title": "Payment Cancelled",
         "subtitle": "No charge was made. You can try again when you're ready.",
+        "backToPremium": "Back to premium",
         "tryAgain": "Try Again",
         "backToIcons": "Back to Icons"
     },

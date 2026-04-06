@@ -1,0 +1,33 @@
+# Source scan
+pnpm exec rg "Icon library|Category|Set|Icon sets|Show All" src --glob "*.tsx"
+
+# Runtime i18n + layout audit (es/en, desktop/mobile)
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 pnpm exec node -e '<playwright runtime audit script>'
+
+Runtime audit summary:
+- Locale label checks (home/icons/local-all/local-core): PASS
+- Horizontal overflow checks: PASS (0 on all sampled pages)
+- Remaining hardcoded literal in source: FAIL (`Show All`)
+
+Remaining finding:
+- Frontend/src/features/icons-explorer/components/IconGridList.tsx:176 -> `Show All`
+
+Screenshots reviewed:
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/es/homeSets.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/es/iconsLibrary.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/es/iconsCategory.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/es/iconsSet.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/en/homeSets.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/en/iconsLibrary.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/en/iconsCategory.png
+- Frontend/test-results/i18n-hardcoded-regression/desktop-chromium/en/iconsSet.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/es/homeSets.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/es/iconsLibrary.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/es/iconsCategory.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/es/iconsSet.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/en/homeSets.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/en/iconsLibrary.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/en/iconsCategory.png
+- Frontend/test-results/i18n-hardcoded-regression/mobile-chromium/en/iconsSet.png
+
+Final verdict: TEST_FAILED
