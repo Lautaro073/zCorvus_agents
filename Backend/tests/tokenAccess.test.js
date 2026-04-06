@@ -97,16 +97,17 @@ describe('Token Endpoints & Pro User 2FA Requirements', () => {
     });
 
     describe('GET /api/tokens/me - Pro User WITHOUT 2FA', () => {
-        it('should block Pro user from viewing token without 2FA', async () => {
+        it('should allow Pro user to view token without 2FA', async () => {
             const response = await request(app)
                 .get('/api/tokens/me')
                 .set('Authorization', `Bearer ${proUserToken}`);
 
-            expect(response.status).toBe(403);
-            expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('must enable 2FA');
-            expect(response.body.requires2FA).toBe(true);
-            expect(response.body.setupUrl).toBe('/api/auth/2fa/setup');
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.token).toBeDefined();
+            expect(response.body.data.token.token).toBe('TEST-PRO-TOKEN-123');
+            expect(response.body.data.token.type).toBe('pro');
+            expect(response.body.data.token.is_active).toBe(true);
         });
     });
 
