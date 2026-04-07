@@ -4,6 +4,7 @@ const Token = require('./Token');
 const SettingsIcons = require('./SettingsIcons');
 const BackupCode = require('./BackupCode');
 const RefreshToken = require('./RefreshToken');
+const PasswordResetOtp = require('./PasswordResetOtp');
 
 module.exports = {
     User,
@@ -11,5 +12,6 @@ module.exports = {
     Token,
     SettingsIcons,
     BackupCode,
-    RefreshToken
+    RefreshToken,
+    PasswordResetOtp
 };

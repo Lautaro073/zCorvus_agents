@@ -118,6 +118,12 @@ export default function LoginPage() {
           </Button>
 
           <p className="text-center text-sm leading-6 text-muted-foreground lg:mt-4 lg:text-sm lg:leading-normal">
+            <Link href="/auth/forgot-password" className="font-medium text-foreground hover:underline">
+              {auth('actions.forgotPassword')}
+            </Link>
+          </p>
+
+          <p className="text-center text-sm leading-6 text-muted-foreground lg:text-sm lg:leading-normal">
             {auth('screens.signIn.noAccount')}{' '}
             <Link href="/auth/signup" className="font-medium text-foreground hover:underline">
               {auth('actions.signUp')}

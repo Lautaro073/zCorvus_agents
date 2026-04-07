@@ -6,7 +6,8 @@ describe('Auth API', () => {
     const testUser = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
+        confirmPassword: 'password123'
     };
 
     let authToken;
@@ -48,7 +49,8 @@ describe('Auth API', () => {
                 .send({
                     username: 'testuser2',
                     email: 'invalid-email',
-                    password: 'password123'
+                    password: 'password123',
+                    confirmPassword: 'password123'
                 })
                 .expect(400);
         });
@@ -59,7 +61,8 @@ describe('Auth API', () => {
                 .send({
                     username: 'testuser3',
                     email: 'test3@example.com',
-                    password: '123'
+                    password: '123',
+                    confirmPassword: '123'
                 })
                 .expect(400);
         });

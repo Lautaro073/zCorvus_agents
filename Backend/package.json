@@ -9,7 +9,8 @@
         "check": "npm test",
         "test": "jest",
         "test:watch": "jest --watch",
-        "test:coverage": "jest --coverage"
+        "test:coverage": "jest --coverage",
+        "db:migrate:password-reset-otp": "node scripts/migrate-password-reset-otp.mjs"
     },
     "keywords": [
         "express",
@@ -30,6 +31,7 @@
         "jsonwebtoken": "^9.0.3",
         "morgan": "^1.10.0",
         "mysql2": "^3.15.3",
+        "nodemailer": "^6.10.1",
         "qrcode": "^1.5.4",
         "speakeasy": "^2.0.0",
         "stripe": "^20.3.1",

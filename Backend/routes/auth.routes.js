@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const { registerValidation, loginValidation } = require('../utils/validators');
+const {
+    registerValidation,
+    loginValidation,
+    passwordResetRequestValidation,
+    passwordResetVerifyValidation,
+    passwordResetConfirmValidation
+} = require('../utils/validators');
 const { authenticateToken } = require('../middlewares/auth.middleware');
 
 /**
@@ -39,6 +45,7 @@ const { authenticateToken } = require('../middlewares/auth.middleware');
  *               - username
  *               - email
  *               - password
+ *               - confirmPassword
  *             properties:
  *               username:
  *                 type: string
@@ -47,6 +54,9 @@ const { authenticateToken } = require('../middlewares/auth.middleware');
  *                 type: string
  *                 example: john@example.com
  *               password:
+ *                 type: string
+ *                 example: password123
+ *               confirmPassword:
  *                 type: string
  *                 example: password123
  *               roles_id:
@@ -130,6 +140,110 @@ router.post('/register', registerValidation, authController.register);
  *         description: Invalid credentials or 2FA code required
  */
 router.post('/login', loginValidation, authController.login);
+
+/**
+ * @swagger
+ * /api/auth/password-reset/request-otp:
+ *   post:
+ *     summary: Request OTP for password reset
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               locale:
+ *                 type: string
+ *                 enum: [es, en]
+ *                 example: es
+ *     responses:
+ *       200:
+ *         description: Safe response regardless of email existence
+ */
+router.post('/password-reset/request-otp', passwordResetRequestValidation, authController.requestPasswordResetOtp);
+
+/**
+ * @swagger
+ * /api/auth/password-reset/verify-otp:
+ *   post:
+ *     summary: Verify OTP before resetting password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               locale:
+ *                 type: string
+ *                 enum: [es, en]
+ *                 example: en
+ *     responses:
+ *       200:
+ *         description: OTP valid
+ *       400:
+ *         description: OTP invalid or expired
+ */
+router.post('/password-reset/verify-otp', passwordResetVerifyValidation, authController.verifyPasswordResetOtp);
+
+/**
+ * @swagger
+ * /api/auth/password-reset/reset-with-otp:
+ *   post:
+ *     summary: Reset password using OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 example: newpassword123
+ *               confirmPassword:
+ *                 type: string
+ *                 example: newpassword123
+ *               locale:
+ *                 type: string
+ *                 enum: [es, en]
+ *                 example: es
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Validation or OTP error
+ */
+router.post('/password-reset/reset-with-otp', passwordResetConfirmValidation, authController.resetPasswordWithOtp);
 
 /**
  * @swagger

@@ -46,7 +46,8 @@ describe('Pro Role Token Verification', () => {
                 .send({
                     username: `testuser_${timestamp}`,
                     email: `testuser_${timestamp}@test.com`,
-                    password: 'password123'
+                    password: 'password123',
+                    confirmPassword: 'password123'
                 });
 
             expect(response.status).toBe(201);
@@ -68,6 +69,7 @@ describe('Pro Role Token Verification', () => {
                     username: `hackuser_${timestamp}`,
                     email: `hackuser_${timestamp}@test.com`,
                     password: 'password123',
+                    confirmPassword: 'password123',
                     roles_id: 3 // Intentar registrarse como Pro
                 });
 

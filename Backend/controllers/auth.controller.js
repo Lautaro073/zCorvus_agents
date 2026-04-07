@@ -1,8 +1,43 @@
-const { User, Role, Token, BackupCode, RefreshToken } = require('../models');
+const { User, Role, Token, BackupCode, RefreshToken, PasswordResetOtp } = require('../models');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 const { successResponse, errorResponse } = require('../utils/response');
 const { verify2FALogin } = require('./twoFactor.controller');
 const { parseTimeToMs } = require('../utils/time');
+const { sendMail } = require('../utils/mailer');
+const config = require('../config/config');
+const { getPasswordResetOtpHtml } = require('../templates/password-reset-otp.html');
+const { getPasswordResetOtpText } = require('../templates/password-reset-otp.text');
+const { getPasswordResetOtpCopy, normalizeOtpLocale } = require('../templates/password-reset-otp.copy');
+
+const generateSixDigitOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const PASSWORD_RESET_OTP_MINUTES = Number.isInteger(config.auth?.passwordResetOtpMinutes) && config.auth.passwordResetOtpMinutes > 0
+    ? config.auth.passwordResetOtpMinutes
+    : 10;
+const APP_NAME = config.app?.name || 'zCorvus';
+
+function resolveOtpLocale(req) {
+    const bodyLocale = req.body?.locale;
+    const headerLocale = req.get('x-locale');
+    const acceptLanguageLocale = req.get('accept-language');
+
+    return normalizeOtpLocale(bodyLocale || headerLocale || acceptLanguageLocale || 'en');
+}
+
+function buildResetUrl(locale) {
+    const safeLocale = normalizeOtpLocale(locale);
+    const frontendBaseUrl = String(config.app?.frontendUrl || 'http://localhost:3000');
+
+    try {
+        const url = new URL(frontendBaseUrl);
+        url.pathname = `/${safeLocale}/auth/forgot-password`;
+        url.search = '';
+        url.hash = '';
+        return url.toString();
+    } catch (_error) {
+        const trimmedBase = frontendBaseUrl.replace(/\/+$/, '');
+        return `${trimmedBase}/${safeLocale}/auth/forgot-password`;
+    }
+}
 
 /**
  * Registrar nuevo usuario
@@ -116,6 +151,118 @@ const login = async (req, res, next) => {
         }, 'Login successful', 200);
     } catch (error) {
         console.error('Login error:', error);
+        next(error);
+    }
+};
+
+/**
+ * Solicitar OTP para reset de contraseña
+ */
+const requestPasswordResetOtp = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const safeMessage = 'If the email exists, an OTP has been sent';
+        const locale = resolveOtpLocale(req);
+        const resetUrl = buildResetUrl(locale);
+
+        const user = await User.findByEmail(email);
+        if (!user) {
+            return successResponse(res, null, safeMessage, 200);
+        }
+
+        const otp = generateSixDigitOtp();
+        const expiresAt = new Date(Date.now() + PASSWORD_RESET_OTP_MINUTES * 60 * 1000);
+
+        await PasswordResetOtp.markAllUnusedAsUsed(user.id);
+        await PasswordResetOtp.create(user.id, otp, expiresAt);
+
+        const localizedCopy = getPasswordResetOtpCopy({
+            locale,
+            expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
+            appName: APP_NAME
+        });
+
+        await sendMail({
+            to: user.email,
+            subject: localizedCopy.subject,
+            text: getPasswordResetOtpText({
+                otp,
+                expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
+                locale,
+                resetUrl,
+                appName: APP_NAME
+            }),
+            html: getPasswordResetOtpHtml({
+                otp,
+                expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
+                locale,
+                resetUrl,
+                appName: APP_NAME
+            })
+        });
+
+        return successResponse(res, null, safeMessage, 200);
+    } catch (error) {
+        console.error('Request password reset OTP error:', error);
+        next(error);
+    }
+};
+
+/**
+ * Verificar OTP para reset de contraseña
+ */
+const verifyPasswordResetOtp = async (req, res, next) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await User.findByEmail(email);
+
+        if (!user) {
+            return errorResponse(res, 'Invalid or expired OTP', 400);
+        }
+
+        const otpRecord = await PasswordResetOtp.findLatestActiveByUserId(user.id);
+        const isValid = await PasswordResetOtp.verifyOtp(otpRecord, otp);
+
+        if (!isValid) {
+            return errorResponse(res, 'Invalid or expired OTP', 400);
+        }
+
+        return successResponse(res, {
+            valid: true,
+            expiresAt: otpRecord.expires_at
+        }, 'OTP is valid', 200);
+    } catch (error) {
+        console.error('Verify password reset OTP error:', error);
+        next(error);
+    }
+};
+
+/**
+ * Resetear contraseña usando OTP
+ */
+const resetPasswordWithOtp = async (req, res, next) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const user = await User.findByEmail(email);
+
+        if (!user) {
+            return errorResponse(res, 'Invalid or expired OTP', 400);
+        }
+
+        const otpRecord = await PasswordResetOtp.findLatestActiveByUserId(user.id);
+        const isValid = await PasswordResetOtp.verifyOtp(otpRecord, otp);
+
+        if (!isValid) {
+            return errorResponse(res, 'Invalid or expired OTP', 400);
+        }
+
+        await User.update(user.id, { password: newPassword });
+        await PasswordResetOtp.consume(otpRecord.id);
+        await PasswordResetOtp.markAllUnusedAsUsed(user.id);
+
+        return successResponse(res, null, 'Password reset successful', 200);
+    } catch (error) {
+        console.error('Reset password with OTP error:', error);
         next(error);
     }
 };
@@ -260,6 +407,9 @@ const refreshAccessToken = async (req, res, next) => {
 module.exports = {
     register,
     login,
+    requestPasswordResetOtp,
+    verifyPasswordResetOtp,
+    resetPasswordWithOtp,
     logout,
     getProfile,
     getRefreshToken,
