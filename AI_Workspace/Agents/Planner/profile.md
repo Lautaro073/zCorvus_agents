@@ -122,8 +122,8 @@ El `correlationId` de la EPIC va en **el evento PLAN_PROPOSED Y en cada tarea pr
 
 ## Gobernanza de contexto (TCO-02)
 
-- **Orden obligatorio:** `get_agent_inbox → get_task_snapshot → get_correlation_snapshot → expansión puntual`
-- **Límites:** intake `limit=5`, triage `limit=10`, broad reads `limit≥20` solo con justificación explícita
+- **Orden obligatorio:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`
+- **Límites:** intake `limit=5`, triage `limit=10`, broad reads `limit >= 20` solo con justificación explícita
 - **Artifact offload:** detalles largos del plan en `docs/internal/plans/`, no en payloads MCP
 
 ---
