@@ -1,227 +1,224 @@
 ---
 name: planning-workflow
-description: "Jeffrey Emanuel's comprehensive markdown planning methodology for software projects. The 85%+ time-on-planning approach that makes agentic coding work at scale. Includes exact prompts used."
+description: "Proceso completo de planificación para el agente Planner de zCorvus. Cubre inspección real, estructura de fases, grafo de dependencias, criterios de aceptación y publicación. Usar en cada plan sin excepción."
 ---
 
-# Planning Workflow — The Foundation of Agentic Development
+# Planning Workflow — zCorvus
 
-> **Core Philosophy:** "Planning tokens are a lot fewer and cheaper than implementation tokens."
->
-> The models are far smarter when reasoning about a detailed plan that fits within their context window. This is the key insight behind spending 80%+ of time on planning.
-
----
-
-## Why Planning Matters
-
-Before burning tokens with a big agent swarm:
-
-- **Measure twice, cut once** — becomes "Check your plan N times, implement once"
-- A very big, complex markdown plan is still shorter than a few substantive code files
-- Front-loading human input in planning enables removing yourself from implementation
-- The code will be written ridiculously quickly when you start enough agents with a solid plan
+> "Planning tokens are a lot fewer and cheaper than implementation tokens."
+> Un plan sólido de 3 horas evita 30 horas de retrabajo.
 
 ---
 
-## The Planning Process (Overview)
+## Fase 0 — Inspección real (OBLIGATORIA antes de escribir una sola tarea)
 
+**Nunca planificar a ciegas.** Si no hay evidencia del estado real, publicar `TASK_BLOCKED`.
+
+### Qué inspeccionar siempre
+
+```bash
+# Estructura general del proyecto
+ls -la AI_Workspace/
+ls -la Frontend/src/
+ls -la Backend/src/
+
+# Contratos y arquitectura
+cat AI_Workspace/architecture.md
+cat AI_Workspace/MCP_Server/lib/event-contract.js
+
+# Planes y specs previas
+ls AI_Workspace/docs/internal/plans/
+ls AI_Workspace/docs/internal/specs/
+
+# Learnings del Planner
+cat AI_Workspace/Agents/Planner/learnings.md
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  1. INITIAL PLAN (GPT Pro / Opus 4.5 in web app)             │
-│     └─► Explain goals, intent, workflows, tech stack         │
-├──────────────────────────────────────────────────────────────┤
-│  2. ITERATIVE REFINEMENT (GPT Pro Extended Reasoning)        │
-│     └─► 4-5 rounds of revision until steady-state            │
-├──────────────────────────────────────────────────────────────┤
-│  3. MULTI-MODEL BLENDING (Optional but recommended)          │
-│     └─► Gemini3 Deep Think, Grok4 Heavy, Opus 4.5           │
-│     └─► GPT Pro as final arbiter                             │
-├──────────────────────────────────────────────────────────────┤
-│  4. CONVERT TO BEADS (Claude Code + Opus 4.5)                │
-│     └─► Self-contained tasks with dependency structure       │
-├──────────────────────────────────────────────────────────────┤
-│  5. POLISH BEADS (6+ rounds until steady-state)              │
-│     └─► Cross-model review, never oversimplify               │
-└──────────────────────────────────────────────────────────────┘
-```
+
+### Qué inspeccionar según el tipo de plan
+
+| Tipo de plan | Archivos adicionales a leer |
+|---|---|
+| Frontend / UX | `Frontend/package.json`, `Frontend/src/app/`, componentes relevantes, rutas existentes |
+| Backend / API | Endpoints existentes, schemas de DB, contratos de cookies/auth |
+| Integración externa | README del repo externo (buscar en web si no hay acceso), estructura de la extensión |
+| Performance | `docs/internal/specs/frontend-performance-baseline.md`, bundle config |
+| Multi-agente / MCP | `shared_context.jsonl` (últimas 20 líneas), perfiles de agentes involucrados |
+
+### Preguntas que la inspección debe responder
+
+1. ¿Qué existe hoy que puede reutilizarse?
+2. ¿Qué existe hoy que hay que modificar?
+3. ¿Qué no existe y hay que crear desde cero?
+4. ¿Qué agente puede hacer qué cosa según sus límites de rol?
+5. ¿Hay endpoints que Frontend va a necesitar que hoy no existen?
+6. ¿Hay repos externos referenciados? ¿Qué son realmente?
 
 ---
 
-## Phase 1: Creating the Initial Plan
+## Fase 1 — Estructura del plan
 
-### Where to Write It
+### Header obligatorio de todo plan
 
-Use **GPT Pro with Extended Reasoning** in the web app. No other model can touch Pro on the web when dealing with input that fits its context window.
+```markdown
+# [Título del Plan]
 
-**Alternative:** Claude Opus 4.5 in the webapp is also good for initial plans.
+**taskId:** `aiw-planner-<slug>-<YYYYMMDD>-01`
+**correlationId:** `aiw-<epic-slug>-<YYYYMMDD>`
+**branch:** `feature/<slug>`
+**estado:** `PLAN_PROPOSED`
+**reemplaza:** (si aplica)
 
-### What to Include
+---
+```
 
-1. **Goals and Intent** — What you're really trying to accomplish
-2. **Workflows** — How the final software should work from the user's perspective
-3. **Tech Stack** — Be specific (e.g., "TypeScript, Next.js 16, React 19, Tailwind, Supabase")
-4. **Architecture Decisions** — High-level structure and patterns
-5. **The "Why"** — The more the model understands your end goal, the better it performs
+### Secciones obligatorias
 
-You don't even need to write the initial markdown plan yourself. You can write that with GPT Pro, just explaining what it is you want to make.
+1. **Contexto inspeccionado** — archivos leídos y hallazgos relevantes. Sin esta sección no hay evidencia de inspección.
+2. **Objetivo** — qué problema resuelve el plan en 2-3 líneas.
+3. **Agentes y sus roles en esta EPIC** — tabla con qué hace cada agente involucrado.
+4. **Skills recomendadas por tarea** — mapeadas por tarea, con fit verificado.
+5. **Tareas por fase** — ver Fase 2.
+6. **Grafo de dependencias** — diagrama textual ASCII.
+7. **Asignación por agente** — tabla resumen.
+8. **Orden recomendado de implementación** — con paralelismo explícito.
+9. **Riesgos y mitigaciones** — tabla con probabilidad, impacto y mitigación concreta.
+10. **Criterios de aprobación del plan** — checklist verificable.
 
 ---
 
-## Phase 2: Iterative Refinement
+## Fase 2 — Estructura de cada tarea
 
-### THE EXACT PROMPT — Plan Review (GPT Pro Extended Reasoning)
+Cada tarea propuesta en el plan usa este formato exacto (ver también skill `zcorvus-task-template`):
 
-Paste your entire markdown plan into GPT Pro with Extended Reasoning enabled and use this EXACT prompt:
-
-```
-Carefully review this entire plan for me and come up with your best revisions in terms of better architecture, new features, changed features, etc. to make it better, more robust/reliable, more performant, more compelling/useful, etc. For each proposed change, give me your detailed analysis and rationale/justification for why it would make the project better along with the git-diff style change versus the original plan shown below:
-
-<PASTE YOUR EXISTING COMPLETE PLAN HERE>
-```
-
-### THE EXACT PROMPT — Integration (Claude Code)
-
-After GPT Pro finishes (may take 20-30 minutes for complex plans), paste the output into Claude Code with this EXACT prompt:
-
-```
-OK, now integrate these revisions to the markdown plan in-place; use ultrathink and be meticulous. At the end, you can tell me which changes you wholeheartedly agree with, which you somewhat agree with, and which you disagree with:
-
-```[Pasted text from GPT Pro]```
+```markdown
+#### `aiw-<agente>-<slug>-<YYYYMMDD>-<seq>`
+- **assignedTo:** `<Agente>`
+- **correlationId:** `aiw-<epic-slug>-<YYYYMMDD>`
+- **dependsOn:** [`aiw-<otra-tarea>`, ...] o `[]`
+- **description:** Qué hace esta tarea. Una sola responsabilidad. Sin ambigüedad.
+- **skillsRecommended:** Lista de skills del agente relevantes para esta tarea
+- **artefactos esperados:**
+  - `ruta/al/archivo.ext` — descripción
+- **acceptanceCriteria:**
+  - AC concreto y verificable (nombra el mecanismo, no solo el resultado)
+  - AC concreto y verificable
+  - AC concreto y verificable
 ```
 
-### Repeat Until Steady-State
+### Reglas de acceptanceCriteria
 
-- Start fresh ChatGPT conversations for each round
-- After 4-5 rounds, suggestions become very incremental
-- You'll see massive improvements from v2 to v3, continuing to the end
-- This phase can take 2-3 hours for complex features — this is normal
+**AC válido** — nombra el mecanismo y es verificable sin ambigüedad:
+- ✅ `POST /api/preferences setea cookie user_prefs con SameSite:Lax, Secure:true`
+- ✅ `El valor theme:"light" hardcodeado en view.initial.ts es eliminado`
+- ✅ `Las redirect URLs de Stripe incluyen el locale: /<locale>/premium/success`
+
+**AC inválido** — vago, no verificable:
+- ❌ `Bootstrap mejorado`
+- ❌ `El retorno no depende del estado en memoria`
+- ❌ `UI más consistente`
+
+**Regla de los mecanismos:** Si el AC implica una decisión técnica (qué cookie, qué URL, qué campo), especificar el mecanismo exacto. Si no se especifica, el agente implementará lo que se le ocurra primero.
+
+**Regla de los riesgos:** Si una race condition o caso borde es identificado como riesgo, debe tener un AC en alguna tarea. Riesgo sin AC = riesgo ignorado.
 
 ---
 
-## Phase 3: Multi-Model Blending (Advanced)
+## Fase 3 — Grafo de dependencias
 
-### Why Blend Models
-
-Different models have different strengths. Blending gets "best of all worlds."
-
-### The Process
-
-1. Get competing plans from Gemini3 (Deep Think), Grok4 Heavy, and Opus 4.5
-2. Use GPT Pro as final arbiter
-
-### THE EXACT PROMPT — Multi-Model Blend
+Siempre incluir un grafo textual que muestre:
+- El orden de ejecución
+- Las dependencias bloqueantes
+- El paralelismo posible (con nota explícita)
 
 ```
-I asked 3 competing LLMs to do the exact same thing and they came up with pretty different plans which you can read below. I want you to REALLY carefully analyze their plans with an open mind and be intellectually honest about what they did that's better than your plan. Then I want you to come up with the best possible revisions to your plan (you should simply update your existing document for your original plan with the revisions) that artfully and skillfully blends the "best of all worlds" to create a true, ultimate, superior hybrid version of the plan that best achieves our stated goals and will work the best in real-world practice to solve the problems we are facing and our overarching goals while ensuring the extreme success of the enterprise as best as possible; you should provide me with a complete series of git-diff style changes to your original plan to turn it into the new, enhanced, much longer and detailed plan that integrates the best of all the plans with every good idea included (you don't need to mention which ideas came from which models in the final revised enhanced plan):
-
-[Paste competing plans here]
+aiw-backend-api-20260404-01                  ← desbloquea todo
+  └─> aiw-frontend-contract-20260404-01
+        └─> aiw-frontend-bootstrap-20260404-02
+              ├─> aiw-frontend-task-a-20260404-03   ← paralelo con 04
+              └─> aiw-frontend-task-b-20260404-04   ← paralelo con 03
+                    └─> aiw-frontend-hardening-20260404-05
+                          └─> aiw-optimizer-perf-20260404-06
+                                └─> aiw-tester-e2e-20260404-07
+                                      └─> aiw-documenter-sync-20260404-08
 ```
+
+**Nota de coordinación para Orchestrator:** Siempre incluir una nota explícita cuando hay paralelismo, por ejemplo: "Las tareas 03 y 04 son independientes entre sí y pueden ejecutarse simultáneamente una vez completada la tarea 02."
 
 ---
 
-## Real-World Examples
+## Fase 4 — Detección de tareas faltantes
 
-### Example Plan Documents
+Antes de dar el plan por terminado, responder estas preguntas:
 
-| Project | Plan Link |
-|---------|-----------|
-| CASS Memory System | [PLAN_FOR_CASS_MEMORY_SYSTEM.md](https://github.com/Dicklesworthstone/cass_memory_system/blob/main/PLAN_FOR_CASS_MEMORY_SYSTEM.md) |
-| CASS GitHub Pages Export | [PLAN_TO_CREATE_GH_PAGES_WEB_EXPORT_APP.md](https://github.com/Dicklesworthstone/coding_agent_session_search/blob/main/PLAN_TO_CREATE_GH_PAGES_WEB_EXPORT_APP.md) |
+### ¿Falta algún agente?
 
-### Example AGENTS.md Files
+| Señal | Tarea faltante probable |
+|---|---|
+| Frontend necesita endpoint que no existe | Tarea de Backend primero |
+| Plan tiene cambios visuales con motion/animaciones | Tarea de Optimizer (performance gate) antes de QA |
+| Plan toca componentes compartidos | Tarea de hardening de componentes compartidos |
+| Plan modifica flujos con auth o redirects externos | AC explícito verificando parámetros dinámicos (locale, etc.) |
+| Plan modifica APIs o cookies | AC explícito con todos los atributos del contrato |
+| Plan usa libs nuevas sin verificar stack | Tarea de Optimizer (auditoría de entorno) antes de implementar |
 
-| Project Type | Link |
-|--------------|------|
-| NextJS webapp + TypeScript CLI | [brenner_bot/AGENTS.md](https://github.com/Dicklesworthstone/brenner_bot/blob/main/AGENTS.md) |
-| Bash script project | [repo_updater/AGENTS.md](https://github.com/Dicklesworthstone/repo_updater/blob/main/AGENTS.md) |
+### ¿Falta alguna tarea de cierre?
 
----
-
-## What Makes a Great Plan
-
-### Good vs. Great
-
-| Good Plan | Great Plan |
-|-----------|------------|
-| Describes what to build | Explains WHY you're building it |
-| Lists features | Details user workflows and interactions |
-| Mentions tech stack | Justifies tech choices with tradeoffs |
-| Has tasks | Has tasks with dependencies and rationale |
-| ~500 lines | ~3,500+ lines after refinement |
-
-### Essential Elements
-
-1. **Self-contained** — Never need to refer back to external docs
-2. **Granular** — Break complex features into specific subtasks
-3. **Dependency-aware** — What blocks what?
-4. **Justified** — Include reasoning, not just instructions
-5. **User-focused** — How does each piece serve the end user?
+Todo plan debe tener:
+- Tarea de **Tester** (E2E/regresión) como gate de calidad
+- Tarea de **Documenter** (docs, registry) dependiendo de QA
+- Si hay cambios visuales: tarea de **Optimizer** (performance) antes de Tester
 
 ---
 
-## Common Mistakes
+## Fase 5 — Iteración y refinamiento
 
-1. **Starting implementation too early** — 3 hours of planning saves 30 hours of rework
-2. **Single-round review** — You continue to get improvements even at round 6+
-3. **Not using GPT Pro** — Extended Reasoning is uniquely good for this
-4. **Skeleton-first coding** — One big comprehensive plan beats incremental coding
-5. **Losing context** — Convert plans to beads so agents don't need the original
+Antes de publicar, revisar el plan al menos una vez desde la perspectiva de cada agente asignado:
 
----
+1. **Desde el agente más dependiente:** ¿Puede empezar sin bloqueos? ¿Tiene todo lo que necesita?
+2. **Desde el agente menos técnico (Documenter):** ¿Entiende qué documentar? ¿Tiene `artifactPaths` explícitos?
+3. **Desde el Tester:** ¿Sabe exactamente qué validar? ¿Los ACs son reproducibles?
+4. **Desde el Orchestrator:** ¿El grafo de dependencias es correcto? ¿El paralelismo está bien marcado?
 
-## FAQ
-
-**Q: Shouldn't I code a skeleton first?**
-A: You get a better result faster by creating one big comprehensive, detailed, granular plan. That's the only way to get models to understand the entire system at once. Once you start turning it into code, it gets too big to understand.
-
-**Q: What about problems I didn't anticipate?**
-A: Finding the flaws and fixing them is the whole point of all the iterations and blending in feedback from all the frontier models. If you follow the procedure using those specific models and prompts, after enough rounds, you will have an extremely good plan that will "just work." After implementing v1, you create another plan for v2. Nothing says you can only do one plan.
-
-**Q: How do I divide tasks for agents?**
-A: Each agent uses bv to find the next optimal bead and marks it in-progress. Distributed, robust, fungible agents.
-
-**Q: Do agents need specialization?**
-A: No. Every agent is fungible and a generalist. They all use the same base model and read the same AGENTS.md. Simply telling one it's a "frontend agent" doesn't make it better at frontend.
-
-**Q: Which tech stack should I use?**
-A: This is part of the "pre-planning" phase. Usually I already know based on project type:
-- **Web app:** TypeScript, Next.js 16, React 19, Tailwind, Supabase (performance-critical parts in Rust compiled to WASM)
-- **CLI tool:** Golang or Rust if very performance critical
-- If unsure, do a deep research round with GPT Pro or Gemini3 to study libraries and get suggestions.
-
-**Q: Should design decisions be in markdown or beads?**
-A: The beads themselves can and should contain this markdown. You can have long descriptions/comments inside the beads—they don't need to be short bullet point type entries.
+Después de esta revisión, ejecutar la skill `plan-audit` antes de publicar.
 
 ---
 
-## Best Practices Guides
+## Fase 6 — Publicación
 
-Keep best practices guides in your project folder and reference them in AGENTS.md:
+### Documento .md
+- Ruta: `docs/internal/plans/<taskId-del-planner>.md`
+- El taskId del archivo es el taskId que el Planner recibió, no uno nuevo.
 
-- [claude_code_agent_farm/best_practices_guides](https://github.com/Dicklesworthstone/claude_code_agent_farm/tree/main/best_practices_guides)
+### Evento PLAN_PROPOSED
+```json
+{
+  "type": "PLAN_PROPOSED",
+  "payload": {
+    "taskId": "<mismo taskId que recibió el Planner>",
+    "correlationId": "<correlationId de la EPIC>",
+    "assignedTo": "Planner",
+    "status": "in_progress",
+    "message": "Plan propuesto. Ver <ruta del .md>",
+    "artifactPaths": ["docs/internal/plans/<taskId>.md"]
+  }
+}
+```
 
-Have Claude Code search the web and update them to latest versions.
+### TASK_COMPLETED
+Usar el mismo `taskId` recibido. El Planner no crea un taskId nuevo para cerrarse.
 
 ---
 
-## Complete Prompt Reference
+## Anti-patterns conocidos (evitar siempre)
 
-### GPT Pro — Plan Review
-```
-Carefully review this entire plan for me and come up with your best revisions in terms of better architecture, new features, changed features, etc. to make it better, more robust/reliable, more performant, more compelling/useful, etc. For each proposed change, give me your detailed analysis and rationale/justification for why it would make the project better along with the git-diff style change versus the original plan shown below:
-
-<PASTE YOUR EXISTING COMPLETE PLAN HERE>
-```
-
-### Claude Code — Integrate Revisions
-```
-OK, now integrate these revisions to the markdown plan in-place; use ultrathink and be meticulous. At the end, you can tell me which changes you wholeheartedly agree with, which you somewhat agree with, and which you disagree with:
-
-```[Pasted text from GPT Pro]```
-```
-
-### GPT Pro — Multi-Model Blend
-```
-I asked 3 competing LLMs to do the exact same thing and they came up with pretty different plans which you can read below. I want you to REALLY carefully analyze their plans with an open mind and be intellectually honest about what they did that's better than your plan. Then I want you to come up with the best possible revisions to your plan (you should simply update your existing document for your original plan with the revisions) that artfully and skillfully blends the "best of all worlds" to create a true, ultimate, superior hybrid version of the plan that best achieves our stated goals and will work the best in real-world practice to solve the problems we are facing and our overarching goals while ensuring the extreme success of the enterprise as best as possible; you should provide me with a complete series of git-diff style changes to your original plan to turn it into the new, enhanced, much longer and detailed plan that integrates the best of all the plans with every good idea included (you don't need to mention which ideas came from which models in the final revised enhanced plan):
-
-[Paste competing plans here]
-```
+| Anti-pattern | Consecuencia | Fix |
+|---|---|---|
+| Planificar sin leer el código | Plan completamente descartado (caso pixel-agents v1) | Leer siempre antes |
+| taskIds sin formato canónico | Dispatcher no puede matchear | `aiw-<agente>-<slug>-<YYYYMMDD>-<seq>` |
+| Tareas de UI asignadas al Optimizer | Bloqueo: el Optimizer no implementa UI | Observer/Frontend para UI |
+| Endpoint faltante sin tarea de Backend | Frontend bloqueada desde el día 1 | Crear tarea Backend primero |
+| AC vago sin mecanismo | Implementación ambigua, resultados incorrectos | Nombrar el mecanismo exacto |
+| Riesgo real sin AC | El riesgo se materializa sin mitigación | Convertir a AC en la tarea correcta |
+| Paralelismo serializado | Plan más lento de lo necesario | Identificar y documentar paralelos |
+| Plan visual sin performance gate | Regresión de LCP/CLS sin detectar | Agregar tarea de Optimizer antes de QA |
+| Plan aprobado reabierto por polish | Scope creep, retraso de implementación | Solo reabrir con evidencia real |
