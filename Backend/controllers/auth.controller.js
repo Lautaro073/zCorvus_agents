@@ -3,17 +3,20 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 const { successResponse, errorResponse } = require('../utils/response');
 const { verify2FALogin } = require('./twoFactor.controller');
 const { parseTimeToMs } = require('../utils/time');
+const crypto = require('crypto');
 const { sendMail } = require('../utils/mailer');
 const config = require('../config/config');
 const { getPasswordResetOtpHtml } = require('../templates/password-reset-otp.html');
 const { getPasswordResetOtpText } = require('../templates/password-reset-otp.text');
 const { getPasswordResetOtpCopy, normalizeOtpLocale } = require('../templates/password-reset-otp.copy');
 
-const generateSixDigitOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const generateSixDigitOtp = () => crypto.randomInt(0, 1000000).toString().padStart(6, '0');
 const PASSWORD_RESET_OTP_MINUTES = Number.isInteger(config.auth?.passwordResetOtpMinutes) && config.auth.passwordResetOtpMinutes > 0
     ? config.auth.passwordResetOtpMinutes
     : 10;
 const APP_NAME = config.app?.name || 'zCorvus';
+const GENERIC_OTP_REQUEST_MESSAGE = 'If the email exists, an OTP has been sent';
+const GENERIC_OTP_INVALID_MESSAGE = 'Invalid or expired OTP';
 
 function resolveOtpLocale(req) {
     const bodyLocale = req.body?.locale;
@@ -161,13 +164,12 @@ const login = async (req, res, next) => {
 const requestPasswordResetOtp = async (req, res, next) => {
     try {
         const { email } = req.body;
-        const safeMessage = 'If the email exists, an OTP has been sent';
         const locale = resolveOtpLocale(req);
         const resetUrl = buildResetUrl(locale);
 
         const user = await User.findByEmail(email);
         if (!user) {
-            return successResponse(res, null, safeMessage, 200);
+            return successResponse(res, null, GENERIC_OTP_REQUEST_MESSAGE, 200);
         }
 
         const otp = generateSixDigitOtp();
@@ -182,26 +184,30 @@ const requestPasswordResetOtp = async (req, res, next) => {
             appName: APP_NAME
         });
 
-        await sendMail({
-            to: user.email,
-            subject: localizedCopy.subject,
-            text: getPasswordResetOtpText({
-                otp,
-                expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
-                locale,
-                resetUrl,
-                appName: APP_NAME
-            }),
-            html: getPasswordResetOtpHtml({
-                otp,
-                expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
-                locale,
-                resetUrl,
-                appName: APP_NAME
-            })
-        });
+        try {
+            await sendMail({
+                to: user.email,
+                subject: localizedCopy.subject,
+                text: getPasswordResetOtpText({
+                    otp,
+                    expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
+                    locale,
+                    resetUrl,
+                    appName: APP_NAME
+                }),
+                html: getPasswordResetOtpHtml({
+                    otp,
+                    expiresInMinutes: PASSWORD_RESET_OTP_MINUTES,
+                    locale,
+                    resetUrl,
+                    appName: APP_NAME
+                })
+            });
+        } catch (mailerError) {
+            console.error('Password reset mailer error:', mailerError.message);
+        }
 
-        return successResponse(res, null, safeMessage, 200);
+        return successResponse(res, null, GENERIC_OTP_REQUEST_MESSAGE, 200);
     } catch (error) {
         console.error('Request password reset OTP error:', error);
         next(error);
@@ -217,14 +223,14 @@ const verifyPasswordResetOtp = async (req, res, next) => {
         const user = await User.findByEmail(email);
 
         if (!user) {
-            return errorResponse(res, 'Invalid or expired OTP', 400);
+            return errorResponse(res, GENERIC_OTP_INVALID_MESSAGE, 400);
         }
 
         const otpRecord = await PasswordResetOtp.findLatestActiveByUserId(user.id);
         const isValid = await PasswordResetOtp.verifyOtp(otpRecord, otp);
 
         if (!isValid) {
-            return errorResponse(res, 'Invalid or expired OTP', 400);
+            return errorResponse(res, GENERIC_OTP_INVALID_MESSAGE, 400);
         }
 
         return successResponse(res, {
@@ -246,18 +252,22 @@ const resetPasswordWithOtp = async (req, res, next) => {
         const user = await User.findByEmail(email);
 
         if (!user) {
-            return errorResponse(res, 'Invalid or expired OTP', 400);
+            return errorResponse(res, GENERIC_OTP_INVALID_MESSAGE, 400);
         }
 
         const otpRecord = await PasswordResetOtp.findLatestActiveByUserId(user.id);
         const isValid = await PasswordResetOtp.verifyOtp(otpRecord, otp);
 
         if (!isValid) {
-            return errorResponse(res, 'Invalid or expired OTP', 400);
+            return errorResponse(res, GENERIC_OTP_INVALID_MESSAGE, 400);
+        }
+
+        const consumed = await PasswordResetOtp.consumeIfValid(otpRecord.id);
+        if (!consumed) {
+            return errorResponse(res, GENERIC_OTP_INVALID_MESSAGE, 400);
         }
 
         await User.update(user.id, { password: newPassword });
-        await PasswordResetOtp.consume(otpRecord.id);
         await PasswordResetOtp.markAllUnusedAsUsed(user.id);
 
         return successResponse(res, null, 'Password reset successful', 200);

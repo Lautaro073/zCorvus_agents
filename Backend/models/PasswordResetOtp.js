@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('../utils/db');
 const { generateUUID } = require('../utils/uuid');
+const { client } = require('../config/database');
 
 class PasswordResetOtp {
     static async create(userId, otp, expiresAt) {
@@ -56,6 +57,22 @@ class PasswordResetOtp {
             used: 1,
             used_at: new Date()
         }, { id });
+    }
+
+    static async consumeIfValid(id) {
+        const result = await client.execute({
+            sql: `
+                UPDATE password_reset_otps
+                SET used = 1,
+                    used_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND used = 0
+                  AND datetime(expires_at) > datetime('now')
+            `,
+            args: [id]
+        });
+
+        return Number(result.rowsAffected || 0) > 0;
     }
 }
 

@@ -64,7 +64,22 @@ describe('Auth Password Reset OTP API', () => {
 
         expect(response.body.success).toBe(true);
         expect(sendMail).toHaveBeenCalled();
-        expect(sendMail.mock.calls[0][0].subject).toContain('Codigo para restablecer');
+
+        const sentMail = sendMail.mock.calls[0][0];
+        expect(sentMail.subject).toContain('Codigo para restablecer');
+        expect(sentMail.text).toMatch(/\b\d{6}\b/);
+    });
+
+    it('should return safe success response when mailer fails for existing email', async () => {
+        sendMail.mockRejectedValueOnce(new Error('SMTP unavailable'));
+
+        const response = await request(app)
+            .post('/api/auth/password-reset/request-otp')
+            .send({ email: testUser.email, locale: 'es' })
+            .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('If the email exists, an OTP has been sent');
     });
 
     it('should return safe response for unknown email', async () => {
@@ -168,6 +183,30 @@ describe('Auth Password Reset OTP API', () => {
             .expect(400);
 
         expect(response.body.success).toBe(false);
+    });
+
+    it('should allow only one successful reset under concurrent replay attempts', async () => {
+        const user = await User.findByEmail(testUser.email);
+        await PasswordResetOtp.markAllUnusedAsUsed(user.id);
+
+        const controlledOtp = '112233';
+        await PasswordResetOtp.create(user.id, controlledOtp, new Date(Date.now() + 10 * 60 * 1000));
+
+        const payload = {
+            email: testUser.email,
+            otp: controlledOtp,
+            newPassword: 'racepass123',
+            confirmPassword: 'racepass123',
+            locale: 'en'
+        };
+
+        const [attemptA, attemptB] = await Promise.all([
+            request(app).post('/api/auth/password-reset/reset-with-otp').send(payload),
+            request(app).post('/api/auth/password-reset/reset-with-otp').send(payload)
+        ]);
+
+        const statuses = [attemptA.status, attemptB.status].sort((a, b) => a - b);
+        expect(statuses).toEqual([200, 400]);
     });
 
     it('should generate localized templates with styled content', () => {
