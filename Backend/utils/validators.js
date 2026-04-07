@@ -34,6 +34,11 @@ const registerValidation = [
         .notEmpty().withMessage('Password is required')
         .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
 
+    body('confirmPassword')
+        .notEmpty().withMessage('Confirm password is required')
+        .custom((value, { req }) => value === req.body.password)
+        .withMessage('Confirm password does not match password'),
+
     body('roles_id')
         .optional()
         .isInt({ min: 1 }).withMessage('Role ID must be a valid integer'),
@@ -52,6 +57,69 @@ const loginValidation = [
 
     body('password')
         .notEmpty().withMessage('Password is required'),
+
+    handleValidationErrors
+];
+
+const passwordResetRequestValidation = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('locale')
+        .optional()
+        .trim()
+        .matches(/^[A-Za-z]{2,3}(?:-[A-Za-z]{2,8})?$/).withMessage('Locale must be a valid language tag'),
+
+    handleValidationErrors
+];
+
+const passwordResetVerifyValidation = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('OTP is required')
+        .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+        .isNumeric().withMessage('OTP must contain only digits'),
+
+    body('locale')
+        .optional()
+        .trim()
+        .matches(/^[A-Za-z]{2,3}(?:-[A-Za-z]{2,8})?$/).withMessage('Locale must be a valid language tag'),
+
+    handleValidationErrors
+];
+
+const passwordResetConfirmValidation = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('OTP is required')
+        .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+        .isNumeric().withMessage('OTP must contain only digits'),
+
+    body('newPassword')
+        .notEmpty().withMessage('New password is required')
+        .isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+
+    body('confirmPassword')
+        .notEmpty().withMessage('Confirm password is required')
+        .custom((value, { req }) => value === req.body.newPassword)
+        .withMessage('Confirm password does not match new password'),
+
+    body('locale')
+        .optional()
+        .trim()
+        .matches(/^[A-Za-z]{2,3}(?:-[A-Za-z]{2,8})?$/).withMessage('Locale must be a valid language tag'),
 
     handleValidationErrors
 ];
@@ -100,6 +168,9 @@ module.exports = {
     handleValidationErrors,
     registerValidation,
     loginValidation,
+    passwordResetRequestValidation,
+    passwordResetVerifyValidation,
+    passwordResetConfirmValidation,
     updateUserValidation,
     changePasswordValidation,
     isValidEmail

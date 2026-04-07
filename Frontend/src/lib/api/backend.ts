@@ -61,11 +61,17 @@ export interface RefreshAccessTokenResponse {
   user: User;
 }
 
+export interface PasswordResetOtpVerifyResponse {
+  valid: boolean;
+  expiresAt: string;
+}
+
 export interface CheckoutSessionResponse {
   url: string;
 }
 
 type CheckoutLocale = 'es' | 'en';
+type OtpLocale = 'es' | 'en';
 
 export interface SettingsIcons {
   id: string;
@@ -237,12 +243,13 @@ function createAuthHeaders(includeAuth = true): HeadersInit {
 export async function register(
   username: string,
   email: string,
-  password: string
+  password: string,
+  confirmPassword: string
 ): Promise<RegisterResponse> {
   const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
     method: 'POST',
     headers: createAuthHeaders(false),
-    body: JSON.stringify({ username, email, password }),
+    body: JSON.stringify({ username, email, password, confirmPassword }),
   });
 
   const data: ApiResponse<RegisterResponse> = await response.json();
@@ -280,6 +287,87 @@ export async function login(
   }
 
   return data.data!;
+}
+
+/**
+ * Solicitar OTP para reset de contraseña
+ */
+export async function requestPasswordResetOtp(email: string, locale: OtpLocale): Promise<void> {
+  const localeHeaders = {
+    ...createAuthHeaders(false),
+    'Accept-Language': locale,
+    'X-Locale': locale,
+  };
+
+  const response = await fetch(`${BACKEND_URL}/api/auth/password-reset/request-otp`, {
+    method: 'POST',
+    headers: localeHeaders,
+    body: JSON.stringify({ email, locale }),
+  });
+
+  const data: ApiResponse = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to request password reset OTP');
+  }
+}
+
+/**
+ * Verificar OTP de reset de contraseña
+ */
+export async function verifyPasswordResetOtp(
+  email: string,
+  otp: string,
+  locale: OtpLocale
+): Promise<PasswordResetOtpVerifyResponse> {
+  const localeHeaders = {
+    ...createAuthHeaders(false),
+    'Accept-Language': locale,
+    'X-Locale': locale,
+  };
+
+  const response = await fetch(`${BACKEND_URL}/api/auth/password-reset/verify-otp`, {
+    method: 'POST',
+    headers: localeHeaders,
+    body: JSON.stringify({ email, otp, locale }),
+  });
+
+  const data: ApiResponse<PasswordResetOtpVerifyResponse> = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to verify OTP');
+  }
+
+  return data.data!;
+}
+
+/**
+ * Resetear contraseña con OTP
+ */
+export async function resetPasswordWithOtp(
+  email: string,
+  otp: string,
+  newPassword: string,
+  confirmPassword: string,
+  locale: OtpLocale
+): Promise<void> {
+  const localeHeaders = {
+    ...createAuthHeaders(false),
+    'Accept-Language': locale,
+    'X-Locale': locale,
+  };
+
+  const response = await fetch(`${BACKEND_URL}/api/auth/password-reset/reset-with-otp`, {
+    method: 'POST',
+    headers: localeHeaders,
+    body: JSON.stringify({ email, otp, newPassword, confirmPassword, locale }),
+  });
+
+  const data: ApiResponse = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to reset password');
+  }
 }
 
 /**

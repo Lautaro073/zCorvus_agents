@@ -21,7 +21,7 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string, twoFactorCode?: string) => Promise<void>;
-    register: (username: string, email: string, password: string) => Promise<void>;
+    register: (username: string, email: string, password: string, confirmPassword: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshSession: () => Promise<void>;
 }
@@ -114,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Register
-    const register = async (username: string, email: string, password: string) => {
-        const data = await backendRegister(username, email, password);
+    const register = async (username: string, email: string, password: string, confirmPassword: string) => {
+        const data = await backendRegister(username, email, password, confirmPassword);
         setAccessToken(data.accessToken);
 
         const userObj = data.user;
