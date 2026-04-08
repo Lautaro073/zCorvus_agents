@@ -38,6 +38,15 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - Si aun no existe el contrato backend necesario y la tarea no fue definida como wireframe/mock, publicas `TASK_BLOCKED`; no inventas APIs.
 - `AgentMonitor/` pertenece al `Observer`, no al Frontend de producto.
 
+## Context7 (obligatorio cuando aplique)
+- Antes de implementar cambios ligados a librerias externas (Next.js, React, shadcn/ui, React Query, Playwright, libs de charts, i18n de terceros), consulta Context7 para confirmar API y patrones vigentes.
+- Flujo requerido: resolver `libraryId` -> consultar docs -> implementar.
+- Evidencia mínima en reporte de tarea:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, registrar: `Context7 not required` con justificacion breve.
+
 ## Skills instaladas
 - `apple-ui-skills`
 - `accessibility`

@@ -34,6 +34,14 @@ Recibes tareas formalmente asignadas por el `Orchestrator`. Tambien puedes reacc
 - Cada fallo debe ser reproducible y describir input, output esperado y output real.
 - Si el artefacto no esta listo o le faltan dependencias, lo marcas claramente en el evento; no cierres tareas ambiguamente.
 
+## Context7 (obligatorio cuando aplique)
+- Para diseñar o ajustar tests que dependan de APIs de frameworks externos (Playwright, Testing Library, Jest, Supertest), consulta Context7 antes de fijar aserciones de comportamiento específico de librería.
+- Evidencia mínima en reporte de prueba:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, registrar: `Context7 not required` con motivo.
+
 ## Gobernanza de contexto (TCO-02)
 - **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
 - **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.

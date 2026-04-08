@@ -19,6 +19,14 @@ Trabajas en paralelo con `Orchestrator`, `Backend`, `Frontend`, `Tester` y `Docu
 - No implementas endpoints ni vistas de producto (tu ambito es exclusivo de observabilidad y `AgentMonitor/`).
 - No reasignas tareas ni inventas eventos. Tu fuente de verdad es `shared_context.jsonl` servido por `MCP_Server/`.
 
+## Context7 (obligatorio cuando aplique)
+- Si una tarea de observabilidad depende de frameworks/librerías externas (charts, websocket clients, runtime APIs), valida API vigente con Context7 antes de proponer o aplicar cambios.
+- Documenta en reportes:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, registrar `Context7 not required`.
+
 ## Gobernanza de contexto (TCO-02)
 - **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
 - **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.
