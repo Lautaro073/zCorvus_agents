@@ -117,7 +117,7 @@ describe('Admin Metrics API', () => {
                 300,
                 0,
                 'paid',
-                '2026-04-05T10:00:00.000Z',
+                        '2046-04-05T10:00:00.000Z',
                 'seed_test',
                 '{}'
             ]
@@ -147,7 +147,7 @@ describe('Admin Metrics API', () => {
                 900,
                 0,
                 'paid',
-                '2026-04-07T11:00:00.000Z',
+                        '2046-04-07T11:00:00.000Z',
                 'seed_test',
                 '{}'
             ]
@@ -174,7 +174,7 @@ describe('Admin Metrics API', () => {
 
     it('returns metrics envelope for day granularity', async () => {
         const response = await request(app)
-            .get('/api/admin/metrics?granularity=day&from=2026-04-01T00:00:00Z&to=2026-04-08T00:00:00Z')
+            .get('/api/admin/metrics?granularity=day&from=2046-04-01T00:00:00Z&to=2046-04-08T00:00:00Z')
             .set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
@@ -191,12 +191,12 @@ describe('Admin Metrics API', () => {
 
     it('returns continuous timeseries buckets with zero-fill in range', async () => {
         const response = await request(app)
-            .get('/api/admin/metrics?granularity=day&from=2026-04-04T00:00:00Z&to=2026-04-07T00:00:00Z')
+            .get('/api/admin/metrics?granularity=day&from=2046-04-04T00:00:00Z&to=2046-04-07T00:00:00Z')
             .set('Authorization', `Bearer ${adminToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body.data.timeseries.length).toBe(4);
-        const zeroBucket = response.body.data.timeseries.find((item) => item.bucketKey === '2026-04-06');
+            const zeroBucket = response.body.data.timeseries.find((item) => item.bucketKey === '2046-04-06');
         expect(zeroBucket).toBeTruthy();
         expect(zeroBucket.salesCount).toBe(0);
         expect(zeroBucket.grossRevenue).toBe(0);
@@ -249,6 +249,55 @@ describe('Admin Metrics API', () => {
         } finally {
             await query('DELETE FROM user WHERE id = ?', [fallbackUserId]);
             await query('DELETE FROM token WHERE id = ?', [fallbackTokenId]);
+        }
+    });
+
+    it('combines ledger and fallback sales correctly across mixed buckets', async () => {
+        const mixedUserId = generateUUID();
+        const mixedTokenId = generateUUID();
+
+        try {
+            await query('DELETE FROM user WHERE id = ?', [mixedUserId]);
+            await query('DELETE FROM token WHERE id = ?', [mixedTokenId]);
+
+            await query(
+                'INSERT INTO token (id, token, type, start_date, finish_date) VALUES (?, ?, ?, ?, ?)',
+                [
+                    mixedTokenId,
+                    'metrics-mixed-token',
+                    'pro',
+                    '2046-04-06T09:00:00.000Z',
+                    '2047-04-06T09:00:00.000Z'
+                ]
+            );
+
+            await User.create({
+                id: mixedUserId,
+                username: 'metrics_mixed_user',
+                email: 'metrics_mixed_user@test.com',
+                password: 'password123',
+                roles_id: 3,
+                token_id: mixedTokenId
+            });
+
+            const response = await request(app)
+                .get('/api/admin/metrics?granularity=day&from=2046-04-05T00:00:00Z&to=2046-04-07T23:59:59Z')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.data.kpis.salesCount).toBe(3);
+            expect(response.body.data.kpis.grossRevenue).toBe(19700);
+            expect(response.body.data.kpis.netRevenue).toBe(18500);
+            expect(response.body.filtersApplied.salesSource).toBe('mixed');
+
+            const fallbackBucket = response.body.data.timeseries.find((item) => item.bucketKey === '2046-04-06');
+            expect(fallbackBucket).toBeTruthy();
+            expect(fallbackBucket.salesCount).toBe(1);
+            expect(fallbackBucket.grossRevenue).toBe(4900);
+            expect(fallbackBucket.netRevenue).toBe(4900);
+        } finally {
+            await query('DELETE FROM user WHERE id = ?', [mixedUserId]);
+            await query('DELETE FROM token WHERE id = ?', [mixedTokenId]);
         }
     });
 

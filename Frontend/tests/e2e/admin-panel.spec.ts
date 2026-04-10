@@ -639,6 +639,18 @@ test.describe("Admin panel QA regression", () => {
     await expect(page).toHaveURL(/\/es\/auth\/login(?:\?|$)/);
   });
 
+  test("forged admin role hint cookie does not bypass SSR admin guard", async ({ page, baseURL }) => {
+    await clearRoleHintCookie(page, baseURL!);
+    await seedRefreshSession(page, baseURL!, "forged-refresh-token");
+    await seedRoleHintCookie(page, baseURL!, "admin");
+
+    await page.goto("/es/admin", { waitUntil: "domcontentloaded" });
+
+    await expect(page).toHaveURL(/\/es\/auth\/login(?:\?|$)/);
+    await expect(page.getByRole("heading", { level: 1, name: /iniciar sesión|sign in/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /panel de administracion/i })).toHaveCount(0);
+  });
+
   test("non-admin direct access to /admin redirects away from admin route", async ({ page, baseURL }) => {
     await clearRoleHintCookie(page, baseURL!);
     await seedRefreshSession(page, baseURL!);
@@ -764,11 +776,17 @@ test.describe("Admin panel QA regression", () => {
 
   test("admin table keeps selected columns after reload", async ({ page, baseURL }) => {
     const preferencesRequests: string[] = [];
+    const activeAccount: MockAccountIdentity = {
+      id: "qa-admin-reload",
+      username: "qa-admin-reload",
+      email: "qa-admin-reload@example.com",
+      tokenId: "qa-admin-token-reload",
+    };
 
     await clearRoleHintCookie(page, baseURL!);
     await seedRefreshSession(page, baseURL!);
     await seedRoleHintCookie(page, baseURL!, "admin");
-    await mockRefreshAuth(page, "admin");
+    await mockRefreshAuth(page, "admin", activeAccount);
     await mockAdminApis(page, {
       preferencesRequests,
       resolvePreferencesAccountKey: () => activeAccount.id,
@@ -812,7 +830,10 @@ test.describe("Admin panel QA regression", () => {
     await seedRefreshSession(page, baseURL!, "qa-refresh-token-admin-a");
     await seedRoleHintCookie(page, baseURL!, "admin");
     await mockRefreshAuthSwitchable(page, () => activeAccount);
-    await mockAdminApis(page, { preferencesRequests });
+    await mockAdminApis(page, {
+      preferencesRequests,
+      resolvePreferencesAccountKey: () => activeAccount.id,
+    });
 
     await page.goto("/es/admin", { waitUntil: "domcontentloaded" });
     await activateAdminDetails(page);

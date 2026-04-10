@@ -17,7 +17,8 @@ const PASSWORD_RESET_OTP_MINUTES = Number.isInteger(config.auth?.passwordResetOt
 const APP_NAME = config.app?.name || 'zCorvus';
 const GENERIC_OTP_REQUEST_MESSAGE = 'If the email exists, an OTP has been sent';
 const GENERIC_OTP_INVALID_MESSAGE = 'Invalid or expired OTP';
-const INVALID_REGISTER_ROLE_MESSAGE = 'Invalid roles_id. Allowed values: 1, 2, 3';
+const INVALID_REGISTER_ROLE_MESSAGE = 'Invalid roles_id. Allowed values: 2';
+const INVALID_REGISTER_ROLE_FIELD_MESSAGE = 'Public signup cannot assign privileged roles';
 
 function resolveRegisterRoleId(rawRoleId) {
     if (rawRoleId === undefined || rawRoleId === null || rawRoleId === '') {
@@ -33,11 +34,11 @@ function resolveRegisterRoleId(rawRoleId) {
     }
 
     const parsedRoleId = Number(rawRoleId);
-    if (!Number.isInteger(parsedRoleId) || ![1, 2, 3].includes(parsedRoleId)) {
+    if (!Number.isInteger(parsedRoleId) || parsedRoleId !== 2) {
         return { error: INVALID_REGISTER_ROLE_MESSAGE };
     }
 
-    return { value: parsedRoleId === 1 ? 1 : 2 };
+    return { value: 2 };
 }
 
 function resolveOtpLocale(req) {
@@ -69,7 +70,7 @@ function buildResetUrl(locale) {
  */
 const register = async (req, res, next) => {
     try {
-        const { username, email, password, roles_id } = req.body;
+        const { username, email, password, roles_id, role } = req.body;
 
         // Verificar si el email ya existe
         const existingEmail = await User.findByEmail(email);
@@ -83,9 +84,12 @@ const register = async (req, res, next) => {
             return errorResponse(res, 'Username already taken', 400);
         }
 
-        // Rol por defecto: user (2).
-        // Se permite crear admin solo cuando roles_id = 1.
-        // roles_id=2/3 se normaliza a user (2) y cualquier valor fuera del dominio responde 400.
+        if (role !== undefined && role !== null && String(role).trim() !== '') {
+            return errorResponse(res, INVALID_REGISTER_ROLE_FIELD_MESSAGE, 400);
+        }
+
+        // Rol publico allowlisted: user (2) solamente.
+        // Cualquier intento de pasar roles privilegiados por payload responde 400.
         const roleResolution = resolveRegisterRoleId(roles_id);
         if (roleResolution.error) {
             return errorResponse(res, roleResolution.error, 400);

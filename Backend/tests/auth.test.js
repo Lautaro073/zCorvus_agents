@@ -27,7 +27,7 @@ describe('Auth API', () => {
             expect(response.body.data.user.email).toBe(testUser.email);
         });
 
-        it('should preserve admin role when registering with roles_id=1', async () => {
+        it('should reject admin privilege escalation via roles_id=1', async () => {
             const timestamp = Date.now();
             const adminCandidateEmail = `admin_candidate_${timestamp}@test.com`;
 
@@ -40,16 +40,13 @@ describe('Auth API', () => {
                     confirmPassword: 'password123',
                     roles_id: 1,
                 })
-                .expect(201);
+                .expect(400);
 
-            expect(response.body.success).toBe(true);
-            expect(response.body.data.user.role).toBe('admin');
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toMatch(/roles_id/i);
 
             const createdUser = await User.findByEmail(adminCandidateEmail);
-            expect(createdUser).toBeTruthy();
-            expect(createdUser.roles_id).toBe(1);
-
-            await User.delete(createdUser.id);
+            expect(createdUser).toBeNull();
         });
 
         it('should not register user with existing email', async () => {
@@ -131,6 +128,28 @@ describe('Auth API', () => {
 
             expect(response.body.success).toBe(false);
             expect(response.body.message).toMatch(/invalid roles_id/i);
+
+            const createdUser = await User.findByEmail(email);
+            expect(createdUser).toBeNull();
+        });
+
+        it('should reject privileged role field payload and not create user', async () => {
+            const timestamp = Date.now();
+            const email = `invalid_role_field_${timestamp}@test.com`;
+
+            const response = await request(app)
+                .post('/api/auth/register')
+                .send({
+                    username: `invalid_role_field_${timestamp}`,
+                    email,
+                    password: 'password123',
+                    confirmPassword: 'password123',
+                    role: 'admin',
+                })
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toMatch(/cannot assign privileged roles/i);
 
             const createdUser = await User.findByEmail(email);
             expect(createdUser).toBeNull();

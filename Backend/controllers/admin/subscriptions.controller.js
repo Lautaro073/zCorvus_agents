@@ -315,10 +315,10 @@ async function getAdminSubscriptions(req, res, next) {
                 COUNT(*) AS total
             FROM user u
             LEFT JOIN token t ON u.token_id = t.id
-            WHERE u.token_id IS NOT NULL
+            ${whereClause}
         `;
 
-        const summaryRows = await db.query(summarySql, [thresholdIso, nowIso, thresholdIso, nowIso]);
+        const summaryRows = await db.query(summarySql, [thresholdIso, nowIso, thresholdIso, nowIso, ...whereArgs]);
         const summary = summaryRows[0] || {};
 
         return res.status(200).json({

@@ -77,3 +77,8 @@
 - Trigger: `aiw-frontend-admin-unauth-redirect-consistency-fix-20260410-49`
 - Regla aprendida: En acceso no autenticado a rutas protegidas, depender solo de redirects en capas de render/hydration puede dejar estados hibridos (vista login con URL protegida) bajo concurrencia.
 - Prevencion futura: Para `/admin`, aplicar guard temprano en middleware (cookie `refreshToken` minima) y redirigir antes del render para garantizar URL final estable en desktop/mobile.
+
+## 2026-04-10 - never grant SSR admin by role hint cookie
+- Trigger: `aiw-frontend-admin-ssr-authz-cookie-bypass-fix-20260410-53`
+- Regla aprendida: `userRole` en cookie/localStorage es solo hint UX y no puede ser fuente de verdad para authz SSR de `/admin`.
+- Prevencion futura: En guard SSR admin, exigir evidencia backend (`/api/auth/refresh` + rol resultante) y usar timeout defensivo en fetches para evitar estados colgados cuando el backend no responde.

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3101";
+const adminStubURL = process.env.PLAYWRIGHT_ADMIN_STUB_URL ?? "http://127.0.0.1:3001/__qa_stub_health";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -20,6 +21,13 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+  },
+  webServer: {
+    command: "node tests/e2e/admin-auth-stub-server.mjs",
+    name: "Admin SSR stub",
+    url: adminStubURL,
+    reuseExistingServer: false,
+    timeout: 30_000,
   },
   projects: [
     {

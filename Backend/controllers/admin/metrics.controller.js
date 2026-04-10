@@ -437,19 +437,20 @@ async function getAdminMetrics(req, res, next) {
             ])
         );
 
-        const totalLedgerSales = salesRows.reduce((acc, row) => acc + Number(row.sales_count || 0), 0);
-        const totalFallbackSales = subscriptionSalesRows.reduce((acc, row) => acc + Number(row.sales_count || 0), 0);
-        const salesSource = totalLedgerSales > 0
-            ? 'ledger'
-            : totalFallbackSales > 0
-                ? 'subscriptions_fallback'
-                : 'none';
-        const selectedSalesMap = salesSource === 'subscriptions_fallback' ? subscriptionSalesMap : ledgerSalesMap;
-
         const buckets = buildBuckets(range.from, range.to, range.bucketGranularity);
+        let usedLedgerSource = false;
+        let usedSubscriptionFallback = false;
         const timeseries = buckets.map((bucket) => {
-            const sale = selectedSalesMap.get(bucket.bucketKey) || { salesCount: 0, grossRevenue: 0, netRevenue: 0 };
+            const ledgerSale = ledgerSalesMap.get(bucket.bucketKey) || { salesCount: 0, grossRevenue: 0, netRevenue: 0 };
+            const fallbackSale = subscriptionSalesMap.get(bucket.bucketKey) || { salesCount: 0, grossRevenue: 0, netRevenue: 0 };
+            const sale = ledgerSale.salesCount > 0 ? ledgerSale : fallbackSale;
             const registrations = registrationMap.get(bucket.bucketKey) || 0;
+
+            if (ledgerSale.salesCount > 0) {
+                usedLedgerSource = true;
+            } else if (fallbackSale.salesCount > 0) {
+                usedSubscriptionFallback = true;
+            }
 
             return {
                 bucketKey: bucket.bucketKey,
@@ -468,6 +469,14 @@ async function getAdminMetrics(req, res, next) {
             grossRevenue: timeseries.reduce((acc, point) => acc + point.grossRevenue, 0),
             netRevenue: timeseries.reduce((acc, point) => acc + point.netRevenue, 0)
         };
+
+        const salesSource = usedLedgerSource && usedSubscriptionFallback
+            ? 'mixed'
+            : usedLedgerSource
+                ? 'ledger'
+                : usedSubscriptionFallback
+                    ? 'subscriptions_fallback'
+                    : 'none';
 
         return res.status(200).json({
             success: true,

@@ -157,6 +157,32 @@ describe('Admin Subscriptions API', () => {
         expect(response.body.data.length).toBeGreaterThanOrEqual(1);
         expect(response.body.data[0].subscriptionStatus).toBe('expiring');
         expect(response.body.data[0].plan_type).toBe('enterprise');
+        expect(response.body.summaryCounts).toMatchObject({
+            active: 0,
+            expiring: response.body.data.length,
+            expired: 0,
+            total: response.body.data.length
+        });
+    });
+
+    it('aligns summaryCounts with date and planType filtered dataset', async () => {
+        const response = await request(app)
+            .get('/api/admin/subscriptions?planType=pro&from=2020-01-01T00:00:00Z&to=2035-01-01T00:00:00Z')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.length).toBeGreaterThanOrEqual(2);
+        expect(response.body.summaryCounts.total).toBe(response.body.data.length);
+
+        const derivedCounts = response.body.data.reduce((acc, item) => {
+            acc[item.subscriptionStatus] += 1;
+            return acc;
+        }, { active: 0, expiring: 0, expired: 0 });
+
+        expect(response.body.summaryCounts.active).toBe(derivedCounts.active);
+        expect(response.body.summaryCounts.expiring).toBe(derivedCounts.expiring);
+        expect(response.body.summaryCounts.expired).toBe(derivedCounts.expired);
     });
 
     it('normalizes from/to as UTC ISO in filtersApplied', async () => {

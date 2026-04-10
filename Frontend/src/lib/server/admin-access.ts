@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
 const REFRESH_TOKEN_COOKIE_KEY = "refreshToken";
 const USER_ROLE_COOKIE_KEY = "userRole";
+const ADMIN_ACCESS_FETCH_TIMEOUT_MS = 2000;
 
 type AdminAccessStatus = "ok" | "auth_required" | "session_expired" | "forbidden";
 
@@ -67,6 +68,7 @@ async function probeAdminScope(accessToken: string): Promise<AdminAccessStatus> 
         Authorization: `Bearer ${accessToken}`,
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(ADMIN_ACCESS_FETCH_TIMEOUT_MS),
     });
 
     if (adminProbe.status === 200) {
@@ -102,10 +104,6 @@ export async function verifyAdminAccess(): Promise<AdminAccessStatus> {
       return "forbidden";
     }
 
-    if (hintedRole === "admin") {
-      return "ok";
-    }
-
     const refreshResponse = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
       method: "POST",
       headers: {
@@ -113,6 +111,7 @@ export async function verifyAdminAccess(): Promise<AdminAccessStatus> {
       },
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
+      signal: AbortSignal.timeout(ADMIN_ACCESS_FETCH_TIMEOUT_MS),
     });
 
     if (refreshResponse.status === 403 || refreshResponse.status === 401) {

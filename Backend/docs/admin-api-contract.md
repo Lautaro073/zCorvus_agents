@@ -106,14 +106,14 @@ Behavior:
 - Response includes:
   - `data.kpis`: `registrations`, `salesCount`, `grossRevenue`, `netRevenue`
   - `data.timeseries`: zero-filled buckets for `day|month|year`
-- Sales precedence per request range:
-  - If range has paid `sale_events`, use ledger as source for all buckets.
-  - If range has no paid `sale_events`, fallback to `token.start_date` sales estimation for `pro|enterprise`.
+- Sales precedence per bucket:
+  - If bucket has paid `sale_events`, use ledger values for that bucket.
+  - If bucket has no paid `sale_events`, fallback to `token.start_date` sales estimation for `pro|enterprise`.
 - Fallback pricing used for subscription-derived revenue:
   - `pro = 4900` cents
   - `enterprise = 9900` cents
 - If no sales source exists in range, sales KPIs are zero and timeseries remains zero-filled (not empty).
-- `filtersApplied.salesSource` indicates source used: `ledger | subscriptions_fallback | none`.
+- `filtersApplied.salesSource` indicates source used: `ledger | subscriptions_fallback | mixed | none`.
 
 Unknown query params are rejected with `400` and `invalidParam`.
 
