@@ -49,7 +49,11 @@ describe('Admin Metrics API', () => {
 
         seededUserIds = [adminId, userId, user2Id];
 
-        await query('DELETE FROM user WHERE id IN (?, ?, ?)', seededUserIds);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?)', [
+            'admin_metrics_api@test.com',
+            'metrics_user_1@test.com',
+            'metrics_user_2@test.com'
+        ]);
 
         await User.create({
             id: adminId,
@@ -91,7 +95,10 @@ describe('Admin Metrics API', () => {
         const saleB = generateUUID();
         seededSaleEventIds = [saleA, saleB];
 
-        await query('DELETE FROM sale_events WHERE id IN (?, ?)', seededSaleEventIds);
+        await query('DELETE FROM sale_events WHERE stripe_session_id IN (?, ?)', [
+            'sess_admin_metrics_1',
+            'sess_admin_metrics_2'
+        ]);
 
         await query(
             `
@@ -155,8 +162,15 @@ describe('Admin Metrics API', () => {
     });
 
     afterAll(async () => {
-        await query('DELETE FROM sale_events WHERE id IN (?, ?)', seededSaleEventIds);
-        await query('DELETE FROM user WHERE id IN (?, ?, ?)', seededUserIds);
+        await query('DELETE FROM sale_events WHERE stripe_session_id IN (?, ?)', [
+            'sess_admin_metrics_1',
+            'sess_admin_metrics_2'
+        ]);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?)', [
+            'admin_metrics_api@test.com',
+            'metrics_user_1@test.com',
+            'metrics_user_2@test.com'
+        ]);
     });
 
     it('returns 401 without token', async () => {

@@ -34,7 +34,10 @@ describe('Admin Preferences API', () => {
         userId = generateUUID();
 
         await query('DELETE FROM admin_preferences WHERE user_id IN (?, ?)', [adminId, userId]);
-        await query('DELETE FROM user WHERE id IN (?, ?)', [adminId, userId]);
+        await query('DELETE FROM user WHERE email IN (?, ?)', [
+            'admin_preferences_api@test.com',
+            'user_preferences_api@test.com'
+        ]);
 
         await User.create({
             id: adminId,
@@ -67,7 +70,10 @@ describe('Admin Preferences API', () => {
 
     afterAll(async () => {
         await query('DELETE FROM admin_preferences WHERE user_id IN (?, ?)', [adminId, userId]);
-        await query('DELETE FROM user WHERE id IN (?, ?)', [adminId, userId]);
+        await query('DELETE FROM user WHERE email IN (?, ?)', [
+            'admin_preferences_api@test.com',
+            'user_preferences_api@test.com'
+        ]);
     });
 
     it('returns 401 without token', async () => {

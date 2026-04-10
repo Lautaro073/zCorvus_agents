@@ -26,7 +26,13 @@ describe('Admin Users Query API', () => {
 
         seededUserIds = [adminId, userId, userActiveId, userExpiringId, userExpiredId];
 
-        await query('DELETE FROM user WHERE id IN (?, ?, ?, ?, ?)', seededUserIds);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?, ?, ?)', [
+            'admin_users_query@test.com',
+            'base_user_query@test.com',
+            'active_sub_user@test.com',
+            'expiring_sub_user@test.com',
+            'expired_sub_user@test.com'
+        ]);
 
         const now = new Date();
         const activeFinish = new Date(now);
@@ -114,7 +120,13 @@ describe('Admin Users Query API', () => {
     });
 
     afterAll(async () => {
-        await query('DELETE FROM user WHERE id IN (?, ?, ?, ?, ?)', seededUserIds);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?, ?, ?)', [
+            'admin_users_query@test.com',
+            'base_user_query@test.com',
+            'active_sub_user@test.com',
+            'expiring_sub_user@test.com',
+            'expired_sub_user@test.com'
+        ]);
         await query('DELETE FROM token WHERE token IN (?, ?, ?)', [
             'active-token-admin-users',
             'expiring-token-admin-users',

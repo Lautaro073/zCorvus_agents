@@ -32,7 +32,13 @@ describe('Admin Subscriptions API', () => {
         seededUserIds = [adminId, userId, userActiveId, userExpiringId, userExpiredId];
         seededTokenIds = [tokenActiveId, tokenExpiringId, tokenExpiredId];
 
-        await query('DELETE FROM user WHERE id IN (?, ?, ?, ?, ?)', seededUserIds);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?, ?, ?)', [
+            'admin_subscriptions_api@test.com',
+            'user_subscriptions_api@test.com',
+            'sub_active_user@test.com',
+            'sub_expiring_user@test.com',
+            'sub_expired_user@test.com'
+        ]);
         await query('DELETE FROM token WHERE id IN (?, ?, ?)', seededTokenIds);
 
         const now = new Date();
@@ -115,7 +121,13 @@ describe('Admin Subscriptions API', () => {
     });
 
     afterAll(async () => {
-        await query('DELETE FROM user WHERE id IN (?, ?, ?, ?, ?)', seededUserIds);
+        await query('DELETE FROM user WHERE email IN (?, ?, ?, ?, ?)', [
+            'admin_subscriptions_api@test.com',
+            'user_subscriptions_api@test.com',
+            'sub_active_user@test.com',
+            'sub_expiring_user@test.com',
+            'sub_expired_user@test.com'
+        ]);
         await query('DELETE FROM token WHERE id IN (?, ?, ?)', seededTokenIds);
     });
 
