@@ -21,6 +21,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const CONTEXT_FILE = path.resolve(__dirname, "..", "MCP_Server", "shared_context.jsonl");
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "https://zcorvusmcp-production.up.railway.app";
+const MCP_SERVER_WRITE_ENDPOINT = `${MCP_SERVER_URL}/api/events`;
+const DUAL_WRITE_ENABLED = process.env.DUAL_WRITE_ENABLED !== "false";
+
+async function writeToMcpServer(event) {
+  try {
+    const response = await fetch(MCP_SERVER_WRITE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+    if (!response.ok) {
+      console.error(`[mcp-publish-event] MCP server write failed: ${response.status} ${response.statusText}`);
+      return { success: false, status: response.status };
+    }
+    return { success: true, status: response.status };
+  } catch (error) {
+    console.error(`[mcp-publish-event] MCP server write error: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
 const MCP_CONTEXT_LEGACY_PAYLOAD_MODE =
   (process.env.MCP_CONTEXT_LEGACY_PAYLOAD_MODE || "false").toLowerCase() === "true";
 const MCP_CONTEXT_CANONICAL_NORMALIZATION_ENABLED =
@@ -311,6 +332,12 @@ async function appendEvent(agent, type, payload, options = {}) {
 
   const line = JSON.stringify(event) + "\n";
   await fs.promises.appendFile(CONTEXT_FILE, line, "utf-8");
+
+  if (DUAL_WRITE_ENABLED) {
+    const serverResult = await writeToMcpServer(event);
+    event.mcpServerWrite = serverResult;
+  }
+
   return event;
 }
 
