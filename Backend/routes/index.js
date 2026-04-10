@@ -9,6 +9,7 @@ const settingsIconsRoutes = require('./settingsIcons.routes');
 const twoFactorRoutes = require('./twoFactor.routes');
 const tokenRoutes = require('./token.routes');
 const stripeRoutes = require('./stripe.routes');
+const adminRoutes = require('./admin.routes');
 
 /**
  * @swagger
@@ -48,5 +49,6 @@ router.use('/roles', roleRoutes);
 router.use('/settings-icons', settingsIconsRoutes);
 router.use('/tokens', tokenRoutes);
 router.use('/stripe', stripeRoutes);
+router.use('/admin', adminRoutes);
 
 module.exports = router;

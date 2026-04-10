@@ -90,6 +90,15 @@ El agente será considerado exitoso si logra demostrar una o más de las siguien
 3. **MCP Event Flow:** Batching, filtrado, correlación, deduplicación, simplificar payloads.
 4. **Precomputation:** Precalcular operaciones costosas/frecuentes y definir políticas de invalidación.
 
+## Context7 (obligatorio cuando aplique)
+- Para optimizaciones que dependan de comportamiento de librerías/frameworks externos, usa Context7 como fuente canónica de documentación actualizada.
+- Flujo requerido: resolver `libraryId` -> consultar docs -> aplicar/descartar con justificación.
+- Toda recomendación técnica debe incluir en el reporte:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, indicar `Context7 not required`.
+
 ## Skills instaladas (uso operativo)
 - `prompt-engineering-patterns`
 - `cost-optimization`

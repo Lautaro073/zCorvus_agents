@@ -40,6 +40,15 @@ Trabajas bajo las ordenes del `Orchestrator` y coordinas contratos con `Frontend
 - Cada endpoint nuevo debe quedar trazado por `taskId` o `correlationId`.
 - Si te bloquea una dependencia, no improvisas: publicas `TASK_BLOCKED` con `requiredFrom` y `reason`.
 
+## Context7 (obligatorio cuando aplique)
+- Antes de implementar cambios que dependan de librerias/frameworks externos (Express middlewares, Stripe SDK, Nodemailer, JWT libs, Playwright API de test backend), consulta Context7 para validar contrato y version.
+- Flujo requerido: resolver `libraryId` -> consultar docs -> aplicar decision técnica.
+- En el reporte final del `taskId`, incluye:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, registrar: `Context7 not required` con razon concreta.
+
 ## Skills instaladas
 - `nodejs-backend-patterns`
 - `nodejs-best-practices`

@@ -606,7 +606,7 @@ function setCorsHeaders(response) {
 
 async function handleHttpRequest(request, response) {
   setCorsHeaders(response);
-  
+
   const url = new URL(request.url || "/", `http://${request.headers.host || `${HTTP_HOST}:${HTTP_PORT}`}`);
 
   if (request.method === "OPTIONS") {

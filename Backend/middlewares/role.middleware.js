@@ -1,5 +1,34 @@
 const { Role } = require('../models');
 
+const roleNameCache = new Map();
+const ROLE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function resolveRoleNameById(roleId) {
+    if (!roleId) {
+        return null;
+    }
+
+    const cacheKey = String(roleId);
+    const cached = roleNameCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+        return cached.name;
+    }
+
+    const userRole = await Role.findById(roleId);
+    if (!userRole || !userRole.name) {
+        return null;
+    }
+
+    roleNameCache.set(cacheKey, {
+        name: userRole.name,
+        expiresAt: now + ROLE_CACHE_TTL_MS
+    });
+
+    return userRole.name;
+}
+
 /**
  * Middleware para verificar roles de usuario
  */
@@ -13,25 +42,32 @@ const checkRole = (...allowedRoles) => {
                 });
             }
 
-            // Buscar el rol del usuario en la base de datos
-            const userRole = await Role.findById(req.user.roles_id);
+            if (typeof req.user.role === 'string' && req.user.role.length > 0) {
+                if (!allowedRoles.includes(req.user.role)) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Insufficient permissions'
+                    });
+                }
+                return next();
+            }
 
-            if (!userRole) {
+            const roleName = await resolveRoleNameById(req.user.roles_id);
+            if (!roleName) {
                 return res.status(403).json({
                     success: false,
                     message: 'Invalid role'
                 });
             }
 
-            if (!allowedRoles.includes(userRole.name)) {
+            if (!allowedRoles.includes(roleName)) {
                 return res.status(403).json({
                     success: false,
                     message: 'Insufficient permissions'
                 });
             }
 
-            // Agregar el nombre del rol a req.user
-            req.user.role = userRole.name;
+            req.user.role = roleName;
             next();
         } catch (error) {
             console.error('Role check error:', error);
@@ -72,17 +108,15 @@ const isSelfOrAdmin = async (req, res, next) => {
             return next();
         }
 
-        // Verificar si es admin
-        const userRole = await Role.findById(req.user.roles_id);
-
-        if (!userRole || userRole.name !== 'admin') {
+        const roleName = req.user.role || await resolveRoleNameById(req.user.roles_id);
+        if (!roleName || roleName !== 'admin') {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
             });
         }
 
-        req.user.role = userRole.name;
+        req.user.role = roleName;
         next();
     } catch (error) {
         console.error('isSelfOrAdmin error:', error);

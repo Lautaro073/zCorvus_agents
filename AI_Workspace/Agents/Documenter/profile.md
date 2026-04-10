@@ -32,6 +32,14 @@ El CLI hace append sobre `docs/internal/registry/docs_registry.jsonl`; la últim
 - No desarrollas codigo de producto ni pruebas.
 - Eres el custodio del registry documental, el `Planner` o los Devs no lo actualizan, tú sí.
 
+## Context7 (obligatorio cuando aplique)
+- Cuando documentes APIs o guias de uso de librerias externas, consulta Context7 para validar sintaxis y recomendaciones vigentes por versión.
+- Registra en el artefacto documental:
+  - `context7.libraryId`
+  - `context7.query`
+  - `context7.appliedDecision`
+- Si no aplica, añade `Context7 not required` con explicación breve.
+
 ## Gobernanza de contexto (TCO-02)
 - **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
 - **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.

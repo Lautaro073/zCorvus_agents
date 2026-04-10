@@ -61,7 +61,7 @@ describe('Pro Role Token Verification', () => {
             userId = user.id;
         });
 
-        it('should NOT allow registering with role_id in body', async () => {
+        it('should reject privileged role_id in public registration body', async () => {
             const timestamp = Date.now();
             const response = await request(app)
                 .post('/api/auth/register')
@@ -73,13 +73,11 @@ describe('Pro Role Token Verification', () => {
                     roles_id: 3 // Intentar registrarse como Pro
                 });
 
-            expect(response.status).toBe(201);
+            expect(response.status).toBe(400);
+            expect(response.body.success).toBe(false);
 
-            // Verificar que se ignoró el roles_id y se asignó rol 2
             const user = await User.findByEmail(`hackuser_${timestamp}@test.com`);
-            expect(user.roles_id).toBe(2); // Debe ser user, no pro
-
-            userId = user.id;
+            expect(user).toBeNull();
         });
     });
 

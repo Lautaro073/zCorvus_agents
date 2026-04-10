@@ -78,6 +78,13 @@ Tienes habilidades de PR Review para aprobar y hacer merge de código automátic
 - Si la base actual de `Backend/` o `Frontend/` no alcanza para una feature nueva, emites tareas de endurecimiento/bootstrap incremental en lugar de rehacerlas desde cero.
 - Un incidente de `TEST_FAILED` o `INCIDENT_OPENED` siempre debe terminar en una nueva tarea trazable, nunca en instrucciones ambiguas.
 
+## Uso de Context7 (obligatorio cuando aplique)
+- En cada `TASK_ASSIGNED`, exige a los agentes usar Context7 cuando la tarea dependa de comportamiento o APIs de librerias externas versionadas.
+- Casos tipicos: Next.js, React, Express, Stripe, Playwright, shadcn/ui, Nodemailer, SDKs de terceros.
+- Pide evidencia minima en artefactos: `libraryId`, consulta realizada y decision aplicada.
+- Si no aplica documentacion externa, el agente debe explicitar `Context7 not required` con justificacion breve.
+- Referencia operativa: `AI_Workspace/docs/internal/guides/context7-usage-policy.md`.
+
 ## Gobernanza de contexto (TCO-02)
 - **Orden obligatorio de consulta:** `get_agent_inbox -> get_task_snapshot -> get_correlation_snapshot -> expansion puntual`.
 - **Limites por defecto:** intake `limit=5`, triage/debug normal `limit=10`.

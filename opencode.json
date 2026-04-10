@@ -1,12 +1,28 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "zcorvus-mcp": {
+    "zcorvus-mcp-local": {
       "type": "local",
-      "command": ["node", "AI_Workspace/MCP_Server/mcp-stdio.js"],
+      "command": [
+        "node",
+        "AI_Workspace/MCP_Server_1.0.0/mcp-stdio.js"
+      ],
       "environment": {
         "NODE_ENV": "development",
-      }
+      },
+    },
+    "zcorvus-mcp-server": {
+      "type": "remote",
+      "url": "https://zcorvusmcp-production.up.railway.app/sse",
+      "enabled": true
+    },
+    "context7-mcp": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-a9e71feb-e2e8-411e-8e1c-46b15bd13ef0"
+      },
+      "enabled": true
     }
   }
 }

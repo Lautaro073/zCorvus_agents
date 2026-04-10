@@ -1,0 +1,82 @@
+{
+  "title": "Admin dashboard",
+  "description": "Monitor users, subscriptions, and business metrics in real time.",
+  "kpis": {
+    "registrations": "Registrations",
+    "salesCount": "Subscription",
+    "revenue": "Revenue"
+  },
+  "filters": {
+    "search": "Search username or email",
+    "role": "Role",
+    "subscriptionStatus": "Subscription status",
+    "planType": "Plan",
+    "sortBy": "Sort by",
+    "sortDir": "Direction",
+    "granularity": "Granularity",
+    "from": "From",
+    "to": "To",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year",
+    "custom": "Custom",
+    "expiringInDays": "Expiring in (days)",
+    "refresh": "Refresh"
+  },
+  "states": {
+    "emptyUsers": "No users found for the selected filters.",
+    "emptySubscriptions": "No subscriptions found for the selected filters.",
+    "emptyMetrics": "Not enough metric data to render charts for the selected range.",
+    "loadingUsers": "Loading users...",
+    "loadingSubscriptions": "Loading subscriptions...",
+    "loadingMetrics": "Loading metrics and preparing charts..."
+  },
+  "errors": {
+    "loadUsers": "Could not load users.",
+    "loadSubscriptions": "Could not load subscriptions.",
+    "loadMetrics": "Could not load metrics.",
+    "invalidCustomRange": "Custom filter requires both from and to.",
+    "invalidDateRange": "From date must be less than or equal to to date."
+  },
+  "table": {
+    "users": {
+      "title": "Users",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "status": "Subscription",
+      "startDate": "Start date",
+      "columnsControl": "Columns",
+      "tokenExpiry": "Token expiry"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "user": "User",
+      "plan": "Plan",
+      "status": "Status",
+      "startDate": "Start date",
+      "finishDate": "Finish date"
+    }
+  },
+  "summary": {
+    "active": "Active",
+    "expiring": "Expiring",
+    "expired": "Expired",
+    "total": "Total"
+  },
+  "statuses": {
+    "active": "Active",
+    "expiring": "Expiring",
+    "expired": "Expired",
+    "none": "No subscription"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "User",
+    "pro": "Pro"
+  },
+  "controls": {
+    "toggleTheme": "Toggle theme",
+    "toggleLocale": "Switch language"
+  }
+}

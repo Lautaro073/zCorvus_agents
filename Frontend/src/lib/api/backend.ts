@@ -73,6 +73,209 @@ export interface CheckoutSessionResponse {
 type CheckoutLocale = 'es' | 'en';
 type OtpLocale = 'es' | 'en';
 
+export interface AdminPagination {
+  page: number;
+  pageSize: number;
+  limit?: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export type AdminRole = 'admin' | 'user' | 'pro';
+export type AdminSubscriptionStatus = 'active' | 'expiring' | 'expired' | 'none';
+export type AdminSortBy = 'id' | 'created_at' | 'username' | 'email' | 'role_name' | 'token_finish_date';
+export type AdminSortDir = 'asc' | 'desc';
+export type AdminPlanType = 'pro' | 'enterprise';
+export type AdminMetricsGranularity = 'day' | 'month' | 'year' | 'custom';
+
+export interface GetAdminUsersParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: AdminRole;
+  subscriptionStatus?: AdminSubscriptionStatus;
+  sortBy?: AdminSortBy;
+  sortDir?: AdminSortDir;
+  expiringInDays?: number;
+}
+
+export interface GetAdminSubscriptionsParams {
+  page?: number;
+  pageSize?: number;
+  status?: Exclude<AdminSubscriptionStatus, 'none'>;
+  planType?: AdminPlanType;
+  expiringInDays?: number;
+  from?: string;
+  to?: string;
+}
+
+export interface GetAdminMetricsParams {
+  granularity?: AdminMetricsGranularity;
+  from?: string;
+  to?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  roles_id: number;
+  role_name: AdminRole;
+  token_id: string | null;
+  token_finish_date: string | null;
+  subscriptionStatus: AdminSubscriptionStatus;
+  two_factor_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminUsersFiltersApplied {
+  search: string | null;
+  role: AdminRole | null;
+  subscriptionStatus: AdminSubscriptionStatus | null;
+  sortBy: AdminSortBy;
+  sortDir: AdminSortDir;
+  expiringInDays: number;
+}
+
+export interface AdminUsersResult {
+  data: AdminUser[];
+  pagination: AdminPagination;
+  filtersApplied: AdminUsersFiltersApplied;
+  generatedAt: string;
+}
+
+export interface AdminSubscription {
+  user_id: string;
+  user_email: string;
+  username: string;
+  token_id: string;
+  plan_type: AdminPlanType;
+  start_date: string;
+  finish_date: string;
+  subscriptionStatus: Exclude<AdminSubscriptionStatus, 'none'>;
+}
+
+export interface AdminSubscriptionsSummaryCounts {
+  active: number;
+  expiring: number;
+  expired: number;
+  total: number;
+}
+
+export interface AdminSubscriptionsFiltersApplied {
+  status: Exclude<AdminSubscriptionStatus, 'none'> | null;
+  planType: AdminPlanType | null;
+  expiringInDays: number;
+  from: string | null;
+  to: string | null;
+}
+
+export interface AdminSubscriptionsResult {
+  data: AdminSubscription[];
+  summaryCounts: AdminSubscriptionsSummaryCounts;
+  pagination: AdminPagination;
+  filtersApplied: AdminSubscriptionsFiltersApplied;
+  generatedAt: string;
+}
+
+export interface AdminMetricsKpis {
+  registrations: number;
+  salesCount: number;
+  grossRevenue: number;
+  netRevenue: number;
+}
+
+export interface AdminMetricsTimeseriesPoint {
+  bucketKey: string;
+  bucketStart: string;
+  bucketEnd: string;
+  registrations: number;
+  salesCount: number;
+  grossRevenue: number;
+  netRevenue: number;
+}
+
+export interface AdminMetricsFiltersApplied {
+  granularity: AdminMetricsGranularity;
+  from: string;
+  to: string;
+  bucketGranularity: Exclude<AdminMetricsGranularity, 'custom'>;
+}
+
+export interface AdminMetricsResult {
+  data: {
+    kpis: AdminMetricsKpis;
+    timeseries: AdminMetricsTimeseriesPoint[];
+  };
+  filtersApplied: AdminMetricsFiltersApplied;
+  generatedAt: string;
+}
+
+export type AdminPreferenceColumnKey =
+  | 'username'
+  | 'email'
+  | 'role'
+  | 'status'
+  | 'plan'
+  | 'startDate'
+  | 'tokenExpiry';
+
+export interface AdminPreferencesData {
+  columnVisibility: Record<AdminPreferenceColumnKey, boolean>;
+  columnOrder: AdminPreferenceColumnKey[];
+}
+
+export interface AdminPreferencesResult {
+  data: AdminPreferencesData;
+  generatedAt: string;
+}
+
+export interface UpdateAdminPreferencesPayload {
+  columnVisibility?: Partial<Record<AdminPreferenceColumnKey, boolean>>;
+  columnOrder?: AdminPreferenceColumnKey[];
+}
+
+interface AdminApiEnvelope<TData, TFilters> extends ApiResponse<TData> {
+  pagination?: AdminPagination;
+  filtersApplied?: TFilters;
+  generatedAt?: string;
+  summaryCounts?: AdminSubscriptionsSummaryCounts;
+  invalidParam?: string;
+  expected?: string;
+  received?: string;
+}
+
+export class BackendApiError extends Error {
+  status: number;
+  invalidParam?: string;
+  expected?: string;
+  received?: string;
+
+  constructor(
+    message: string,
+    status: number,
+    details?: {
+      invalidParam?: string;
+      expected?: string;
+      received?: string;
+    }
+  ) {
+    super(message);
+    this.name = 'BackendApiError';
+    this.status = status;
+    this.invalidParam = details?.invalidParam;
+    this.expected = details?.expected;
+    this.received = details?.received;
+  }
+}
+
+export function isBackendApiError(error: unknown): error is BackendApiError {
+  return error instanceof BackendApiError;
+}
+
 export interface SettingsIcons {
   id: string;
   icon: string;
@@ -97,7 +300,19 @@ let currentAccessToken: string | null = null;
 
 const REFRESH_TOKEN_STORAGE_KEY = 'refreshToken';
 const REFRESH_TOKEN_EXPIRY_STORAGE_KEY = 'refreshTokenExpiry';
+const USER_ROLE_STORAGE_KEY = 'userRole';
+const USER_ROLE_COOKIE_KEY = 'userRole';
 const REFRESH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
+type UserRoleHint = 'admin' | 'user' | 'pro';
+
+function normalizeUserRole(role: string | null | undefined): UserRoleHint | null {
+  if (role === 'admin' || role === 'user' || role === 'pro') {
+    return role;
+  }
+
+  return null;
+}
 
 function isBrowserEnvironment(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -164,6 +379,24 @@ export function setRefreshToken(refreshToken: string, expiresAt?: string | null)
 }
 
 /**
+ * Persist role hint for cheap server-side authz redirect decisions.
+ */
+export function setUserRoleHint(role: string | null | undefined): void {
+  if (!isBrowserEnvironment()) return;
+
+  const normalized = normalizeUserRole(role);
+
+  if (!normalized) {
+    localStorage.removeItem(USER_ROLE_STORAGE_KEY);
+    removeCookieValue(USER_ROLE_COOKIE_KEY);
+    return;
+  }
+
+  localStorage.setItem(USER_ROLE_STORAGE_KEY, normalized);
+  setCookieValue(USER_ROLE_COOKIE_KEY, normalized);
+}
+
+/**
  * Establecer el access token actual (llamado desde AuthContext)
  */
 export function setCurrentAccessToken(token: string | null) {
@@ -215,8 +448,10 @@ export function clearTokens() {
   if (isBrowserEnvironment()) {
     localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
     localStorage.removeItem(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+    localStorage.removeItem(USER_ROLE_STORAGE_KEY);
     removeCookieValue(REFRESH_TOKEN_STORAGE_KEY);
     removeCookieValue(REFRESH_TOKEN_EXPIRY_STORAGE_KEY);
+    removeCookieValue(USER_ROLE_COOKIE_KEY);
   }
 }
 
@@ -233,6 +468,71 @@ function createAuthHeaders(includeAuth = true): HeadersInit {
   }
 
   return headers;
+}
+
+function createAdminQueryString(params: Record<string, string | number | undefined | null>): string {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    search.set(key, String(value));
+  });
+
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
+
+async function parseAdminEnvelope<TData, TFilters>(response: Response): Promise<AdminApiEnvelope<TData, TFilters>> {
+  let payload: AdminApiEnvelope<TData, TFilters>;
+
+  try {
+    payload = (await response.json()) as AdminApiEnvelope<TData, TFilters>;
+  } catch {
+    throw new BackendApiError('Invalid backend response format', response.status || 500);
+  }
+
+  if (!response.ok || !payload.success) {
+    throw new BackendApiError(payload.message || 'Admin API request failed', response.status || 500, {
+      invalidParam: payload.invalidParam,
+      expected: payload.expected,
+      received: payload.received,
+    });
+  }
+
+  return payload;
+}
+
+function assertAdminEnvelope<TData, TFilters>(
+  payload: AdminApiEnvelope<TData, TFilters>,
+  endpointName: string
+): {
+  data: TData;
+  pagination: AdminPagination;
+  filtersApplied: TFilters;
+  generatedAt: string;
+} {
+  if (payload.data === undefined || payload.pagination === undefined || payload.filtersApplied === undefined || !payload.generatedAt) {
+    throw new BackendApiError(`Invalid admin envelope from ${endpointName}`, 500);
+  }
+
+  return {
+    data: payload.data,
+    pagination: payload.pagination,
+    filtersApplied: payload.filtersApplied,
+    generatedAt: payload.generatedAt,
+  };
+}
+
+function handleAdminAuthError(error: unknown): never {
+  if (isBackendApiError(error) && error.status === 401) {
+    clearTokens();
+    throw new BackendApiError('SESSION_EXPIRED', 401);
+  }
+
+  throw error;
 }
 
 // ==================== AUTENTICACIÓN ====================
@@ -522,6 +822,167 @@ export async function changePassword(
 
   if (!response.ok || !data.success) {
     throw new Error(data.message || 'Failed to change password');
+  }
+}
+
+// ==================== ADMIN ====================
+
+/**
+ * Obtener usuarios admin (paginado y filtrable)
+ */
+export async function getAdminUsers(params: GetAdminUsersParams = {}): Promise<AdminUsersResult> {
+  try {
+    const query = createAdminQueryString({
+      page: params.page,
+      pageSize: params.pageSize,
+      search: params.search,
+      role: params.role,
+      subscriptionStatus: params.subscriptionStatus,
+      sortBy: params.sortBy,
+      sortDir: params.sortDir,
+      expiringInDays: params.expiringInDays,
+    });
+
+    const response = await fetch(`${BACKEND_URL}/api/admin/users${query}`, {
+      headers: createAuthHeaders(),
+    });
+
+    const payload = await parseAdminEnvelope<AdminUser[], AdminUsersFiltersApplied>(response);
+    const envelope = assertAdminEnvelope(payload, 'GET /api/admin/users');
+
+    return {
+      data: envelope.data,
+      pagination: envelope.pagination,
+      filtersApplied: envelope.filtersApplied,
+      generatedAt: envelope.generatedAt,
+    };
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+/**
+ * Obtener suscripciones admin (paginado y filtrable)
+ */
+export async function getAdminSubscriptions(
+  params: GetAdminSubscriptionsParams = {}
+): Promise<AdminSubscriptionsResult> {
+  try {
+    const query = createAdminQueryString({
+      page: params.page,
+      pageSize: params.pageSize,
+      status: params.status,
+      planType: params.planType,
+      expiringInDays: params.expiringInDays,
+      from: params.from,
+      to: params.to,
+    });
+
+    const response = await fetch(`${BACKEND_URL}/api/admin/subscriptions${query}`, {
+      headers: createAuthHeaders(),
+    });
+
+    const payload = await parseAdminEnvelope<AdminSubscription[], AdminSubscriptionsFiltersApplied>(response);
+    const envelope = assertAdminEnvelope(payload, 'GET /api/admin/subscriptions');
+
+    if (!payload.summaryCounts) {
+      throw new BackendApiError('Invalid admin envelope from GET /api/admin/subscriptions', 500);
+    }
+
+    return {
+      data: envelope.data,
+      summaryCounts: payload.summaryCounts,
+      pagination: envelope.pagination,
+      filtersApplied: envelope.filtersApplied,
+      generatedAt: envelope.generatedAt,
+    };
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+/**
+ * Obtener métricas admin (KPI + serie temporal)
+ */
+export async function getAdminMetrics(
+  params: GetAdminMetricsParams = {}
+): Promise<AdminMetricsResult> {
+  try {
+    const query = createAdminQueryString({
+      granularity: params.granularity,
+      from: params.from,
+      to: params.to,
+    });
+
+    const response = await fetch(`${BACKEND_URL}/api/admin/metrics${query}`, {
+      headers: createAuthHeaders(),
+    });
+
+    const payload = await parseAdminEnvelope<AdminMetricsResult['data'], AdminMetricsFiltersApplied>(response);
+
+    if (payload.data === undefined || payload.filtersApplied === undefined || !payload.generatedAt) {
+      throw new BackendApiError('Invalid admin envelope from GET /api/admin/metrics', 500);
+    }
+
+    return {
+      data: payload.data,
+      filtersApplied: payload.filtersApplied,
+      generatedAt: payload.generatedAt,
+    };
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+/**
+ * Obtener preferencias admin de columnas (persistidas por cuenta)
+ */
+export async function getAdminPreferences(): Promise<AdminPreferencesResult> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/preferences`, {
+      headers: createAuthHeaders(),
+    });
+
+    const payload = await parseAdminEnvelope<AdminPreferencesData, Record<string, never>>(response);
+
+    if (payload.data === undefined || !payload.generatedAt) {
+      throw new BackendApiError('Invalid admin envelope from GET /api/admin/preferences', 500);
+    }
+
+    return {
+      data: payload.data,
+      generatedAt: payload.generatedAt,
+    };
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+/**
+ * Guardar preferencias admin de columnas (persistidas por cuenta)
+ */
+export async function updateAdminPreferences(
+  payload: UpdateAdminPreferencesPayload
+): Promise<AdminPreferencesResult> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/preferences`, {
+      method: 'PATCH',
+      headers: createAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const envelope = await parseAdminEnvelope<AdminPreferencesData, Record<string, never>>(response);
+
+    if (envelope.data === undefined || !envelope.generatedAt) {
+      throw new BackendApiError('Invalid admin envelope from PATCH /api/admin/preferences', 500);
+    }
+
+    return {
+      data: envelope.data,
+      generatedAt: envelope.generatedAt,
+    };
+  } catch (error) {
+    handleAdminAuthError(error);
   }
 }
 

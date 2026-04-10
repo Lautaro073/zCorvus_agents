@@ -10,7 +10,9 @@
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
-        "db:migrate:password-reset-otp": "node scripts/migrate-password-reset-otp.mjs"
+        "db:migrate:password-reset-otp": "node scripts/migrate-password-reset-otp.mjs",
+        "db:backfill:admin-sales-ledger": "node scripts/backfill-admin-sales-ledger.js",
+        "db:backfill:admin-sales-ledger:dry": "node scripts/backfill-admin-sales-ledger.js --dry-run"
     },
     "keywords": [
         "express",

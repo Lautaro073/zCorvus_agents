@@ -40,7 +40,9 @@ yarn-error.log*
 
 # vercel
 .vercel
-
+.perf
+/test-results
+/playwright-report
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -12,6 +12,7 @@ import {
     logout as backendLogout, 
     getRefreshTokenFromServer,
     refreshAccessToken as backendRefreshAccessToken,
+    setUserRoleHint,
     type User 
 } from '@/lib/api/backend';
 
@@ -20,7 +21,7 @@ interface AuthContextType {
     accessToken: string | null;
     isLoading: boolean;
     isAuthenticated: boolean;
-    login: (email: string, password: string, twoFactorCode?: string) => Promise<void>;
+    login: (email: string, password: string, twoFactorCode?: string) => Promise<User>;
     register: (username: string, email: string, password: string, confirmPassword: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshSession: () => Promise<void>;
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setAccessToken(data.accessToken);
             setCurrentAccessToken(data.accessToken);
             setUser(userObj);
+            setUserRoleHint(userObj?.role_name ?? (userObj as { role?: string } | undefined)?.role ?? null);
             runtimeAuthSnapshot.user = userObj;
             runtimeAuthSnapshot.accessToken = data.accessToken;
             runtimeAuthSnapshot.initialized = true;
@@ -95,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Login
-    const login = async (email: string, password: string, twoFactorCode?: string) => {
+    const login = async (email: string, password: string, twoFactorCode?: string): Promise<User> => {
         const data = await backendLogin(email, password, twoFactorCode);
         setAccessToken(data.accessToken);
         
@@ -107,10 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Actualizamos backend.ts para que las llamadas subsecuentes tengan auth
         setCurrentAccessToken(data.accessToken);
+        setUserRoleHint(userObj?.role_name ?? (userObj as { role?: string } | undefined)?.role ?? null);
         runtimeAuthSnapshot.user = userObj;
         runtimeAuthSnapshot.accessToken = data.accessToken;
         runtimeAuthSnapshot.initialized = true;
         await storeRefreshToken();
+        return userObj;
     };
 
     // Register
@@ -125,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userObj);
 
         setCurrentAccessToken(data.accessToken);
+        setUserRoleHint(userObj?.role_name ?? (userObj as { role?: string } | undefined)?.role ?? null);
         runtimeAuthSnapshot.user = userObj;
         runtimeAuthSnapshot.accessToken = data.accessToken;
         runtimeAuthSnapshot.initialized = true;
@@ -137,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logoutInternal = async () => {
         setAccessToken(null);
         setUser(null);
+        setUserRoleHint(null);
         runtimeAuthSnapshot.user = null;
         runtimeAuthSnapshot.accessToken = null;
         runtimeAuthSnapshot.initialized = true;

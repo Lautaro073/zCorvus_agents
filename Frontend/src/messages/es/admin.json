@@ -1,0 +1,82 @@
+{
+  "title": "Panel de administracion",
+  "description": "Monitorea usuarios, suscripciones y metricas de negocio en tiempo real.",
+  "kpis": {
+    "registrations": "Registros",
+    "salesCount": "Suscripciones",
+    "revenue": "Ingresos"
+  },
+  "filters": {
+    "search": "Buscar usuario o email",
+    "role": "Rol",
+    "subscriptionStatus": "Estado de suscripcion",
+    "planType": "Plan",
+    "sortBy": "Ordenar por",
+    "sortDir": "Direccion",
+    "granularity": "Granularidad",
+    "from": "Desde",
+    "to": "Hasta",
+    "day": "Dia",
+    "month": "Mes",
+    "year": "Año",
+    "custom": "Personalizado",
+    "expiringInDays": "Vence en (dias)",
+    "refresh": "Actualizar"
+  },
+  "states": {
+    "emptyUsers": "No hay usuarios para los filtros seleccionados.",
+    "emptySubscriptions": "No hay suscripciones para los filtros seleccionados.",
+    "emptyMetrics": "No hay datos suficientes para graficar metricas en el rango actual.",
+    "loadingUsers": "Cargando usuarios...",
+    "loadingSubscriptions": "Cargando suscripciones...",
+    "loadingMetrics": "Cargando metricas y preparando graficos..."
+  },
+  "errors": {
+    "loadUsers": "No se pudieron cargar los usuarios.",
+    "loadSubscriptions": "No se pudieron cargar las suscripciones.",
+    "loadMetrics": "No se pudieron cargar las metricas.",
+    "invalidCustomRange": "Para filtro personalizado debes enviar desde y hasta.",
+    "invalidDateRange": "La fecha desde debe ser menor o igual a hasta."
+  },
+  "table": {
+    "users": {
+      "title": "Usuarios",
+      "username": "Usuario",
+      "email": "Email",
+      "role": "Rol",
+      "status": "Suscripcion",
+      "startDate": "Inicio",
+      "columnsControl": "Columnas",
+      "tokenExpiry": "Vencimiento"
+    },
+    "subscriptions": {
+      "title": "Suscripciones",
+      "user": "Usuario",
+      "plan": "Plan",
+      "status": "Estado",
+      "startDate": "Inicio",
+      "finishDate": "Vencimiento"
+    }
+  },
+  "summary": {
+    "active": "Activas",
+    "expiring": "Por vencer",
+    "expired": "Vencidas",
+    "total": "Total"
+  },
+  "statuses": {
+    "active": "Activa",
+    "expiring": "Por vencer",
+    "expired": "Vencida",
+    "none": "Sin suscripcion"
+  },
+  "roles": {
+    "admin": "Administrador",
+    "user": "Usuario",
+    "pro": "Pro"
+  },
+  "controls": {
+    "toggleTheme": "Cambiar tema",
+    "toggleLocale": "Cambiar idioma"
+  }
+}

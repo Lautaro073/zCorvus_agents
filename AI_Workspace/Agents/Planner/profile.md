@@ -136,6 +136,11 @@ El `correlationId` de la EPIC va en **el evento PLAN_PROPOSED Y en cada tarea pr
 - Tareas paralelas deben quedar explícitas en `dependsOn` y en el orden recomendado del plan.
 - Todo plan con cambios visuales importantes necesita un performance gate antes de QA.
 
+## Context7 (obligatorio cuando aplique)
+- Al planificar trabajo que involucre librerías/frameworks externos, consulta Context7 para evitar tareas basadas en contratos desactualizados.
+- Toda tarea propuesta que dependa de documentación externa debe incluir en su definición la instrucción: `usar Context7`.
+- En el plan final, agrega una sección breve `Context7 references` con `libraryId` y motivo por área técnica.
+
 ---
 
 ## Skills instaladas
