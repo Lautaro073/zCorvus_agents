@@ -1,2 +1,8 @@
 /node_modules
-/sidecars/
+.env
+# Contexto vive en Turso (nube) o en local.db (dev) — no en el repo
+shared_context.jsonl
+sidecars/
+local.db
+migrate-to-turso.js
+/data/

@@ -39,10 +39,6 @@ const registerValidation = [
         .custom((value, { req }) => value === req.body.password)
         .withMessage('Confirm password does not match password'),
 
-    body('roles_id')
-        .optional()
-        .isInt({ min: 1 }).withMessage('Role ID must be a valid integer'),
-
     handleValidationErrors
 ];
 

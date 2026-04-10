@@ -6,6 +6,7 @@ const healthURL = process.env.PLAYWRIGHT_HEALTHCHECK_URL ?? `${baseURL}/es`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testIgnore: ["playwright-report/**"],
   timeout: 120_000,
   expect: {
     timeout: 10_000,

@@ -1,6 +1,12 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { User, Token } = require('../models');
 const { generateUUID } = require('../utils/uuid');
+const db = require('../utils/db');
+
+const PLAN_PRICES_CENTS = {
+    pro: 4900,
+    enterprise: 9900
+};
 
 /**
  * Generar token npm premium en el formato correcto
@@ -15,6 +21,155 @@ function normalizeLocale(locale) {
     return locale === 'en' || locale === 'es' ? locale : 'es';
 }
 
+function resolvePlanType(planType) {
+    return planType === 'enterprise' ? 'enterprise' : 'pro';
+}
+
+function getPlanAmountCents(planType) {
+    const resolvedPlanType = resolvePlanType(planType);
+    return PLAN_PRICES_CENTS[resolvedPlanType] || PLAN_PRICES_CENTS.pro;
+}
+
+function toIsoFromUnixSeconds(seconds) {
+    if (!Number.isFinite(seconds)) {
+        return new Date().toISOString();
+    }
+    return new Date(seconds * 1000).toISOString();
+}
+
+function isUniqueConstraintError(error) {
+    if (!error) {
+        return false;
+    }
+
+    if (error.code === 'SQLITE_CONSTRAINT') {
+        return true;
+    }
+
+    return /UNIQUE constraint failed/i.test(String(error.message || ''));
+}
+
+async function ensureSaleEventsSchema() {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS sale_events (
+            id TEXT PRIMARY KEY,
+            stripe_event_id TEXT,
+            stripe_session_id TEXT NOT NULL UNIQUE,
+            stripe_customer_id TEXT,
+            stripe_subscription_id TEXT,
+            user_id TEXT,
+            user_email TEXT,
+            plan_type TEXT NOT NULL DEFAULT 'pro',
+            currency TEXT NOT NULL DEFAULT 'usd',
+            amount_subtotal_cents INTEGER NOT NULL DEFAULT 0,
+            amount_total_cents INTEGER NOT NULL DEFAULT 0,
+            amount_tax_cents INTEGER NOT NULL DEFAULT 0,
+            amount_discount_cents INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL,
+            paid_at DATETIME NOT NULL,
+            source TEXT NOT NULL DEFAULT 'stripe_webhook',
+            payload_json TEXT,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
+        )
+    `);
+
+    await db.query('CREATE INDEX IF NOT EXISTS idx_sale_events_paid_at ON sale_events(paid_at)');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_sale_events_status ON sale_events(status)');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_sale_events_user_id ON sale_events(user_id)');
+}
+
+function buildSaleEventFromSession(event, session) {
+    const metadata = session.metadata || {};
+    const planType = resolvePlanType(metadata.planType || session?.metadata?.planType || 'pro');
+    const fallbackTotal = getPlanAmountCents(planType);
+
+    return {
+        id: generateUUID(),
+        stripeEventId: event.id || null,
+        stripeSessionId: session.id,
+        stripeCustomerId: session.customer || null,
+        stripeSubscriptionId: session.subscription || null,
+        userId: metadata.userId || null,
+        userEmail: metadata.userEmail || session?.customer_details?.email || null,
+        planType,
+        currency: session.currency || 'usd',
+        amountSubtotalCents: Number.isFinite(session.amount_subtotal) ? session.amount_subtotal : fallbackTotal,
+        amountTotalCents: Number.isFinite(session.amount_total) ? session.amount_total : fallbackTotal,
+        amountTaxCents: Number(session?.total_details?.amount_tax || 0),
+        amountDiscountCents: Number(session?.total_details?.amount_discount || 0),
+        status: session.payment_status || 'paid',
+        paidAt: toIsoFromUnixSeconds(session.created),
+        source: 'stripe_webhook',
+        payloadJson: JSON.stringify({
+            stripeEventType: event.type,
+            stripeLivemode: Boolean(event.livemode),
+            sessionId: session.id,
+            paymentStatus: session.payment_status || null,
+            metadata
+        })
+    };
+}
+
+async function insertSaleEvent(saleEvent) {
+    try {
+        await db.query(
+            `
+                INSERT INTO sale_events (
+                    id,
+                    stripe_event_id,
+                    stripe_session_id,
+                    stripe_customer_id,
+                    stripe_subscription_id,
+                    user_id,
+                    user_email,
+                    plan_type,
+                    currency,
+                    amount_subtotal_cents,
+                    amount_total_cents,
+                    amount_tax_cents,
+                    amount_discount_cents,
+                    status,
+                    paid_at,
+                    source,
+                    payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+                saleEvent.id,
+                saleEvent.stripeEventId,
+                saleEvent.stripeSessionId,
+                saleEvent.stripeCustomerId,
+                saleEvent.stripeSubscriptionId,
+                saleEvent.userId,
+                saleEvent.userEmail,
+                saleEvent.planType,
+                saleEvent.currency,
+                saleEvent.amountSubtotalCents,
+                saleEvent.amountTotalCents,
+                saleEvent.amountTaxCents,
+                saleEvent.amountDiscountCents,
+                saleEvent.status,
+                saleEvent.paidAt,
+                saleEvent.source,
+                saleEvent.payloadJson
+            ]
+        );
+
+        return { inserted: true };
+    } catch (error) {
+        if (isUniqueConstraintError(error)) {
+            return { inserted: false, reason: 'duplicate_session' };
+        }
+        throw error;
+    }
+}
+
+async function rollbackSaleEventBySessionId(stripeSessionId) {
+    await db.query('DELETE FROM sale_events WHERE stripe_session_id = ?', [stripeSessionId]);
+}
+
 /**
  * Crear sesión de checkout de Stripe
  */
@@ -22,6 +177,7 @@ exports.createCheckout = async (req, res, next) => {
     try {
         const { userId, userEmail, userName, planType, locale } = req.body;
         const resolvedLocale = normalizeLocale(locale);
+        const resolvedPlanType = resolvePlanType(planType);
         const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const premiumBasePath = `${frontendBaseUrl}/${resolvedLocale}/premium`;
 
@@ -41,12 +197,12 @@ exports.createCheckout = async (req, res, next) => {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: planType === 'enterprise' ? 'zCorvus Enterprise' : 'zCorvus Pro',
-                            description: planType === 'enterprise'
+                            name: resolvedPlanType === 'enterprise' ? 'zCorvus Enterprise' : 'zCorvus Pro',
+                            description: resolvedPlanType === 'enterprise'
                                 ? 'Enterprise plan with unlimited access'
                                 : 'Pro plan with premium icons access',
                         },
-                        unit_amount: planType === 'enterprise' ? 9900 : 4900, // $99 o $49
+                        unit_amount: getPlanAmountCents(resolvedPlanType),
                         recurring: {
                             interval: 'year'
                         }
@@ -61,7 +217,7 @@ exports.createCheckout = async (req, res, next) => {
                 userId,
                 userEmail,
                 userName: userName || '',
-                planType: planType || 'pro',
+                planType: resolvedPlanType,
                 locale: resolvedLocale,
             }
         });
@@ -100,11 +256,28 @@ exports.handleWebhook = async (req, res, next) => {
     // Manejar el evento
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        const metadata = session.metadata;
+        const metadata = session.metadata || {};
+        let ledgerInserted = false;
 
         console.log('Payment successful for user:', metadata.userId);
 
         try {
+            await ensureSaleEventsSchema();
+
+            const saleEvent = buildSaleEventFromSession(event, session);
+            const ledgerResult = await insertSaleEvent(saleEvent);
+
+            if (!ledgerResult.inserted) {
+                return res.json({
+                    success: true,
+                    message: 'Payment already processed',
+                    idempotent: true,
+                    stripeSessionId: session.id
+                });
+            }
+
+            ledgerInserted = true;
+
             // Verificar si el usuario existe
             let user = await User.findById(metadata.userId);
 
@@ -153,7 +326,7 @@ exports.handleWebhook = async (req, res, next) => {
             // Crear token en la base de datos
             const tokenId = await Token.create({
                 token: npmToken,
-                type: metadata.planType || 'pro',
+                type: resolvePlanType(metadata.planType),
                 start_date: now.toISOString(),
                 finish_date: oneYearLater.toISOString(),
             });
@@ -175,6 +348,15 @@ exports.handleWebhook = async (req, res, next) => {
             });
         } catch (error) {
             console.error('Error processing payment:', error);
+
+            if (ledgerInserted) {
+                try {
+                    await rollbackSaleEventBySessionId(session.id);
+                } catch (rollbackError) {
+                    console.error('Error rolling back ledger event:', rollbackError);
+                }
+            }
+
             return res.status(500).json({
                 success: false,
                 message: 'Error processing payment',

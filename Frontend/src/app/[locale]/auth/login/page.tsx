@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,16 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const auth = useTranslations("auth");
   const common = useTranslations("common");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const handledSessionFeedback = useRef(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,12 +25,26 @@ export default function LoginPage() {
   });
   const [requires2FA, setRequires2FA] = useState(false);
 
+  useEffect(() => {
+    if (handledSessionFeedback.current) {
+      return;
+    }
+
+    const session = searchParams.get("session");
+
+    if (session === "expired") {
+      handledSessionFeedback.current = true;
+      toast.info(auth("errors.sessionExpired"));
+      router.replace("/auth/login");
+    }
+  }, [auth, router, searchParams]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await login(
+      const loggedUser = await login(
         formData.email,
         formData.password,
         formData.twoFactorCode || undefined
@@ -35,8 +52,11 @@ export default function LoginPage() {
 
       toast.success(auth('success.loginSuccess'));
 
-      // Redirigir a home
-      router.push('/icons');
+      if (loggedUser.role_name === "admin") {
+        router.push("/admin");
+      } else {
+        router.push('/icons');
+      }
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === '2FA_REQUIRED') {

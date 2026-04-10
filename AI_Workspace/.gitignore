@@ -6,6 +6,7 @@
 ./node_modules*
 **/node_modules/
 /handoff
+/MCP_Server_1.0.0
 /report
 /.pnp
 .pnp.*

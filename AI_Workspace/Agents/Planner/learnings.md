@@ -132,6 +132,44 @@ Leer este archivo ANTES de empezar cualquier plan. Cada entrada es una lección 
 
 ---
 
+## 2026-04-07 — admin-control-panel plan correction review
+- **Trigger:** USER_PLAN_CORRECTION_REVIEW (Admin Control Panel v1 -> v2)
+- **Regla:** Cuando el usuario corrige un plan, convertir cada correccion en regla operativa verificable antes del siguiente `PLAN_PROPOSED`.
+
+### Errores detectados y regla nueva
+
+1. **Seq de taskId del plan sin justificacion (`-50`)**
+   - **Regla:** usar secuencia real y trazable para Planner; evitar saltos arbitrarios en `taskId`.
+
+2. **Testing sin dependencia del guard de acceso**
+   - **Regla:** si QA valida acceso/redirect por rol, Testing debe depender explicitamente de la tarea de routing/guard.
+
+3. **AC de data hooks sin mecanismo tecnico**
+   - **Regla:** en hooks/API definir mecanismo concreto de estados (`isLoading`, `isError`, empty-state, retry), no solo el resultado esperado.
+
+4. **Skills no alineadas al trabajo real de la tarea**
+   - **Regla:** tareas de data hooks no deben priorizar skills de diseno visual; asignar skills segun tipo de trabajo (data, UI, QA, docs).
+
+5. **Fuente de verdad de filtros no especificada**
+   - **Regla:** si hay filtros de dashboard, especificar mecanismo (`URL searchParams`, store, etc.). Si se necesita persistencia/shareable links, usar `searchParams`.
+
+6. **Sesion expirada no cubierta en routing task**
+   - **Regla:** toda tarea de acceso admin debe incluir AC de `401` durante sesion activa con redirect controlado.
+
+7. **Riesgo timezone sin AC asociado**
+   - **Regla:** riesgo tecnico real debe tener AC en al menos una tarea ejecutable (UTC, formato ISO-8601, ejemplos).
+
+8. **Ledger vacio no cubierto en metricas**
+   - **Regla:** API de metricas debe definir comportamiento cuando la fuente esta vacia (KPIs en 0 y serie valida, nunca null/500 por vacio).
+
+9. **Skill de existencia incierta en gate de performance**
+   - **Regla:** no proponer skills no confirmadas en el workspace; validar disponibilidad antes de asignarlas.
+
+10. **Mejoras de calidad a incorporar por defecto**
+    - **Regla:** en paneles con multiples endpoints, incluir skeleton loaders, paginacion server-side y politica de enmascaramiento para datos sensibles cuando aplique.
+
+---
+
 ## Checklist rápido pre-publicación (resumen ejecutivo)
 
 Antes de publicar cualquier `PLAN_PROPOSED`, responder sí/no a cada punto:
@@ -146,6 +184,11 @@ Antes de publicar cualquier `PLAN_PROPOSED`, responder sí/no a cada punto:
 - [ ] ¿La tarea de Testing depende de los componentes reales que testea?
 - [ ] ¿Si hay cambios visuales importantes, hay un performance gate de Optimizer antes de QA?
 - [ ] ¿Los riesgos técnicos reales tienen un AC en alguna tarea, no solo en la sección de Riesgos?
+- [ ] ¿El seq del taskId del plan es coherente (sin saltos arbitrarios)?
+- [ ] ¿Testing depende de todas las tareas que habilitan los flujos que valida (routing/auth incluidos)?
+- [ ] ¿La fuente de verdad de filtros/dashboard está especificada (`searchParams`, store, etc.)?
+- [ ] ¿Está cubierto el caso de sesión expirada (`401`) en tareas de acceso y en QA?
+- [ ] ¿Las APIs de métricas definen comportamiento explícito para dataset vacío?
 
 Si alguna respuesta es No → corregir antes de publicar.
 Ver skill `plan-audit` para el checklist completo y detallado.

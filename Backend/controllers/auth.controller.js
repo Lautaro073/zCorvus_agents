@@ -17,6 +17,28 @@ const PASSWORD_RESET_OTP_MINUTES = Number.isInteger(config.auth?.passwordResetOt
 const APP_NAME = config.app?.name || 'zCorvus';
 const GENERIC_OTP_REQUEST_MESSAGE = 'If the email exists, an OTP has been sent';
 const GENERIC_OTP_INVALID_MESSAGE = 'Invalid or expired OTP';
+const INVALID_REGISTER_ROLE_MESSAGE = 'Invalid roles_id. Allowed values: 1, 2, 3';
+
+function resolveRegisterRoleId(rawRoleId) {
+    if (rawRoleId === undefined || rawRoleId === null || rawRoleId === '') {
+        return { value: 2 };
+    }
+
+    if (Array.isArray(rawRoleId)) {
+        return { error: INVALID_REGISTER_ROLE_MESSAGE };
+    }
+
+    if (typeof rawRoleId === 'boolean') {
+        return { error: INVALID_REGISTER_ROLE_MESSAGE };
+    }
+
+    const parsedRoleId = Number(rawRoleId);
+    if (!Number.isInteger(parsedRoleId) || ![1, 2, 3].includes(parsedRoleId)) {
+        return { error: INVALID_REGISTER_ROLE_MESSAGE };
+    }
+
+    return { value: parsedRoleId === 1 ? 1 : 2 };
+}
 
 function resolveOtpLocale(req) {
     const bodyLocale = req.body?.locale;
@@ -61,9 +83,15 @@ const register = async (req, res, next) => {
             return errorResponse(res, 'Username already taken', 400);
         }
 
-        // Por defecto es 'user' (ID 2) si no se especifica
-        // Se ignora cualquier roles_id enviado en el body para prevenir escalamiento de privilegios
-        const roleId = 2;
+        // Rol por defecto: user (2).
+        // Se permite crear admin solo cuando roles_id = 1.
+        // roles_id=2/3 se normaliza a user (2) y cualquier valor fuera del dominio responde 400.
+        const roleResolution = resolveRegisterRoleId(roles_id);
+        if (roleResolution.error) {
+            return errorResponse(res, roleResolution.error, 400);
+        }
+
+        const roleId = roleResolution.value;
 
         // Crear usuario
         const userId = await User.create({

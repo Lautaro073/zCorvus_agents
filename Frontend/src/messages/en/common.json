@@ -9,11 +9,15 @@
     "loading": "Loading...",
     "tryAgain": "Try again",
     "goHome": "Go home",
+    "previous": "Previous",
+    "next": "Next",
     "search": "Search...",
     "layers": "Layers",
     "copy": "Copy",
     "download": "Download",
-    "showAll": "Show all"
+    "showAll": "Show all",
+    "cancel": "Cancel",
+    "apply": "Apply"
   },
   "toasts": {
     "iconNameCopied": "Icon name copied!",

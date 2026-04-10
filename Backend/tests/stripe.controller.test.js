@@ -85,4 +85,35 @@ describe('stripe controller locale redirects', () => {
             })
         );
     });
+
+    it('normalizes unsupported planType to pro for pricing and metadata', async () => {
+        const req = {
+            body: {
+                userId: 'user-3',
+                userEmail: 'user3@test.dev',
+                planType: 'unknown',
+                locale: 'en',
+            },
+        };
+
+        const res = {
+            json: jest.fn(),
+            status: jest.fn().mockReturnThis(),
+        };
+
+        await createCheckout(req, res, jest.fn());
+
+        expect(mockCreateSession).toHaveBeenCalledWith(
+            expect.objectContaining({
+                line_items: [
+                    expect.objectContaining({
+                        price_data: expect.objectContaining({
+                            unit_amount: 4900,
+                        }),
+                    }),
+                ],
+                metadata: expect.objectContaining({ planType: 'pro' }),
+            })
+        );
+    });
 });

@@ -9,11 +9,15 @@
     "loading": "Cargando...",
     "tryAgain": "Intentar de nuevo",
     "goHome": "Volver al inicio",
+    "previous": "Anterior",
+    "next": "Siguiente",
     "search": "Buscar...",
     "layers": "Capas",
     "copy": "Copiar",
     "download": "Descargar",
-    "showAll": "Mostrar todos"
+    "showAll": "Mostrar todos",
+    "cancel": "Cancelar",
+    "apply": "Aplicar"
   },
   "toasts": {
     "iconNameCopied": "¡Nombre del ícono copiado!",

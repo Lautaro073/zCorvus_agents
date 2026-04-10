@@ -27,6 +27,31 @@ describe('Auth API', () => {
             expect(response.body.data.user.email).toBe(testUser.email);
         });
 
+        it('should preserve admin role when registering with roles_id=1', async () => {
+            const timestamp = Date.now();
+            const adminCandidateEmail = `admin_candidate_${timestamp}@test.com`;
+
+            const response = await request(app)
+                .post('/api/auth/register')
+                .send({
+                    username: `admin_candidate_${timestamp}`,
+                    email: adminCandidateEmail,
+                    password: 'password123',
+                    confirmPassword: 'password123',
+                    roles_id: 1,
+                })
+                .expect(201);
+
+            expect(response.body.success).toBe(true);
+            expect(response.body.data.user.role).toBe('admin');
+
+            const createdUser = await User.findByEmail(adminCandidateEmail);
+            expect(createdUser).toBeTruthy();
+            expect(createdUser.roles_id).toBe(1);
+
+            await User.delete(createdUser.id);
+        });
+
         it('should not register user with existing email', async () => {
             await request(app)
                 .post('/api/auth/register')
@@ -65,6 +90,50 @@ describe('Auth API', () => {
                     confirmPassword: '123'
                 })
                 .expect(400);
+        });
+
+        it('should reject invalid numeric roles_id and not create user', async () => {
+            const timestamp = Date.now();
+            const email = `invalid_role_${timestamp}@test.com`;
+
+            const response = await request(app)
+                .post('/api/auth/register')
+                .send({
+                    username: `invalid_role_${timestamp}`,
+                    email,
+                    password: 'password123',
+                    confirmPassword: 'password123',
+                    roles_id: 999,
+                })
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toMatch(/invalid roles_id/i);
+
+            const createdUser = await User.findByEmail(email);
+            expect(createdUser).toBeNull();
+        });
+
+        it('should reject non-integer roles_id type and not create user', async () => {
+            const timestamp = Date.now();
+            const email = `invalid_role_type_${timestamp}@test.com`;
+
+            const response = await request(app)
+                .post('/api/auth/register')
+                .send({
+                    username: `invalid_role_type_${timestamp}`,
+                    email,
+                    password: 'password123',
+                    confirmPassword: 'password123',
+                    roles_id: 'admin',
+                })
+                .expect(400);
+
+            expect(response.body.success).toBe(false);
+            expect(response.body.message).toMatch(/invalid roles_id/i);
+
+            const createdUser = await User.findByEmail(email);
+            expect(createdUser).toBeNull();
         });
     });
 

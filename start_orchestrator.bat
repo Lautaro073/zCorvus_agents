@@ -36,23 +36,23 @@ echo.
 
 :: SESIONES OPENCODE POR AGENTE (alineadas con dispatcher config)
 :: ORCHESTRATOR PRINCIPAL:
-start cmd /k "opencode -s ses_2e1fa0eacffeGlHp22WXJUb7m3"
+start cmd /k "opencode -s ses_2d29f6f48fferrQkTvsWdfdhLY"
 :: ORCHESTRATOR SECUNDARIO (opcional)
-:: start cmd /k "opencode -s ses_2d29f6f48fferrQkTvsWdfdhLY"
+:: start cmd /k "opencode -s ses_2e1fa0eacffeGlHp22WXJUb7m3"
 :: TESTER:
-start cmd /k "opencode -s ses_2d2b3a556ffeZApAX7b5wKem7U"
+start cmd /k "opencode -s ses_28b4cca7dffeUi5lufdZ1i6IIx"
 :: PLANNER:
-start cmd /k "opencode -s ses_2d2aef9d5ffeuyFCo1GAhsrfD6"
+start cmd /k "opencode -s ses_299f4f170ffeqQmjRejO1S5haD"
 :: OBSERVER:
 start cmd /k "opencode -s ses_2d2ad1bbfffeKSlW1FzB9A9vST"
 :: OPTIMIZER:
-start cmd /k "opencode -s ses_2d2a9e138ffePF5Lt4sTpKmfjk"
+start cmd /k "opencode -s ses_29785e771ffeRE6upcBt9i4W8Q"
 :: DOCUMENTER:
 start cmd /k "opencode -s ses_2d2a38f49ffeIuock0vn7moQKl"
 :: FRONTEND:
-start cmd /k "opencode -s ses_2d2a258b5ffe51LQ5CJzSvXoNJ"
+start cmd /k "opencode -s ses_29d03579affezbo35SUGwk6t6P"
 :: BACKEND:
-start cmd /k "opencode -s ses_2d2a11dc3ffeJ6q7BNIrQqyVeF"
+start cmd /k "opencode -s ses_2d2a258b5ffe51LQ5CJzSvXoNJ"
 
 
 echo.

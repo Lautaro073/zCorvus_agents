@@ -49,7 +49,7 @@ const authenticateToken = async (req, res, next) => {
             id: decoded.id,
             email: decoded.email,
             roles_id: user.roles_id,
-            role: decoded.role
+            role: user.role_name || decoded.role
         };
 
         next();

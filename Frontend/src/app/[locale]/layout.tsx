@@ -9,6 +9,7 @@ import Script from "next/script";
 import "../globals.css";
 import { UIStoreProvider } from "@/store/ui/ui.provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ReactQueryProvider } from "@/lib/query/provider";
 import { getServerPreferences } from "@/lib/server/preferences";
 import type { Theme } from "@/types/icons/icons.types";
 
@@ -54,7 +55,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const messages = await getMessages();
   const globalMessages = { 
     common: (messages as { common: unknown }).common,
-    auth: (messages as { auth: unknown }).auth
+    auth: (messages as { auth: unknown }).auth,
+    admin: (messages as { admin: unknown }).admin,
   };
 
   // Leer cookies vuelve el layout dinámico. Esto es un trade-off aceptado para evitar Flash of Unstyled Content (FOUC).
@@ -82,14 +84,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           <NextIntlClientProvider locale={locale} messages={globalMessages}>
             {/* AuthContext debe envolver a las rutas protegidas, actualmente global para layout de user */}
             <AuthProvider>
-              <ViewTransition>
-                {/* UIStore mantiene estado visual (capas, tema, iconos locales) */}
-                <UIStoreProvider initialState={prefs}>
-                  {children}
-                  <Toaster />
-                  <AppearanceSync />
-                </UIStoreProvider>
-              </ViewTransition>
+              <ReactQueryProvider>
+                <ViewTransition>
+                  {/* UIStore mantiene estado visual (capas, tema, iconos locales) */}
+                  <UIStoreProvider initialState={prefs}>
+                    {children}
+                    <Toaster />
+                    <AppearanceSync />
+                  </UIStoreProvider>
+                </ViewTransition>
+              </ReactQueryProvider>
             </AuthProvider>
           </NextIntlClientProvider>
         </div>
