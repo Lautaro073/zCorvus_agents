@@ -491,7 +491,7 @@ export default function AdminDashboardPage() {
           <select
             value={metricsParams.granularity ?? "day"}
             onChange={(event) => onGranularityChange(event.target.value)}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm"
+            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
             aria-label={admin("filters.granularity")}
           >
             {metricGranularityOptions.map((option) => (
@@ -504,7 +504,7 @@ export default function AdminDashboardPage() {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="justify-start text-left font-normal"
+                  className="justify-start text-left font-normal transition-colors active:translate-y-[1px]"
                   aria-label={`${admin("filters.from")} - ${admin("filters.to")}`}
                 >
                   {customRangeLabel}
@@ -543,7 +543,7 @@ export default function AdminDashboardPage() {
                   <Button type="button" variant="ghost" size="sm" onClick={cancelCustomRangeDraft}>
                     {common("actions.cancel")}
                   </Button>
-                  <Button type="button" size="sm" onClick={applyCustomRangeDraft}>
+                  <Button type="button" size="sm" className="active:translate-y-[1px]" onClick={applyCustomRangeDraft}>
                     {common("actions.apply")}
                   </Button>
                 </div>
@@ -571,6 +571,7 @@ export default function AdminDashboardPage() {
             placeholder={admin("filters.search")}
             defaultValue={usersParams.search ?? ""}
             onChange={(event) => onSearchInputChange(event.currentTarget.value)}
+            className="transition-colors"
           />
 
           <select
@@ -579,7 +580,7 @@ export default function AdminDashboardPage() {
               setSearchParam(params, "role", event.target.value || undefined);
               setSearchParam(params, "usersPage", 1);
             })}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm"
+            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
             aria-label={admin("filters.role")}
           >
             <option value="">{admin("filters.role")}</option>
@@ -594,7 +595,7 @@ export default function AdminDashboardPage() {
               setSearchParam(params, "subscriptionStatus", event.target.value || undefined);
               setSearchParam(params, "usersPage", 1);
             })}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm"
+            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
             aria-label={admin("filters.subscriptionStatus")}
           >
             <option value="">{admin("filters.subscriptionStatus")}</option>
@@ -612,7 +613,7 @@ export default function AdminDashboardPage() {
                 setSearchParam(params, "usersPage", 1);
               })
             }
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm"
+            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
             aria-label={admin("filters.planType")}
           >
             <option value="">{admin("filters.planType")}</option>

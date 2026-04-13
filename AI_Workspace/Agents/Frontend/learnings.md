@@ -82,3 +82,18 @@
 - Trigger: `aiw-frontend-admin-ssr-authz-cookie-bypass-fix-20260410-53`
 - Regla aprendida: `userRole` en cookie/localStorage es solo hint UX y no puede ser fuente de verdad para authz SSR de `/admin`.
 - Prevencion futura: En guard SSR admin, exigir evidencia backend (`/api/auth/refresh` + rol resultante) y usar timeout defensivo en fetches para evitar estados colgados cuando el backend no responde.
+
+## 2026-04-13 - external skill installs must end in canonical frontend path
+- Trigger: `aiw-frontend-install-skills-v2`
+- Regla aprendida: Cuando Orchestrator asigna skills externas (`repo@slug`), la instalacion efectiva debe materializar `SKILL.md` en `AI_Workspace/Agents/Frontend/skills/<slug>/` y sincronizar `profile.md` + `skills-lock.json`.
+- Prevencion futura: Validar siempre 3 capas despues de instalar: (1) carpeta/archivo skill presente, (2) slug listado en `profile.md`, (3) lock actualizado con source/hash para trazabilidad.
+
+## 2026-04-13 - new frontend skills need explicit operational precedence
+- Trigger: `aiw-frontend-use-new-skills`
+- Regla aprendida: Instalar skills no alcanza; hay que declarar en `profile.md` cuándo activar cada una y en qué orden para evitar uso inconsistente o superposición de criterios.
+- Prevencion futura: Ante nuevas skills de diseño, documentar siempre trigger por tipo de tarea (baseline creativo, design engineering, polish final) y excepción explícita para tareas no UI.
+
+## 2026-04-13 - playwright admin stub should use isolated port when backend local is running
+- Trigger: `aiw-frontend-apply-new-skills-existing`
+- Regla aprendida: Si backend local ocupa `:3001`, la suite e2e admin puede fallar por healthcheck del stub (`/__qa_stub_health`) aunque el frontend esté correcto.
+- Prevencion futura: Para corridas e2e admin en entorno con backend levantado, fijar stub aislado (ej. `PLAYWRIGHT_ADMIN_STUB_PORT=3201` + `PLAYWRIGHT_ADMIN_STUB_URL` + `NEXT_PUBLIC_BACKEND_URL` al mismo puerto) para evitar colisiones.

@@ -5,17 +5,17 @@
       "type": "local",
       "command": [
         "node",
-        "AI_Workspace/MCP_Server_1.0.0/mcp-stdio.js"
+        "AI_Workspace/MCP_Server/mcp-stdio.js"
       ],
       "environment": {
         "NODE_ENV": "development",
       },
     },
-    "zcorvus-mcp-server": {
-      "type": "remote",
-      "url": "https://zcorvusmcp-production.up.railway.app/sse",
-      "enabled": true
-    },
+    // "zcorvus-mcp-server": {
+    //   "type": "remote",
+    //   "url": "https://zcorvusmcp-production.up.railway.app/sse",
+    //   "enabled": true
+    // },
     "context7-mcp": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",

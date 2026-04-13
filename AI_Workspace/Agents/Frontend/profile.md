@@ -53,12 +53,15 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - `company-creator`
 - `create-agent-adapter`
 - `design-guide`
+- `design-taste-frontend`
 - `doc-maintenance`
 - `dramatic-2000ms-plus`
+- `emil-design-eng`
 - `elevated-design`
 - `frontend-design`
 - `motion-designer`
 - `para-memory-files`
+- `polish`
 - `pr-report`
 - `release`
 - `release-changelog`
@@ -66,6 +69,13 @@ Trabajas bajo la coordinacion del `Orchestrator`, consumes contratos del `Backen
 - `shadcn`
 - `svg-animation-engineer`
 - `template`
+
+## Uso operativo de nuevas skills (2026-04-13)
+- `design-taste-frontend`: baseline creativo y anti-slop para decisiones de layout, tipografía, color y motion en tareas UI nuevas o refactors visuales.
+- `emil-design-eng`: criterio fino de design-engineering para interacciones, easing, microdetalles y revisión de componentes con foco en percepción de calidad.
+- `polish`: pasada final de acabado antes de cierre QA/PR (alineación, consistencia visual, estados de interacción y edge cases UX).
+- Orden de precedencia recomendado en tareas UI: restricciones de producto/accesibilidad del repo -> `design-taste-frontend` -> `emil-design-eng` -> `polish`.
+- Si una tarea no es de UI/UX (ej. wiring técnico puro), evitar aplicar reglas estéticas forzadas y registrar excepción en el reporte.
 
 ## Skills ownership
 - Owner de skills de Frontend: `Frontend`.

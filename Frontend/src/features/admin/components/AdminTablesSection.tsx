@@ -75,6 +75,13 @@ export function AdminTablesSection({
 }: AdminTablesSectionProps) {
   const admin = useTranslations("admin");
   const common = useTranslations("common");
+  const locale = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().locale;
+    } catch {
+      return "en-US";
+    }
+  }, []);
   const isPlanFilterEnabled = Boolean(planType);
   const shouldLoadPlans = usersParams.subscriptionStatus !== "none" || isPlanFilterEnabled;
 
@@ -122,19 +129,32 @@ export function AdminTablesSection({
   const isError = usersQuery.state === "error" || (isPlanFilterEnabled && subscriptionsQuery.state === "error");
   const isEmpty = !isLoading && !isError && filteredUsers.length === 0;
 
+  const formatDate = (rawDate?: string) => {
+    if (!rawDate) {
+      return "-";
+    }
+
+    const parsedDate = new Date(rawDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString(locale);
+  };
+
   return (
     <section className="grid gap-4 overflow-x-clip">
-      <article className="flex min-h-[30rem] min-w-0 flex-col rounded-[1.5rem] border border-border/70 bg-background/80 p-4">
-        <h2 className="text-lg">{admin("table.users.title")}</h2>
+      <article className="flex min-h-[30rem] min-w-0 flex-col rounded-[1.5rem] border border-border/70 bg-background/85 p-4 shadow-sm">
+        <h2 className="text-lg font-medium">{admin("table.users.title")}</h2>
 
         <div className="mt-4 min-h-[20rem] min-w-0">
           {isLoading && (
             <div className="overflow-x-auto overscroll-x-contain">
               <div className="min-w-[56rem] space-y-2 md:min-w-[52rem]">
                 {Array.from({ length: 6 }).map((_, rowIdx) => (
-                  <div key={rowIdx} className="grid grid-cols-7 gap-2">
+                  <div key={rowIdx} className="grid grid-cols-7 gap-2 animate-pulse">
                     {Array.from({ length: 7 }).map((__, colIdx) => (
-                      <div key={`${rowIdx}-${colIdx}`} className="h-8 rounded-md bg-muted/70" />
+                      <div key={`${rowIdx}-${colIdx}`} className="h-8 rounded-md bg-muted/75" />
                     ))}
                   </div>
                 ))}
@@ -142,18 +162,24 @@ export function AdminTablesSection({
             </div>
           )}
           {isError && (
-            <p className="text-sm text-destructive">
-              {isPlanFilterEnabled ? admin("errors.loadSubscriptions") : admin("errors.loadUsers")}
-            </p>
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm text-destructive">
+                {isPlanFilterEnabled ? admin("errors.loadSubscriptions") : admin("errors.loadUsers")}
+              </p>
+            </div>
           )}
-          {isEmpty && <p className="text-sm text-muted-foreground">{admin("states.emptyUsers")}</p>}
+          {isEmpty && (
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+              <p className="text-sm text-muted-foreground">{admin("states.emptyUsers")}</p>
+            </div>
+          )}
 
           {!isLoading && !isError && !isEmpty && (
             <div className="overflow-x-auto overscroll-x-contain">
               <div className="mb-3 flex justify-end">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="active:translate-y-[1px]">
                       {admin("table.users.columnsControl")}
                     </Button>
                   </PopoverTrigger>
@@ -177,7 +203,7 @@ export function AdminTablesSection({
               </div>
 
               <table className="w-full min-w-[56rem] text-left text-sm md:min-w-[52rem]">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                   <tr className="border-b border-border/60 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {visibleColumns.username && <th className="px-2 py-3">{admin("table.users.username")}</th>}
                     {visibleColumns.email && <th className="px-2 py-3">{admin("table.users.email")}</th>}
@@ -196,22 +222,22 @@ export function AdminTablesSection({
                     const subscriptionFinishDate = item.token_finish_date ?? subscription?.finish_date;
 
                     return (
-                      <tr key={item.id} className="border-b border-border/40">
-                        {visibleColumns.username && <td className="px-2 py-3">{item.username}</td>}
+                      <tr key={item.id} className="border-b border-border/40 transition-colors hover:bg-muted/20">
+                        {visibleColumns.username && <td className="px-2 py-3 font-medium">{item.username}</td>}
                         {visibleColumns.email && <td className="px-2 py-3">{item.email}</td>}
                         {visibleColumns.role && <td className="px-2 py-3">{admin(`roles.${item.role_name}`)}</td>}
                         {visibleColumns.status && <td className="px-2 py-3">{admin(`statuses.${item.subscriptionStatus}`)}</td>}
-                        {visibleColumns.plan && <td className="px-2 py-3 uppercase">{resolvedPlan ?? "-"}</td>}
+                        {visibleColumns.plan && (
+                          <td className="px-2 py-3">
+                            <span className="inline-flex rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-xs uppercase tracking-wide">
+                              {resolvedPlan ?? "-"}
+                            </span>
+                          </td>
+                        )}
                         {visibleColumns.startDate && (
-                          <td className="px-2 py-3">
-                            {subscriptionStartDate ? new Date(subscriptionStartDate).toLocaleDateString() : "-"}
-                          </td>
+                          <td className="px-2 py-3">{formatDate(subscriptionStartDate)}</td>
                         )}
-                        {visibleColumns.tokenExpiry && (
-                          <td className="px-2 py-3">
-                            {subscriptionFinishDate ? new Date(subscriptionFinishDate).toLocaleDateString() : "-"}
-                          </td>
-                        )}
+                        {visibleColumns.tokenExpiry && <td className="px-2 py-3">{formatDate(subscriptionFinishDate)}</td>}
                       </tr>
                     );
                   })}
@@ -232,6 +258,7 @@ export function AdminTablesSection({
                 size="sm"
                 disabled={!usersPagination.hasPrev}
                 onClick={() => onUsersPageChange(Math.max(1, usersPagination.page - 1))}
+                className="active:translate-y-[1px]"
               >
                 {common("actions.previous")}
               </Button>
@@ -240,6 +267,7 @@ export function AdminTablesSection({
                 size="sm"
                 disabled={!usersPagination.hasNext}
                 onClick={() => onUsersPageChange(usersPagination.page + 1)}
+                className="active:translate-y-[1px]"
               >
                 {common("actions.next")}
               </Button>

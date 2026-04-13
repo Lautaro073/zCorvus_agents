@@ -16,15 +16,15 @@ echo ===================================================
 
 
 :: 1. Iniciar el Servidor MCP en una ventana nueva minimizada
-echo [1/4] Levantando Servidor MCP y WebSockets...
-start "zCorvus MCP Server" /MIN cmd /c "cd AI_Workspace\MCP_Server && node monitor-server.js"
+::echo [1/4] Levantando Servidor MCP y WebSockets...
+::start "zCorvus MCP Server" /MIN cmd /c "cd AI_Workspace\MCP_Server && node monitor-server.js"
 
 :: 2. Esperar 3 segundos para dar tiempo a que levante el puerto 4311
-timeout /t 3 /nobreak > nul
+::timeout /t 3 /nobreak > nul
 
 :: 3. Abrir el monitor visual en el navegador predeterminado
-echo [2/4] Abriendo el Monitor Visual (AgentMonitor)...
-start http://127.0.0.1:4311/monitor
+::echo [2/4] Abriendo el Monitor Visual (AgentMonitor)...
+::start http://127.0.0.1:4311/monitor
 
 :: 4. Iniciar dispatcher automatico TASK_ASSIGNED -> opencode run
 echo [3/4] Iniciando dispatcher autonomo de tareas...
