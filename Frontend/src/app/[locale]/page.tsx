@@ -17,37 +17,37 @@ export default async function Home() {
       icons: minaIconNames.slice(8, 30),
       direction: "left" as const,
       duration: 30,
-      className: "hidden min-[1480px]:block",
+      className: "home-rail home-rail-1",
     },
     {
       icons: minaIconNames.slice(34, 56),
       direction: "right" as const,
       duration: 34,
-      className: "hidden min-[1380px]:block",
+      className: "home-rail home-rail-2",
     },
     {
       icons: minaIconNames.slice(60, 82),
       direction: "left" as const,
       duration: 38,
-      className: "hidden min-[1280px]:block",
+      className: "home-rail home-rail-3",
     },
     {
       icons: minaIconNames.slice(86, 108),
       direction: "right" as const,
       duration: 33,
-      className: "hidden min-[1180px]:block",
+      className: "home-rail home-rail-4",
     },
     {
       icons: minaIconNames.slice(112, 134),
       direction: "left" as const,
       duration: 36,
-      className: "hidden min-[1080px]:block",
+      className: "home-rail home-rail-5",
     },
   ];
 
   return (
     <div className="ui-page-shell h-full overflow-hidden py-2">
-      <header className="ui-glass flex flex-none flex-col gap-4 rounded-[1.75rem] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+      <header className="flex flex-none flex-col gap-4 rounded-[1.75rem] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div className="flex items-center gap-3">
           <div className="ui-surface-panel grid size-12 place-items-center rounded-[1.15rem] bg-card">
             <ZCorvusLogo className="size-8" />
@@ -64,19 +64,19 @@ export default async function Home() {
       </header>
 
       <main className="grid min-h-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,390px)]">
-        <section className="ui-surface-panel-muted relative flex min-h-0 flex-col justify-between overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
-          <div className="flex min-h-0 flex-1 flex-col gap-6">
+        <section className="ui-surface-panel-muted home-hero-panel relative flex min-h-0 flex-col justify-between overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
+          <div className="home-hero-main flex min-h-0 flex-1 flex-col gap-6">
             <Link href="/icons" className="flex min-h-0 flex-1 flex-col" style={{ viewTransitionName: "title" }}>
-              <div className="space-y-2">
-                <h1 className="ui-display-title max-w-4xl text-[clamp(2.7rem,6vw,5.3rem)] leading-[0.92]">
+              <div className="home-hero-copy space-y-2">
+                <h1 className="ui-display-title home-hero-title max-w-4xl text-[clamp(2.7rem,6vw,5.3rem)] leading-[0.92]">
                   {home("tagline.line1")}
                 </h1>
-                <p className="max-w-3xl text-[clamp(2rem,4.5vw,4rem)] leading-[0.96] tracking-tight text-foreground/82">
+                <p className="home-hero-subtitle max-w-3xl text-[clamp(2rem,4.5vw,4rem)] leading-[0.96] tracking-tight text-foreground/82">
                   {home("tagline.line2")}
                 </p>
               </div>
 
-              <div className="hidden min-h-0 flex-1 items-center justify-center py-10 lg:flex">
+              <div className="home-hero-rails hidden min-h-0 flex-1 items-center justify-center py-10 lg:flex">
                 <div className="flex w-full max-w-[min(100%,78rem)] flex-col justify-center gap-4">
                   {rails.map((rail, index) => (
                     <div key={index} className={rail.className}>
@@ -96,10 +96,10 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-end">
+          <div className="home-hero-footer gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-end">
             <div className="space-y-4">
               <div className="flex items-end gap-4">
-                <h2 className="font-display text-[clamp(3rem,6vw,5.6rem)] leading-none tracking-tight text-foreground">
+                <h2 className="home-hero-brand font-display text-[clamp(3rem,6vw,5.6rem)] leading-none tracking-tight text-foreground">
                   Z-ICONS
                 </h2>
                 <div className="ui-divider mb-1 hidden flex-1 lg:block" />

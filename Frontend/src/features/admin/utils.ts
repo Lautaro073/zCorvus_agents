@@ -1,5 +1,6 @@
 import type {
   AdminMetricsGranularity,
+  AdminAccountStatus,
   AdminRole,
   AdminSubscriptionStatus,
   AdminSortBy,
@@ -11,6 +12,7 @@ import type {
 
 const ADMIN_USER_ROLES: ReadonlyArray<AdminRole> = ["admin", "user", "pro"];
 const ADMIN_SUBSCRIPTION_STATUSES: ReadonlyArray<AdminSubscriptionStatus> = ["active", "expiring", "expired", "none"];
+const ADMIN_ACCOUNT_STATUSES: ReadonlyArray<AdminAccountStatus> = ["active", "disabled"];
 const ADMIN_SUBSCRIPTION_STATUSES_NO_NONE: ReadonlyArray<Exclude<AdminSubscriptionStatus, "none">> = ["active", "expiring", "expired"];
 const ADMIN_SORT_BY_VALUES: ReadonlyArray<AdminSortBy> = ["id", "created_at", "username", "email", "role_name", "token_finish_date"];
 const ADMIN_SORT_DIR_VALUES: ReadonlyArray<AdminSortDir> = ["asc", "desc"];
@@ -41,6 +43,7 @@ function isIsoLike(value: string): boolean {
 export function parseUsersParamsFromSearch(searchParams: URLSearchParams): GetAdminUsersParams {
   const roleRaw = searchParams.get("role") ?? "";
   const statusRaw = searchParams.get("subscriptionStatus") ?? "";
+  const accountStatusRaw = searchParams.get("accountStatus") ?? "";
   const sortByRaw = searchParams.get("sortBy") ?? "";
   const sortDirRaw = searchParams.get("sortDir") ?? "";
   const pageRaw = searchParams.get("usersPage") ?? "";
@@ -54,6 +57,9 @@ export function parseUsersParamsFromSearch(searchParams: URLSearchParams): GetAd
     role: ADMIN_USER_ROLES.includes(roleRaw as AdminRole) ? (roleRaw as AdminRole) : undefined,
     subscriptionStatus: ADMIN_SUBSCRIPTION_STATUSES.includes(statusRaw as AdminSubscriptionStatus)
       ? (statusRaw as AdminSubscriptionStatus)
+      : undefined,
+    accountStatus: ADMIN_ACCOUNT_STATUSES.includes(accountStatusRaw as AdminAccountStatus)
+      ? (accountStatusRaw as AdminAccountStatus)
       : undefined,
     sortBy: ADMIN_SORT_BY_VALUES.includes(sortByRaw as AdminSortBy) ? (sortByRaw as AdminSortBy) : "id",
     sortDir: ADMIN_SORT_DIR_VALUES.includes(sortDirRaw as AdminSortDir) ? (sortDirRaw as AdminSortDir) : "desc",

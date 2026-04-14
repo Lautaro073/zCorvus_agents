@@ -388,4 +388,161 @@
     box-shadow: var(--shadow-panel), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(18px);
   }
+
+  .home-rail {
+    display: block;
+  }
+
+  .home-hero-title,
+  .home-hero-subtitle,
+  .home-hero-brand,
+  .home-hero-panel,
+  .home-hero-main,
+  .home-hero-footer,
+  .home-hero-rails {
+    transition:
+      font-size 180ms var(--ease-out),
+      line-height 180ms var(--ease-out),
+      padding 180ms var(--ease-out),
+      gap 180ms var(--ease-out),
+      margin 180ms var(--ease-out);
+  }
+
+  @media (max-height: 980px) {
+    .home-hero-panel {
+      padding: 2rem;
+    }
+
+    .home-hero-main {
+      gap: 1.25rem;
+    }
+
+    .home-hero-title {
+      font-size: clamp(2.2rem, 5.2vw, 4.3rem);
+      line-height: 0.9;
+    }
+
+    .home-hero-subtitle {
+      font-size: clamp(1.45rem, 3.6vw, 2.85rem);
+      line-height: 0.92;
+    }
+
+    .home-hero-brand {
+      font-size: clamp(2.15rem, 4.3vw, 3.85rem);
+    }
+
+    .home-hero-rails {
+      display: none;
+    }
+  }
+
+  @media (max-height: 940px) {
+    .home-hero-rails {
+      padding-block: 2rem;
+    }
+
+    .home-rail-5 {
+      display: none;
+    }
+  }
+
+  @media (max-height: 860px) {
+    .home-hero-panel {
+      padding: 2rem;
+    }
+
+    .home-hero-main {
+      gap: 1.25rem;
+    }
+
+    .home-hero-footer {
+      margin-top: 0.75rem;
+    }
+
+    .home-hero-title {
+      font-size: clamp(2.35rem, 5.4vw, 4.45rem);
+      line-height: 0.9;
+    }
+
+    .home-hero-subtitle {
+      font-size: clamp(1.6rem, 3.8vw, 3.15rem);
+      line-height: 0.92;
+    }
+
+    .home-hero-brand {
+      font-size: clamp(1.9rem, 4vw, 3.2rem);
+    }
+
+    .home-hero-rails {
+      padding-block: 1.25rem;
+    }
+
+    .home-rail-4 {
+      display: none;
+    }
+  }
+
+  @media (max-height: 780px) {
+    .home-hero-panel {
+      padding: 1.5rem;
+    }
+
+    .home-hero-main {
+      gap: 1rem;
+    }
+
+    .home-hero-copy {
+      gap: 0.25rem;
+    }
+
+    .home-hero-title {
+      font-size: clamp(2rem, 4.9vw, 3.75rem);
+      line-height: 0.9;
+    }
+
+    .home-hero-subtitle {
+      font-size: clamp(1.35rem, 3.4vw, 2.55rem);
+      line-height: 0.92;
+    }
+
+    .home-hero-brand {
+      font-size: clamp(1.55rem, 3.6vw, 2.65rem);
+    }
+
+    .home-hero-footer {
+      margin-top: 0.25rem;
+    }
+
+    .home-hero-rails {
+      padding-block: 0.5rem;
+    }
+
+    .home-rail-3 {
+      display: none;
+    }
+  }
+
+  @media (max-height: 710px) {
+    .home-hero-brand {
+      font-size: clamp(1.3rem, 3.1vw, 2.1rem);
+    }
+
+    .home-hero-title {
+      font-size: clamp(1.8rem, 4.2vw, 3rem);
+    }
+
+    .home-hero-subtitle {
+      font-size: clamp(1.15rem, 2.8vw, 2rem);
+    }
+
+    .home-rail-2 {
+      display: none;
+    }
+  }
+
+  @media (max-height: 650px) {
+    .home-rail-1 {
+      display: none;
+    }
+  }
 }

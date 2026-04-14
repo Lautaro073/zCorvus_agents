@@ -85,6 +85,7 @@ export interface AdminPagination {
 
 export type AdminRole = 'admin' | 'user' | 'pro';
 export type AdminSubscriptionStatus = 'active' | 'expiring' | 'expired' | 'none';
+export type AdminAccountStatus = 'active' | 'disabled';
 export type AdminSortBy = 'id' | 'created_at' | 'username' | 'email' | 'role_name' | 'token_finish_date';
 export type AdminSortDir = 'asc' | 'desc';
 export type AdminPlanType = 'pro' | 'enterprise';
@@ -96,9 +97,17 @@ export interface GetAdminUsersParams {
   search?: string;
   role?: AdminRole;
   subscriptionStatus?: AdminSubscriptionStatus;
+  accountStatus?: AdminAccountStatus;
   sortBy?: AdminSortBy;
   sortDir?: AdminSortDir;
   expiringInDays?: number;
+}
+
+export interface UpdateAdminUserPayload {
+  username?: string;
+  email?: string;
+  roles_id?: number;
+  role?: AdminRole;
 }
 
 export interface GetAdminSubscriptionsParams {
@@ -126,6 +135,8 @@ export interface AdminUser {
   token_id: string | null;
   token_finish_date: string | null;
   subscriptionStatus: AdminSubscriptionStatus;
+  accountStatus: AdminAccountStatus;
+  disabled_at: string | null;
   two_factor_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -135,6 +146,7 @@ export interface AdminUsersFiltersApplied {
   search: string | null;
   role: AdminRole | null;
   subscriptionStatus: AdminSubscriptionStatus | null;
+  accountStatus: AdminAccountStatus | null;
   sortBy: AdminSortBy;
   sortDir: AdminSortDir;
   expiringInDays: number;
@@ -218,6 +230,7 @@ export type AdminPreferenceColumnKey =
   | 'username'
   | 'email'
   | 'role'
+  | 'accountStatus'
   | 'status'
   | 'plan'
   | 'startDate'
@@ -535,6 +548,14 @@ function handleAdminAuthError(error: unknown): never {
   throw error;
 }
 
+async function parseApiResponse<TData>(response: Response): Promise<ApiResponse<TData>> {
+  try {
+    return (await response.json()) as ApiResponse<TData>;
+  } catch {
+    throw new BackendApiError('Invalid backend response format', response.status || 500);
+  }
+}
+
 // ==================== AUTENTICACIÓN ====================
 
 /**
@@ -838,6 +859,7 @@ export async function getAdminUsers(params: GetAdminUsersParams = {}): Promise<A
       search: params.search,
       role: params.role,
       subscriptionStatus: params.subscriptionStatus,
+      accountStatus: params.accountStatus,
       sortBy: params.sortBy,
       sortDir: params.sortDir,
       expiringInDays: params.expiringInDays,
@@ -856,6 +878,80 @@ export async function getAdminUsers(params: GetAdminUsersParams = {}): Promise<A
       filtersApplied: envelope.filtersApplied,
       generatedAt: envelope.generatedAt,
     };
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+export async function updateAdminUser(
+  userId: string,
+  payload: UpdateAdminUserPayload
+): Promise<AdminUser> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: createAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const data = await parseApiResponse<AdminUser>(response);
+    if (!response.ok || !data.success || !data.data) {
+      throw new BackendApiError(data.message || 'Failed to update admin user', response.status || 500);
+    }
+
+    return data.data;
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+export async function disableAdminUser(userId: string): Promise<AdminUser> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/disable`, {
+      method: 'PATCH',
+      headers: createAuthHeaders(),
+    });
+
+    const data = await parseApiResponse<AdminUser>(response);
+    if (!response.ok || !data.success || !data.data) {
+      throw new BackendApiError(data.message || 'Failed to disable user', response.status || 500);
+    }
+
+    return data.data;
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+export async function reEnableAdminUser(userId: string): Promise<AdminUser> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/re-enable`, {
+      method: 'PATCH',
+      headers: createAuthHeaders(),
+    });
+
+    const data = await parseApiResponse<AdminUser>(response);
+    if (!response.ok || !data.success || !data.data) {
+      throw new BackendApiError(data.message || 'Failed to re-enable user', response.status || 500);
+    }
+
+    return data.data;
+  } catch (error) {
+    handleAdminAuthError(error);
+  }
+}
+
+export async function deleteAdminUserPermanently(userId: string): Promise<void> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/permanent`, {
+      method: 'DELETE',
+      headers: createAuthHeaders(),
+    });
+
+    const data = await parseApiResponse<null>(response);
+    if (!response.ok || !data.success) {
+      throw new BackendApiError(data.message || 'Failed to permanently delete user', response.status || 500);
+    }
   } catch (error) {
     handleAdminAuthError(error);
   }

@@ -1,4 +1,6 @@
 const db = require('../../utils/db');
+const { User, Role } = require('../../models');
+const { errorResponse } = require('../../utils/response');
 
 let ensureAdminUsersIndexesPromise = null;
 
@@ -12,14 +14,18 @@ const SORT_COLUMN_MAP = {
 };
 
 const SUBSCRIPTION_STATUSES = new Set(['active', 'expiring', 'expired', 'none']);
+const ACCOUNT_STATUSES = new Set(['active', 'disabled']);
+const ROLE_NAMES = new Set(['admin', 'user', 'pro']);
 
 function toSingleQueryValue(rawValue) {
     if (rawValue === undefined) {
         return undefined;
     }
+
     if (Array.isArray(rawValue)) {
         return null;
     }
+
     return String(rawValue).trim();
 }
 
@@ -94,6 +100,7 @@ function buildSubscriptionStatusClause(status) {
 }
 
 async function ensureAdminUsersIndexes() {
+    await User.ensureAccountLifecycleSchema();
     await db.query('CREATE INDEX IF NOT EXISTS idx_user_created_at ON user(created_at)');
     await db.query('CREATE INDEX IF NOT EXISTS idx_user_roles_id ON user(roles_id)');
     await db.query('CREATE INDEX IF NOT EXISTS idx_user_token_id ON user(token_id)');
@@ -130,6 +137,7 @@ function validateUsersQuery(query) {
         'search',
         'role',
         'subscriptionStatus',
+        'accountStatus',
         'sortBy',
         'sortDir',
         'expiringInDays'
@@ -152,6 +160,7 @@ function validateUsersQuery(query) {
     const rawSearch = toSingleQueryValue(query.search);
     const rawRole = toSingleQueryValue(query.role);
     const rawSubscriptionStatus = toSingleQueryValue(query.subscriptionStatus);
+    const rawAccountStatus = toSingleQueryValue(query.accountStatus);
     const rawSortBy = toSingleQueryValue(query.sortBy);
     const rawSortDir = toSingleQueryValue(query.sortDir);
     const rawExpiringInDays = toSingleQueryValue(query.expiringInDays);
@@ -173,6 +182,9 @@ function validateUsersQuery(query) {
     }
     if (rawSubscriptionStatus === null) {
         return { error: { invalidParam: 'subscriptionStatus', expected: 'single status value', received: query.subscriptionStatus } };
+    }
+    if (rawAccountStatus === null) {
+        return { error: { invalidParam: 'accountStatus', expected: 'single account status value', received: query.accountStatus } };
     }
     if (rawSortBy === null) {
         return { error: { invalidParam: 'sortBy', expected: 'single sort value', received: query.sortBy } };
@@ -226,7 +238,7 @@ function validateUsersQuery(query) {
     let role = null;
     if (rawRole !== undefined && rawRole !== '') {
         const normalizedRole = rawRole.toLowerCase();
-        if (!['admin', 'user', 'pro'].includes(normalizedRole)) {
+        if (!ROLE_NAMES.has(normalizedRole)) {
             return {
                 error: {
                     invalidParam: 'role',
@@ -253,6 +265,21 @@ function validateUsersQuery(query) {
         subscriptionStatus = normalizedStatus;
     }
 
+    let accountStatus = null;
+    if (rawAccountStatus !== undefined && rawAccountStatus !== '') {
+        const normalizedAccountStatus = rawAccountStatus.toLowerCase();
+        if (!ACCOUNT_STATUSES.has(normalizedAccountStatus)) {
+            return {
+                error: {
+                    invalidParam: 'accountStatus',
+                    expected: 'one of: active, disabled',
+                    received: rawAccountStatus
+                }
+            };
+        }
+        accountStatus = normalizedAccountStatus;
+    }
+
     const sort = normalizeSort(rawSortBy, rawSortDir);
 
     return {
@@ -262,6 +289,7 @@ function validateUsersQuery(query) {
             search,
             role,
             subscriptionStatus,
+            accountStatus,
             sortBy: sort.sortBy,
             sortDir: sort.sortDir,
             sortSql: sort.sql,
@@ -293,10 +321,83 @@ function mapUserRow(row, now, threshold) {
         token_id: row.token_id,
         token_finish_date: row.token_finish_date,
         subscriptionStatus,
+        accountStatus: row.account_status || 'active',
+        disabled_at: row.disabled_at || null,
         two_factor_enabled: row.two_factor_enabled,
         created_at: row.created_at,
         updated_at: row.updated_at
     };
+}
+
+async function findAdminUserRowById(id) {
+    const rows = await db.query(
+        `
+            SELECT
+                u.id,
+                u.username,
+                u.email,
+                u.roles_id,
+                r.name AS role_name,
+                u.token_id,
+                t.finish_date AS token_finish_date,
+                u.account_status,
+                u.disabled_at,
+                u.two_factor_enabled,
+                u.created_at,
+                u.updated_at
+            FROM user u
+            LEFT JOIN roles r ON u.roles_id = r.id
+            LEFT JOIN token t ON u.token_id = t.id
+            WHERE u.id = ?
+            LIMIT 1
+        `,
+        [id]
+    );
+
+    return rows[0] || null;
+}
+
+async function findAdminUserMappedById(id) {
+    const row = await findAdminUserRowById(id);
+    if (!row) {
+        return null;
+    }
+
+    const now = new Date();
+    const threshold = new Date(now);
+    threshold.setDate(now.getDate() + 7);
+    return mapUserRow(row, now, threshold);
+}
+
+async function resolveRoleIdFromPayload(rawRolesId, rawRole) {
+    const hasRolesId = rawRolesId !== undefined && rawRolesId !== null && rawRolesId !== '';
+    const hasRole = rawRole !== undefined && rawRole !== null && String(rawRole).trim() !== '';
+
+    if (!hasRolesId && !hasRole) {
+        return { value: null };
+    }
+
+    let roleById = null;
+    if (hasRolesId) {
+        roleById = await Role.findById(Number(rawRolesId));
+        if (!roleById) {
+            return { error: 'Invalid role id' };
+        }
+    }
+
+    let roleByName = null;
+    if (hasRole) {
+        roleByName = await Role.findByName(String(rawRole).trim().toLowerCase());
+        if (!roleByName) {
+            return { error: 'Invalid role name' };
+        }
+    }
+
+    if (roleById && roleByName && roleById.id !== roleByName.id) {
+        return { error: 'role and roles_id do not match' };
+    }
+
+    return { value: Number(roleById?.id || roleByName?.id || null) || null };
 }
 
 async function getAdminUsers(req, res, next) {
@@ -319,6 +420,7 @@ async function getAdminUsers(req, res, next) {
             search,
             role,
             subscriptionStatus,
+            accountStatus,
             sortBy,
             sortDir,
             sortSql,
@@ -344,6 +446,11 @@ async function getAdminUsers(req, res, next) {
             whereArgs.push(role);
         }
 
+        if (accountStatus) {
+            whereClauses.push('u.account_status = ?');
+            whereArgs.push(accountStatus);
+        }
+
         const subscriptionStatusClause = buildSubscriptionStatusClause(subscriptionStatus);
         if (subscriptionStatusClause) {
             whereClauses.push(subscriptionStatusClause.clause);
@@ -353,7 +460,6 @@ async function getAdminUsers(req, res, next) {
         }
 
         const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
         const offset = (page - 1) * pageSize;
 
         const dataSql = `
@@ -365,6 +471,8 @@ async function getAdminUsers(req, res, next) {
                 r.name AS role_name,
                 u.token_id,
                 t.finish_date AS token_finish_date,
+                u.account_status,
+                u.disabled_at,
                 u.two_factor_enabled,
                 u.created_at,
                 u.updated_at,
@@ -412,6 +520,7 @@ async function getAdminUsers(req, res, next) {
                 search,
                 role,
                 subscriptionStatus,
+                accountStatus,
                 sortBy,
                 sortDir,
                 expiringInDays
@@ -424,8 +533,166 @@ async function getAdminUsers(req, res, next) {
     }
 }
 
+async function updateAdminUser(req, res, next) {
+    try {
+        await ensureAdminUsersIndexesOnce();
+
+        const { id } = req.params;
+        const { username, email, roles_id, role } = req.body;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return errorResponse(res, 'User not found', 404);
+        }
+
+        if (email && email !== user.email) {
+            const existingEmail = await User.findByEmail(email);
+            if (existingEmail && existingEmail.id !== id) {
+                return errorResponse(res, 'Email already in use', 400);
+            }
+        }
+
+        if (username && username !== user.username) {
+            const existingUsername = await User.findByUsername(username);
+            if (existingUsername && existingUsername.id !== id) {
+                return errorResponse(res, 'Username already taken', 400);
+            }
+        }
+
+        const roleResolution = await resolveRoleIdFromPayload(roles_id, role);
+        if (roleResolution.error) {
+            return errorResponse(res, roleResolution.error, 400);
+        }
+
+        const updateData = {};
+        if (username && username !== user.username) {
+            updateData.username = username;
+        }
+        if (email && email !== user.email) {
+            updateData.email = email;
+        }
+        if (roleResolution.value && roleResolution.value !== user.roles_id) {
+            updateData.roles_id = roleResolution.value;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return errorResponse(res, 'No user changes submitted', 400);
+        }
+
+        await User.update(id, updateData);
+
+        const updatedUser = await findAdminUserMappedById(id);
+        return res.status(200).json({
+            success: true,
+            message: 'Admin user updated successfully',
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error('Admin update user error:', error);
+        next(error);
+    }
+}
+
+async function disableAdminUser(req, res, next) {
+    try {
+        await ensureAdminUsersIndexesOnce();
+
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return errorResponse(res, 'User not found', 404);
+        }
+
+        if (req.user.id === id) {
+            return errorResponse(res, 'Cannot disable your own account', 400);
+        }
+
+        if (user.account_status === 'disabled') {
+            return errorResponse(res, 'User account is already disabled', 400);
+        }
+
+        await User.disableAccount(id);
+        const updatedUser = await findAdminUserMappedById(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User disabled successfully',
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error('Admin disable user error:', error);
+        next(error);
+    }
+}
+
+async function reEnableAdminUser(req, res, next) {
+    try {
+        await ensureAdminUsersIndexesOnce();
+
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return errorResponse(res, 'User not found', 404);
+        }
+
+        if (user.account_status !== 'disabled') {
+            return errorResponse(res, 'User account is already active', 400);
+        }
+
+        await User.enableAccount(id);
+        const updatedUser = await findAdminUserMappedById(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User re-enabled successfully',
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error('Admin re-enable user error:', error);
+        next(error);
+    }
+}
+
+async function deleteAdminUserPermanently(req, res, next) {
+    try {
+        await ensureAdminUsersIndexesOnce();
+
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return errorResponse(res, 'User not found', 404);
+        }
+
+        if (req.user.id === id) {
+            return errorResponse(res, 'Cannot delete your own account', 400);
+        }
+
+        if (user.account_status !== 'disabled') {
+            return errorResponse(res, 'User must be disabled before permanent deletion', 400);
+        }
+
+        await User.delete(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User deleted permanently',
+            data: null
+        });
+    } catch (error) {
+        console.error('Admin permanent delete user error:', error);
+        next(error);
+    }
+}
+
 module.exports = {
     getAdminUsers,
+    updateAdminUser,
+    disableAdminUser,
+    reEnableAdminUser,
+    deleteAdminUserPermanently,
     validateUsersQuery,
     mapUserRow
 };

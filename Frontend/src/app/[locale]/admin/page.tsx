@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { ZIcon } from "@zcorvus/z-icons/react";
 import { usePathname, useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { DateRange } from "react-day-picker";
@@ -22,6 +24,7 @@ import {
   useAdminPreferences,
   useAdminMetrics,
 } from "@/features/admin";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useLocale } from "@/hooks/useLocale";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,31 +39,6 @@ const selectClassName =
 
 function PlaceholderBlock({ className }: { className?: string }) {
   return <div className={`rounded-[1rem] bg-muted/70 ${className ?? ""}`} />;
-}
-
-function AdminTablesSectionFallback({ admin }: { admin: (key: string) => string }) {
-  return (
-    <section className="grid gap-4" style={{ contentVisibility: "auto", containIntrinsicSize: "620px" }}>
-      <article className="ui-surface-panel flex min-h-[30rem] flex-col rounded-[1.85rem] p-4 sm:p-5">
-        <h2 className="text-lg tracking-tight text-foreground">{admin("table.users.title")}</h2>
-        <div className="mt-4 min-h-[20rem]">
-          <PlaceholderBlock className="h-64 w-full" />
-        </div>
-      </article>
-    </section>
-  );
-}
-
-function MetricsSectionPlaceholder() {
-  return (
-    <div className="grid gap-3" role="status" aria-live="polite" aria-label="loading-metrics-chart">
-      <div className="h-6 w-48 rounded-md bg-muted/70" />
-      {Array.from({ length: 3 }).map((_, idx) => (
-        <PlaceholderBlock key={idx} className="h-10 w-full rounded-[1rem]" />
-      ))}
-      <PlaceholderBlock className="mt-2 h-56 w-full rounded-[1.5rem]" />
-    </div>
-  );
 }
 
 function parseIsoToDate(rawIso?: string): Date | undefined {
@@ -158,17 +136,17 @@ export default function AdminDashboardPage() {
       : undefined;
   }, [searchParams]);
 
-  const [detailsEnabled, setDetailsEnabled] = useState(false);
   const [isRangePopoverOpen, setIsRangePopoverOpen] = useState(false);
   const [customRangeDraft, setCustomRangeDraft] = useState<DateRange | undefined>(undefined);
   const [optimisticVisibleColumns, setOptimisticVisibleColumns] = useState<Record<UserColumnKey, boolean> | null>(null);
-  const searchDebounceRef = useRef<number | undefined>(undefined);
+  const [searchInputValue, setSearchInputValue] = useState(usersParams.search ?? "");
+  const debouncedSearchInput = useDebouncedValue(searchInputValue, 200);
   const maxSelectableDate = useMemo(() => startOfLocalDay(), []);
   const maxSelectableDateInput = useMemo(
     () => toInputDateValue(maxSelectableDate),
     [maxSelectableDate]
   );
-  const canLoadAdminData = detailsEnabled && !authLoading && isAuthenticated && user?.role_name === "admin";
+  const canLoadAdminData = !authLoading && isAuthenticated && user?.role_name === "admin";
   const preferencesQuery = useAdminPreferences({ enabled: canLoadAdminData });
 
   const persistedVisibleColumns = useMemo<Record<UserColumnKey, boolean>>(() => {
@@ -230,30 +208,6 @@ export default function AdminDashboardPage() {
   }, [activeRangeForLabel, admin, currentLocale]);
 
   useEffect(() => {
-    if (detailsEnabled) {
-      return;
-    }
-
-    const enableDetails = () => setDetailsEnabled(true);
-    const timerId = window.setTimeout(enableDetails, 3200);
-
-    window.addEventListener("touchstart", enableDetails, { once: true, passive: true });
-    window.addEventListener("pointerdown", enableDetails, { once: true, passive: true });
-    window.addEventListener("keydown", enableDetails, { once: true });
-    window.addEventListener("focusin", enableDetails, { once: true });
-    window.addEventListener("wheel", enableDetails, { once: true, passive: true });
-
-    return () => {
-      window.clearTimeout(timerId);
-      window.removeEventListener("touchstart", enableDetails);
-      window.removeEventListener("pointerdown", enableDetails);
-      window.removeEventListener("keydown", enableDetails);
-      window.removeEventListener("focusin", enableDetails);
-      window.removeEventListener("wheel", enableDetails);
-    };
-  }, [detailsEnabled]);
-
-  useEffect(() => {
     if (authLoading) {
       return;
     }
@@ -278,8 +232,12 @@ export default function AdminDashboardPage() {
       const next = new URLSearchParams(searchParams.toString());
       updater(next);
 
+      const localizedPathname =
+        pathname === `/${currentLocale}` || pathname.startsWith(`/${currentLocale}/`)
+          ? pathname
+          : `/${currentLocale}${pathname === "/" ? "" : pathname}`;
       const queryString = next.toString();
-      const nextUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      const nextUrl = queryString ? `${localizedPathname}?${queryString}` : localizedPathname;
 
       if (options?.history === "push") {
         window.history.pushState(null, "", nextUrl);
@@ -287,7 +245,7 @@ export default function AdminDashboardPage() {
         window.history.replaceState(null, "", nextUrl);
       }
     },
-    [pathname, searchParams]
+    [currentLocale, pathname, searchParams]
   );
 
   const onGranularityChange = (granularity: string) => {
@@ -409,26 +367,9 @@ export default function AdminDashboardPage() {
     });
   }, [updateUrl, usersParams.search]);
 
-  const onSearchInputChange = useCallback((value: string) => {
-    if (searchDebounceRef.current) {
-      window.clearTimeout(searchDebounceRef.current);
-    }
-
-    const trimmedValue = value.trim();
-    const valueToApply = trimmedValue.length >= 3 ? trimmedValue : "";
-
-    searchDebounceRef.current = window.setTimeout(() => {
-      applySearch(valueToApply);
-    }, 250);
-  }, [applySearch]);
-
   useEffect(() => {
-    return () => {
-      if (searchDebounceRef.current) {
-        window.clearTimeout(searchDebounceRef.current);
-      }
-    };
-  }, []);
+    applySearch(debouncedSearchInput);
+  }, [applySearch, debouncedSearchInput]);
 
   const onToggleColumnVisibility = useCallback((key: UserColumnKey) => {
     if (!canLoadAdminData) {
@@ -468,7 +409,17 @@ export default function AdminDashboardPage() {
       <section className="ui-surface-panel-muted rounded-[2rem] p-5 sm:p-6 lg:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="ui-section-header">Admin</p>
+            <Link
+              href="/"
+              className="group inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-[160ms] ease-[var(--ease-out)] hover:text-foreground"
+            >
+              <ZIcon
+                type="mina"
+                name="arrow-left"
+                className="size-3.5 -translate-y-px text-muted-foreground transition-transform duration-[160ms] ease-[var(--ease-out)] group-hover:-translate-x-0.5 group-hover:text-foreground"
+              />
+              <span>{common("actions.goHome")}</span>
+            </Link>
             <h1 className="mt-2 text-[clamp(2.3rem,4.8vw,3.6rem)] leading-[0.95] tracking-tight text-foreground">
               {admin("title")}
             </h1>
@@ -566,24 +517,22 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="mt-5 min-h-[22rem] min-w-0 overflow-x-clip">
-          {!detailsEnabled && <MetricsSectionPlaceholder />}
-          {detailsEnabled && metricsQuery.state === "loading" && <PlaceholderBlock className="h-72 w-full" />}
-          {detailsEnabled && metricsQuery.state === "error" && <p className="text-sm text-destructive">{admin("errors.loadMetrics")}</p>}
-          {detailsEnabled && metricsQuery.state === "empty" && <p className="text-sm text-muted-foreground">{admin("states.emptyMetrics")}</p>}
+          {metricsQuery.state === "loading" && <PlaceholderBlock className="h-72 w-full" />}
+          {metricsQuery.state === "error" && <p className="text-sm text-destructive">{admin("errors.loadMetrics")}</p>}
+          {metricsQuery.state === "empty" && <p className="text-sm text-muted-foreground">{admin("states.emptyMetrics")}</p>}
 
-          {detailsEnabled && metricsQuery.state === "success" && (
+          {metricsQuery.state === "success" && (
             <MetricsCharts points={metricsQuery.data?.data.timeseries ?? []} />
           )}
         </div>
       </section>
 
       <section className="ui-surface-panel rounded-[1.85rem] p-4 sm:p-5">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <Input
-            key={usersParams.search ?? "__empty__"}
             placeholder={admin("filters.search")}
-            defaultValue={usersParams.search ?? ""}
-            onChange={(event) => onSearchInputChange(event.currentTarget.value)}
+            value={searchInputValue}
+            onChange={(event) => setSearchInputValue(event.currentTarget.value)}
           />
 
           <select
@@ -618,6 +567,20 @@ export default function AdminDashboardPage() {
           </select>
 
           <select
+            value={usersParams.accountStatus ?? ""}
+            onChange={(event) => updateUrl((params) => {
+              setSearchParam(params, "accountStatus", event.target.value || undefined);
+              setSearchParam(params, "usersPage", 1);
+            })}
+            className={selectClassName}
+            aria-label={admin("filters.accountStatus")}
+          >
+            <option value="">{admin("filters.accountStatus")}</option>
+            <option value="active">{admin("accountStatuses.active")}</option>
+            <option value="disabled">{admin("accountStatuses.disabled")}</option>
+          </select>
+
+          <select
             value={searchParams.get("planType") ?? ""}
             onChange={(event) =>
               updateUrl((params) => {
@@ -635,25 +598,21 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {detailsEnabled ? (
-        <div className="overflow-x-clip" style={{ containIntrinsicSize: "1200px" }}>
-          <AdminTablesSection
-            usersParams={usersParams}
-            planType={selectedPlanType}
-            enabled={canLoadAdminData}
-            visibleColumns={visibleColumns}
-            onToggleColumnVisibility={onToggleColumnVisibility}
-            onUsersPageChange={(page) =>
-              updateUrl(
-                (params) => setSearchParam(params, "usersPage", Math.max(1, page)),
-                { history: "push" }
-              )
-            }
-          />
-        </div>
-      ) : (
-        <AdminTablesSectionFallback admin={admin} />
-      )}
+      <div className="overflow-x-clip" style={{ containIntrinsicSize: "1200px" }}>
+        <AdminTablesSection
+          usersParams={usersParams}
+          planType={selectedPlanType}
+          enabled={canLoadAdminData}
+          visibleColumns={visibleColumns}
+          onToggleColumnVisibility={onToggleColumnVisibility}
+          onUsersPageChange={(page) =>
+            updateUrl(
+              (params) => setSearchParam(params, "usersPage", Math.max(1, page)),
+              { history: "push" }
+            )
+          }
+        />
+      </div>
     </div>
   );
 }

@@ -138,6 +138,30 @@ const updateUserValidation = [
     handleValidationErrors
 ];
 
+const adminUpdateUserValidation = [
+    body('username')
+        .optional()
+        .trim()
+        .isLength({ min: 3, max: 45 }).withMessage('Username must be between 3 and 45 characters'),
+
+    body('email')
+        .optional()
+        .trim()
+        .isEmail().withMessage('Invalid email format')
+        .isLength({ max: 45 }).withMessage('Email must not exceed 45 characters'),
+
+    body('roles_id')
+        .optional()
+        .isInt({ min: 1, max: 3 }).withMessage('roles_id must be an integer between 1 and 3'),
+
+    body('role')
+        .optional()
+        .trim()
+        .isIn(['admin', 'user', 'pro']).withMessage('role must be one of: admin, user, pro'),
+
+    handleValidationErrors
+];
+
 /**
  * Validaciones para cambiar contraseña
  */
@@ -168,6 +192,7 @@ module.exports = {
     passwordResetVerifyValidation,
     passwordResetConfirmValidation,
     updateUserValidation,
+    adminUpdateUserValidation,
     changePasswordValidation,
     isValidEmail
 };

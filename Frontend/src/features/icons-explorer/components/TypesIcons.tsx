@@ -47,25 +47,29 @@ const TypesIcons = () => {
               premium && iconSet !== icon && "border-amber-500/24"
             )}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex flex-1 items-baseline gap-2">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-2">
                   <p className="truncate text-base leading-none text-foreground sm:text-lg">{currentIcon.label}</p>
                   <p className="truncate text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                     {currentIcon.subLabel}
                   </p>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">{icon.replace("fa-", "")}</p>
               </div>
-              <span className="text-lg text-foreground/65 transition-transform duration-200 ease-[var(--ease-out)]">
-                &gt;
-              </span>
-            </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.22em]", getCategoryTone(icon))}>
+              <div className="flex shrink-0 items-center gap-2.5">
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.22em]",
+                    getCategoryTone(icon)
+                  )}
+                >
                 {premium ? common("icons.pro") : common(`icons.categories.${category}`)}
-              </span>
+                </span>
+                <span className="text-lg text-foreground/65 transition-transform duration-200 ease-[var(--ease-out)]">
+                  &gt;
+                </span>
+              </div>
             </div>
           </Link>
         )

@@ -12,7 +12,6 @@ import {
   resetPasswordWithOtp,
   verifyPasswordResetOtp,
 } from "@/lib/api/backend";
-import { useSessionDraft } from "@/hooks/useSessionDraft";
 
 type ForgotStep = "request" | "verify" | "reset";
 
@@ -31,7 +30,7 @@ export default function ForgotPasswordPage() {
   const { currentLocale } = useLocale();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [draft, setDraft, clearForgotDraft] = useSessionDraft("auth:forgot-password:draft", initialForgotPasswordDraft);
+  const [draft, setDraft] = useState(initialForgotPasswordDraft);
   const [resetError, setResetError] = useState<string | null>(null);
   const step = draft.step;
   const email = draft.email;
@@ -124,7 +123,7 @@ export default function ForgotPasswordPage() {
         confirmPassword,
         currentLocale
       );
-      clearForgotDraft();
+      setDraft(initialForgotPasswordDraft);
       toast.success(auth("success.passwordResetSuccess"));
       router.push("/auth/login");
     } catch (error) {
@@ -247,7 +246,11 @@ export default function ForgotPasswordPage() {
           disabled={isLoading || (step === "verify" && !canVerifyOtp)}
         >
           {isLoading
-            ? common("actions.loading")
+            ? step === "request"
+              ? auth("actions.sendingOtp")
+              : step === "verify"
+                ? auth("actions.verifyingOtp")
+                : auth("actions.resettingPassword")
             : step === "request"
               ? auth("actions.sendOtp")
               : step === "verify"

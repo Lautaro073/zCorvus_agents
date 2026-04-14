@@ -1,9 +1,9 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { ZIcon } from "@zcorvus/z-icons/react"
 import { useParams, useSearchParams } from "next/navigation"
-import { usePathname, useRouter } from "@/i18n/navigation"
+import { Link, usePathname, useRouter } from "@/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { DEFAULT_LOCALE, type Locale, LOCALES } from "@/i18n/routing"
@@ -40,15 +40,12 @@ export function AdminAppearanceControls() {
   const currentLocale = String(params.locale ?? DEFAULT_LOCALE)
   const nextLocale = useMemo(() => getNextLocale(currentLocale), [currentLocale])
 
-  const switchLocale = () => {
-    const queryString = searchParams.toString()
-    const href = queryString ? `${pathname}?${queryString}` : pathname
+  const queryString = searchParams.toString()
+  const href = queryString ? `${pathname}?${queryString}` : pathname
 
-    router.replace(href, {
-      locale: nextLocale,
-      scroll: false,
-    })
-  }
+  useEffect(() => {
+    router.prefetch(href, { locale: nextLocale })
+  }, [href, nextLocale, router])
 
   return (
     <div className="ui-glass inline-flex items-center gap-1 rounded-full p-1">
@@ -67,15 +64,16 @@ export function AdminAppearanceControls() {
         />
       </Button>
 
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={switchLocale}
-        aria-label={admin("controls.toggleLocale")}
-        title={admin("controls.toggleLocale")}
-        className="rounded-full"
-      >
-        <ZIcon name="language" type={validIconType} className="size-4" />
+      <Button asChild variant="ghost" size="icon-sm" className="rounded-full">
+        <Link
+          href={href}
+          locale={nextLocale}
+          scroll={false}
+          aria-label={admin("controls.toggleLocale")}
+          title={admin("controls.toggleLocale")}
+        >
+          <ZIcon name="language" type={validIconType} className="size-4" />
+        </Link>
       </Button>
     </div>
   )

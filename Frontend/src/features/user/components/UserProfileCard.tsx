@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ZIcon } from "@zcorvus/z-icons/react"
 import { useRouter } from "@/i18n/navigation"
@@ -114,9 +116,36 @@ const UserProfileCard = () => {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon-sm" onClick={handleSignOut} aria-label={common("actions.signOut")}>
-              <ZIcon type="mina" name="logout" className="size-4 text-destructive" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {userRole === "admin" && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon-sm"
+                        className="border border-border/60 bg-card/24 text-muted-foreground transition-[transform,background-color,border-color,color] duration-[160ms] ease-[var(--ease-out)] hover:border-border hover:bg-card/60 hover:text-foreground active:scale-[0.985]"
+                      >
+                        <Link href="/admin" aria-label={common("actions.openAdmin")}>
+                          <ZIcon type="mina" name="user-settings" className="size-4 text-current" />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{common("actions.openAdmin")}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleSignOut}
+                aria-label={common("actions.signOut")}
+                title={common("actions.signOut")}
+              >
+                <ZIcon type="mina" name="logout" className="size-4 text-destructive" />
+              </Button>
+            </div>
           </div>
 
           <div className="ui-divider" />

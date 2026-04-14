@@ -185,6 +185,24 @@ describe('Admin Users Query API', () => {
         expect(response.body.data[0].subscriptionStatus).toBe('expiring');
     });
 
+    it('supports accountStatus filter and includes accountStatus in each row', async () => {
+        await query(
+            `UPDATE user
+             SET account_status = 'disabled', disabled_at = CURRENT_TIMESTAMP
+             WHERE email = ?`,
+            ['base_user_query@test.com']
+        );
+
+        const response = await request(app)
+            .get('/api/admin/users?accountStatus=disabled')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+        expect(response.body.data.every((entry) => entry.accountStatus === 'disabled')).toBe(true);
+        expect(response.body.filtersApplied.accountStatus).toBe('disabled');
+    });
+
     it('supports legacy limit alias and stable sort fallback to id DESC', async () => {
         const response = await request(app)
             .get('/api/admin/users?limit=2&sortBy=unknown&sortDir=wat')
