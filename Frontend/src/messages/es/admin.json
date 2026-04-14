@@ -9,7 +9,7 @@
   "filters": {
     "search": "Buscar usuario o email",
     "role": "Rol",
-    "subscriptionStatus": "Estado de suscripcion",
+    "subscriptionStatus": "Estado de suscripción",
     "accountStatus": "Estado de cuenta",
     "planType": "Plan",
     "sortBy": "Ordenar por",
