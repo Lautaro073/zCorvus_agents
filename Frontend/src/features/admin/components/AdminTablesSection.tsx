@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { PencilLine, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type {
@@ -147,8 +148,7 @@ export function AdminTablesSection({
       <article className="ui-surface-panel flex min-h-[30rem] min-w-0 flex-col rounded-[1.85rem] p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="ui-section-header">{admin("table.users.title")}</p>
-            <h2 className="mt-2 text-xl tracking-tight text-foreground">Usuarios</h2>
+    
           </div>
 
           {!isLoading && !isError && !isEmpty && (
@@ -208,7 +208,7 @@ export function AdminTablesSection({
           {!isLoading && !isError && !isEmpty && (
             <div className="overflow-x-auto overscroll-x-contain">
               <table className="w-full min-w-[68rem] text-left text-sm md:min-w-[64rem]">
-                <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
+                <thead className="sticky top-0 z-10 border-b border-border/60 text-[11px] ">
                   <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     {visibleColumns.username && <th className="px-3 py-3">{admin("table.users.username")}</th>}
                     {visibleColumns.email && <th className="px-3 py-3">{admin("table.users.email")}</th>}
@@ -245,26 +245,28 @@ export function AdminTablesSection({
                         )}
                         {visibleColumns.tokenExpiry && <td className="px-3 py-4 text-muted-foreground">{formatDate(subscriptionFinishDate)}</td>}
                         <td className="px-3 py-4">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1.5">
                             <Button
                               type="button"
                               variant="outline"
-                              size="sm"
+                              size="icon-sm"
                               disabled
                               className="rounded-full"
                               aria-label={`${common("actions.update")} ${item.username}`}
+                              title={common("actions.update")}
                             >
-                              {common("actions.update")}
+                              <PencilLine className="size-3.5" />
                             </Button>
                             <Button
                               type="button"
                               variant="outline"
-                              size="sm"
+                              size="icon-sm"
                               disabled
                               className="rounded-full"
                               aria-label={`${common("actions.softDelete")} ${item.username}`}
+                              title={common("actions.softDelete")}
                             >
-                              {common("actions.softDelete")}
+                              <Trash2 className="size-3.5" />
                             </Button>
                           </div>
                         </td>
