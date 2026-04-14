@@ -41,6 +41,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <Script id="theme-bootstrap" strategy="beforeInteractive">
         {getThemeBootstrapScript(prefs.theme)}
       </Script>
+      <Script id="locale-bootstrap" strategy="beforeInteractive">
+        {`document.documentElement.lang = ${JSON.stringify(locale)};`}
+      </Script>
       {process.env.NODE_ENV === "development" && (
         <Script
           src="//unpkg.com/react-scan/dist/auto.global.js"

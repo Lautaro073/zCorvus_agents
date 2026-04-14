@@ -21,7 +21,7 @@
     "signOut": "Cerrar sesión",
     "openAdmin": "Abrir admin",
     "update": "Actualizar",
-    "softDelete": "Soft delete"
+    "softDelete": "Deshabilitar"
   },
   "toasts": {
     "iconNameCopied": "¡Nombre del ícono copiado!",

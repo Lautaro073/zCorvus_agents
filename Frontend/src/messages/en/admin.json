@@ -1,6 +1,7 @@
 {
   "title": "Admin dashboard",
   "description": "Monitor users, subscriptions, and business metrics in real time.",
+  "chartDescription": "Track sales, revenue, and registrations without leaving the admin panel.",
   "kpis": {
     "registrations": "Registrations",
     "salesCount": "Subscription",

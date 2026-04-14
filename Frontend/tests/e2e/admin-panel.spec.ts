@@ -389,6 +389,8 @@ async function mockAdminApis(
             token_id: `qa-token-${pageParam}`,
             token_finish_date: "2027-04-10T00:00:00.000Z",
             subscriptionStatus: "active",
+            accountStatus: "active",
+            disabled_at: null,
             two_factor_enabled: false,
             created_at: "2026-04-01T00:00:00.000Z",
             updated_at: "2026-04-01T00:00:00.000Z",

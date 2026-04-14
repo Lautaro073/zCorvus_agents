@@ -5,41 +5,30 @@ const { generateUUID } = require('../utils/uuid');
 const ACCOUNT_STATUS_ACTIVE = 'active';
 const ACCOUNT_STATUS_DISABLED = 'disabled';
 
-let ensureAccountLifecycleSchemaPromise = null;
+let verifyAccountLifecycleSchemaPromise = null;
 
-async function ensureAccountLifecycleSchema() {
-    const hasColumn = async (columnName) => {
-        const columns = await db.query(`PRAGMA table_info('user')`);
-        return columns.some((column) => String(column.name) === columnName);
-    };
+async function verifyAccountLifecycleSchema() {
+    const columns = await db.query(`PRAGMA table_info('user')`);
+    const availableColumns = new Set(columns.map((column) => String(column.name)));
+    const requiredColumns = ['account_status', 'disabled_at'];
+    const missingColumns = requiredColumns.filter((columnName) => !availableColumns.has(columnName));
 
-    if (!(await hasColumn('account_status'))) {
-        await db.query(`ALTER TABLE user ADD COLUMN account_status TEXT NOT NULL DEFAULT '${ACCOUNT_STATUS_ACTIVE}'`);
+    if (missingColumns.length > 0) {
+        throw new Error(
+            `Missing user lifecycle columns: ${missingColumns.join(', ')}. Run "npm run db:migrate:user-account-lifecycle".`
+        );
     }
-
-    if (!(await hasColumn('disabled_at'))) {
-        await db.query('ALTER TABLE user ADD COLUMN disabled_at TEXT NULL');
-    }
-
-    await db.query(
-        `UPDATE user
-         SET account_status = ?
-         WHERE account_status IS NULL OR TRIM(account_status) = ''`,
-        [ACCOUNT_STATUS_ACTIVE]
-    );
-
-    await db.query('CREATE INDEX IF NOT EXISTS idx_user_account_status ON user(account_status)');
 }
 
 function ensureAccountLifecycleSchemaOnce() {
-    if (!ensureAccountLifecycleSchemaPromise) {
-        ensureAccountLifecycleSchemaPromise = ensureAccountLifecycleSchema().catch((error) => {
-            ensureAccountLifecycleSchemaPromise = null;
+    if (!verifyAccountLifecycleSchemaPromise) {
+        verifyAccountLifecycleSchemaPromise = verifyAccountLifecycleSchema().catch((error) => {
+            verifyAccountLifecycleSchemaPromise = null;
             throw error;
         });
     }
 
-    return ensureAccountLifecycleSchemaPromise;
+    return verifyAccountLifecycleSchemaPromise;
 }
 
 /**

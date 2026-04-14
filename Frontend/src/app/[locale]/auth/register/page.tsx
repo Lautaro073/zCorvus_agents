@@ -95,7 +95,7 @@ export default function RegisterPage() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-8">
       <div className="space-y-3">
-        <p className="ui-section-header">Register</p>
+        <p className="ui-section-header">{t("actions.signUp")}</p>
         <h1 className="ui-display-title text-4xl leading-none sm:text-5xl">
           {t("register.title")}
         </h1>

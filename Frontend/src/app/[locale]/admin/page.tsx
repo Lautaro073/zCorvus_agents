@@ -447,7 +447,7 @@ export default function AdminDashboardPage() {
         <div className="flex flex-col gap-4">
           <div>
             <p className="ui-section-header">{admin("kpis.salesCount")} / {admin("kpis.revenue")}</p>
-            <p className="mt-2 text-sm text-muted-foreground">Seguimiento de ventas, ingresos y registros sin salir del panel.</p>
+            <p className="mt-2 text-sm text-muted-foreground">{admin("chartDescription")}</p>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

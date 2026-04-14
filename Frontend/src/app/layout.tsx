@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import { ReactQueryProvider } from "@/lib/query/provider";
 import { getServerPreferences } from "@/lib/server/preferences";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/i18n/routing";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,24 +11,30 @@ export const metadata: Metadata = {
   description: "Icon library, premium access, and admin tools for ZCorvus.",
 };
 
-const geist = localFont({
-  src: "../../node_modules/next/dist/esm/next-devtools/server/font/geist-latin.woff2",
+const geist = Geist({
+  subsets: ["latin"],
   variable: "--font-geist",
   display: "swap",
 });
 
-const geistMono = localFont({
-  src: "../../node_modules/next/dist/esm/next-devtools/server/font/geist-mono-latin.woff2",
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
 });
 
+function resolveHtmlLocale(rawLocale?: string): Locale {
+  return LOCALES.includes(rawLocale as Locale) ? (rawLocale as Locale) : DEFAULT_LOCALE;
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const prefs = await getServerPreferences();
+  const cookieStore = await cookies();
+  const locale = resolveHtmlLocale(cookieStore.get("NEXT_LOCALE")?.value);
 
   return (
     <html
-      lang="en"
+      lang={locale}
       className={prefs.theme}
       data-theme={prefs.theme}
       style={{ colorScheme: prefs.theme }}

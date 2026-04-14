@@ -1,6 +1,7 @@
 {
-  "title": "Panel de administracion",
-  "description": "Monitorea usuarios, suscripciones y metricas de negocio en tiempo real.",
+  "title": "Panel de administración",
+  "description": "Monitorea usuarios, suscripciones y métricas de negocio en tiempo real.",
+  "chartDescription": "Seguimiento de ventas, ingresos y registros sin salir del panel.",
   "kpis": {
     "registrations": "Registros",
     "salesCount": "Suscripciones",
@@ -13,29 +14,29 @@
     "accountStatus": "Estado de cuenta",
     "planType": "Plan",
     "sortBy": "Ordenar por",
-    "sortDir": "Direccion",
+    "sortDir": "Dirección",
     "granularity": "Granularidad",
     "from": "Desde",
     "to": "Hasta",
-    "day": "Dia",
+    "day": "Día",
     "month": "Mes",
-    "year": "Ano",
+    "year": "Año",
     "custom": "Personalizado",
-    "expiringInDays": "Vence en (dias)",
+    "expiringInDays": "Vence en (días)",
     "refresh": "Actualizar"
   },
   "states": {
     "emptyUsers": "No hay usuarios para los filtros seleccionados.",
     "emptySubscriptions": "No hay suscripciones para los filtros seleccionados.",
-    "emptyMetrics": "No hay datos suficientes para graficar metricas en el rango actual.",
+    "emptyMetrics": "No hay datos suficientes para graficar métricas en el rango actual.",
     "loadingUsers": "Cargando usuarios...",
     "loadingSubscriptions": "Cargando suscripciones...",
-    "loadingMetrics": "Cargando metricas y preparando graficos..."
+    "loadingMetrics": "Cargando métricas y preparando gráficos..."
   },
   "errors": {
     "loadUsers": "No se pudieron cargar los usuarios.",
     "loadSubscriptions": "No se pudieron cargar las suscripciones.",
-    "loadMetrics": "No se pudieron cargar las metricas.",
+    "loadMetrics": "No se pudieron cargar las métricas.",
     "updateUser": "No se pudo actualizar el usuario.",
     "disableUser": "No se pudo deshabilitar el usuario.",
     "reEnableUser": "No se pudo reactivar el usuario.",
@@ -50,7 +51,7 @@
       "email": "Email",
       "role": "Rol",
       "accountStatus": "Cuenta",
-      "status": "Suscripcion",
+      "status": "Suscripción",
       "startDate": "Inicio",
       "columnsControl": "Columnas",
       "tokenExpiry": "Vencimiento",
@@ -75,7 +76,7 @@
     "active": "Activa",
     "expiring": "Por vencer",
     "expired": "Vencida",
-    "none": "Sin suscripcion"
+    "none": "Sin suscripción"
   },
   "accountStatuses": {
     "active": "Activa",
@@ -94,15 +95,15 @@
     "disable": "Deshabilitar usuario",
     "reEnable": "Reactivar usuario",
     "deletePermanent": "Borrar definitivamente",
-    "selfProtected": "Accion no disponible sobre tu propia cuenta"
+    "selfProtected": "Acción no disponible sobre tu propia cuenta"
   },
   "dialogs": {
     "editUserTitle": "Editar usuario",
     "editUserBody": "Actualiza datos de la cuenta.",
     "disableTitle": "Deshabilitar cuenta",
-    "disableBody": "El usuario seguira visible en admin bajo los filtros que correspondan, pero la cuenta quedara bloqueada hasta reactivarla.",
+    "disableBody": "El usuario seguirá visible en admin bajo los filtros que correspondan, pero la cuenta quedará bloqueada hasta reactivarla.",
     "deleteTitle": "Borrar definitivamente",
-    "deleteBody": "Esta accion es irreversible y elimina al usuario de forma fisica. Solo esta disponible despues de deshabilitar la cuenta.",
+    "deleteBody": "Esta acción es irreversible y elimina al usuario de forma física. Solo está disponible después de deshabilitar la cuenta.",
     "confirmDisableCta": "Deshabilitar",
     "confirmDeleteCta": "Borrar definitivamente"
   },

@@ -105,7 +105,12 @@ export default function LoginPage() {
             aria-invalid={Boolean(formError)}
             className={formError ? "border-destructive/70 focus-visible:border-destructive" : undefined}
             onChange={(e) => {
-              setFormData((current) => ({ ...current, email: e.target.value }));
+              setFormData((current) => ({
+                ...current,
+                email: e.target.value,
+                requires2FA: false,
+                twoFactorCode: "",
+              }));
               if (formError) setFormError(null);
             }}
           />
@@ -123,7 +128,12 @@ export default function LoginPage() {
             aria-invalid={Boolean(formError)}
             className={formError ? "border-destructive/70 focus-visible:border-destructive" : undefined}
             onChange={(e) => {
-              setFormData((current) => ({ ...current, password: e.target.value }));
+              setFormData((current) => ({
+                ...current,
+                password: e.target.value,
+                requires2FA: false,
+                twoFactorCode: "",
+              }));
               if (formError) setFormError(null);
             }}
           />

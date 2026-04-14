@@ -143,13 +143,14 @@ const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: Ico
               }}
             >
               {rowIcons.map((icon, idx) => {
-                const id = `${icon.type}::${icon.name}::${icon.variant}::${from + idx}`
+                const id = `${icon.type}:${icon.name}:${icon.variant}:${from + idx}`
+                const iconId = `${icon.type}:${icon.name}:${icon.variant}`
 
                 return (
                   <div
                     key={id}
+                    data-icon-id={iconId}
                     className={cn(
-                      id,
                       "group relative grid cursor-pointer justify-center rounded-[1.25rem] border border-surface-border bg-surface/92 px-2 py-2 shadow-[var(--shadow-soft)] transition-[transform,border-color,background-color,box-shadow] duration-[180ms] ease-[var(--ease-out)] hover:-translate-y-[1px] hover:border-foreground/14 hover:bg-surface",
                       isCompact ? "h-12 w-12 grid-rows-1" : "h-28 w-28 gap-2 grid-rows-[4fr_3fr]"
                     )}

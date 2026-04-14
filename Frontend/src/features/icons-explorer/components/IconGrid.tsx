@@ -22,7 +22,7 @@ const IconGrid = ({ data }: IconGridProps) => {
     setShowDetail(null);
   }, []);
 
-  const idIcon = showDetail ? `${showDetail.type}::${showDetail.name}::${showDetail.variant}` : "";
+  const idIcon = showDetail ? `${showDetail.type}:${showDetail.name}:${showDetail.variant}` : "";
 
   return (
     <div
@@ -32,7 +32,7 @@ const IconGrid = ({ data }: IconGridProps) => {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .${idIcon} {
+            [data-icon-id="${idIcon}"] {
               background-color: color-mix(in oklab, var(--primary) 12%, var(--surface));
               border-color: color-mix(in oklab, var(--primary) 40%, var(--surface-border));
               box-shadow: var(--shadow-soft);
