@@ -18,7 +18,9 @@
     "showAll": "Mostrar todos",
     "cancel": "Cancelar",
     "apply": "Aplicar",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "update": "Actualizar",
+    "softDelete": "Soft delete"
   },
   "toasts": {
     "iconNameCopied": "¡Nombre del ícono copiado!",

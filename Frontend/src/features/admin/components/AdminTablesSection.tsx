@@ -183,8 +183,8 @@ export function AdminTablesSection({
             <div className="overflow-x-auto overscroll-x-contain">
               <div className="min-w-[56rem] space-y-2 md:min-w-[52rem]">
                 {Array.from({ length: 6 }).map((_, rowIdx) => (
-                  <div key={rowIdx} className="grid grid-cols-7 gap-2 animate-pulse">
-                    {Array.from({ length: 7 }).map((__, colIdx) => (
+                  <div key={rowIdx} className="grid grid-cols-8 gap-2 animate-pulse">
+                    {Array.from({ length: 8 }).map((__, colIdx) => (
                       <div key={`${rowIdx}-${colIdx}`} className="h-10 rounded-[1rem] bg-muted/75" />
                     ))}
                   </div>
@@ -207,7 +207,7 @@ export function AdminTablesSection({
 
           {!isLoading && !isError && !isEmpty && (
             <div className="overflow-x-auto overscroll-x-contain">
-              <table className="w-full min-w-[56rem] text-left text-sm md:min-w-[52rem]">
+              <table className="w-full min-w-[68rem] text-left text-sm md:min-w-[64rem]">
                 <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
                   <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     {visibleColumns.username && <th className="px-3 py-3">{admin("table.users.username")}</th>}
@@ -217,6 +217,7 @@ export function AdminTablesSection({
                     {visibleColumns.plan && <th className="px-3 py-3">{admin("table.subscriptions.plan")}</th>}
                     {visibleColumns.startDate && <th className="px-3 py-3">{admin("table.users.startDate")}</th>}
                     {visibleColumns.tokenExpiry && <th className="px-3 py-3">{admin("table.users.tokenExpiry")}</th>}
+                    <th className="px-3 py-3 text-right">{admin("table.users.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,6 +244,30 @@ export function AdminTablesSection({
                           <td className="px-3 py-4 text-muted-foreground">{formatDate(subscriptionStartDate)}</td>
                         )}
                         {visibleColumns.tokenExpiry && <td className="px-3 py-4 text-muted-foreground">{formatDate(subscriptionFinishDate)}</td>}
+                        <td className="px-3 py-4">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="rounded-full"
+                              aria-label={`${common("actions.update")} ${item.username}`}
+                            >
+                              {common("actions.update")}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="rounded-full"
+                              aria-label={`${common("actions.softDelete")} ${item.username}`}
+                            >
+                              {common("actions.softDelete")}
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

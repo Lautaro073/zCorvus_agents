@@ -47,7 +47,8 @@
       "status": "Suscripción",
       "startDate": "Inicio",
       "columnsControl": "Columnas",
-      "tokenExpiry": "Vencimiento"
+      "tokenExpiry": "Vencimiento",
+      "actions": "Acciones"
     },
     "subscriptions": {
       "title": "Suscripciones",
