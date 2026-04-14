@@ -17,7 +17,11 @@
     "download": "Download",
     "showAll": "Show all",
     "cancel": "Cancel",
-    "apply": "Apply"
+    "apply": "Apply",
+    "signOut": "Sign out",
+    "openAdmin": "Open admin",
+    "update": "Update",
+    "softDelete": "Soft delete"
   },
   "toasts": {
     "iconNameCopied": "Icon name copied!",

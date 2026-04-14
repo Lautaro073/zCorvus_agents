@@ -67,9 +67,9 @@ export function MetricsCharts({ points }: MetricsChartsProps) {
   }
 
   return (
-    <ChartContainer config={chartConfig} className="h-[22rem] w-full min-w-0">
+    <ChartContainer config={chartConfig} className="h-[24rem] w-full min-w-0">
       <LineChart accessibilityLayer data={chartData} margin={{ top: 16, right: 8, left: 8, bottom: 8 }}>
-        <CartesianGrid vertical={false} />
+        <CartesianGrid vertical={false} strokeDasharray="2 6" />
         <XAxis
           dataKey="bucket"
           tickLine={false}
@@ -112,7 +112,7 @@ export function MetricsCharts({ points }: MetricsChartsProps) {
           type="monotone"
           dataKey="salesCount"
           stroke="var(--color-salesCount)"
-          strokeWidth={2}
+          strokeWidth={2.25}
           dot={false}
           activeDot={{ r: 4 }}
         />
@@ -121,7 +121,7 @@ export function MetricsCharts({ points }: MetricsChartsProps) {
           type="monotone"
           dataKey="registrations"
           stroke="var(--color-registrations)"
-          strokeWidth={2}
+          strokeWidth={2.25}
           dot={false}
           activeDot={{ r: 4 }}
         />
@@ -130,7 +130,7 @@ export function MetricsCharts({ points }: MetricsChartsProps) {
           type="monotone"
           dataKey="revenue"
           stroke="var(--color-revenue)"
-          strokeWidth={2.5}
+          strokeWidth={2.75}
           dot={false}
           activeDot={{ r: 4 }}
         />

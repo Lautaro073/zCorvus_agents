@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "@/i18n/navigation";
-import { useSearchParams } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useSessionDraft } from "@/hooks/useSessionDraft";
+
+const initialLoginFormData = {
+  email: "",
+  password: "",
+  twoFactorCode: "",
+  requires2FA: false,
+};
 
 export default function LoginPage() {
   const auth = useTranslations("auth");
@@ -18,12 +25,9 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const handledSessionFeedback = useRef(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    twoFactorCode: "",
-  });
-  const [requires2FA, setRequires2FA] = useState(false);
+  const [formData, setFormData, clearLoginDraft] = useSessionDraft("auth:login:draft", initialLoginFormData);
+  const [formError, setFormError] = useState<string | null>(null);
+  const requires2FA = formData.requires2FA;
 
   useEffect(() => {
     if (handledSessionFeedback.current) {
@@ -41,6 +45,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     setIsLoading(true);
 
     try {
@@ -50,20 +55,28 @@ export default function LoginPage() {
         formData.twoFactorCode || undefined
       );
 
-      toast.success(auth('success.loginSuccess'));
+      clearLoginDraft();
+      toast.success(auth("success.loginSuccess"));
 
       if (loggedUser.role_name === "admin") {
         router.push("/admin");
       } else {
-        router.push('/icons');
+        router.push("/icons");
       }
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === '2FA_REQUIRED') {
-          setRequires2FA(true);
-          toast.info(auth('actions.enter2FA'));
+        if (error.message === "2FA_REQUIRED") {
+          setFormData((current) => ({ ...current, requires2FA: true }));
+          setFormError(null);
+          toast.info(auth("actions.enter2FA"));
         } else {
-          toast.error(error.message || auth('errors.loginFailed'));
+          const normalizedMessage =
+            error.message === "Invalid credentials"
+              ? auth("errors.invalidCredentials")
+              : error.message || auth("errors.loginFailed");
+
+          setFormError(normalizedMessage);
+          toast.error(normalizedMessage);
         }
       }
     } finally {
@@ -72,87 +85,106 @@ export default function LoginPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-[2rem] border border-border/70 bg-card/90 px-5 py-6 shadow-sm sm:px-7 sm:py-8 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none">
-      <div className="flex flex-col gap-6 lg:gap-10">
-        <div className="space-y-2">
-          <h1 className="font-kadwa text-4xl leading-none sm:text-5xl lg:font-medium lg:text-2xl lg:leading-tight lg:uppercase">
-            {auth('screens.signIn.title')}
-          </h1>
-          <p className="text-sm leading-6 text-muted-foreground sm:text-base lg:text-sm lg:leading-tight">
-            {auth('screens.signIn.subtitle')}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+      <div className="space-y-3">
+        <h1 className="ui-display-title text-4xl leading-none sm:text-5xl">
+          {auth("screens.signIn.title")}
+        </h1>
+      </div>
+
+      <div className="grid gap-4">
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-foreground">{common("fields.email")}</span>
+          <Input
+            type="email"
+            placeholder={common("fields.email")}
+            value={formData.email}
+            required
+            disabled={isLoading}
+            autoComplete="email"
+            aria-invalid={Boolean(formError)}
+            className={formError ? "border-destructive/70 focus-visible:border-destructive" : undefined}
+            onChange={(e) => {
+              setFormData((current) => ({
+                ...current,
+                email: e.target.value,
+                requires2FA: false,
+                twoFactorCode: "",
+              }));
+              if (formError) setFormError(null);
+            }}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-foreground">{common("fields.password")}</span>
+          <Input
+            type="password"
+            placeholder={common("fields.password")}
+            value={formData.password}
+            required
+            disabled={isLoading}
+            autoComplete="current-password"
+            aria-invalid={Boolean(formError)}
+            className={formError ? "border-destructive/70 focus-visible:border-destructive" : undefined}
+            onChange={(e) => {
+              setFormData((current) => ({
+                ...current,
+                password: e.target.value,
+                requires2FA: false,
+                twoFactorCode: "",
+              }));
+              if (formError) setFormError(null);
+            }}
+          />
+        </label>
+
+        {formError && (
+          <p
+            role="alert"
+            className="rounded-[1rem] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {formError}
           </p>
-        </div>
+        )}
 
-        <div className="space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-foreground lg:sr-only">{common('fields.email')}</span>
-            <Input
-              type="email"
-              placeholder={common('fields.email')}
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              disabled={isLoading}
-              className="h-11 rounded-xl lg:h-9 lg:rounded-md"
-              autoComplete="email"
-            />
-          </label>
+        {requires2FA && (
+          <div className="rounded-[1.4rem] border border-primary/18 bg-primary/8 p-4">
+            <p className="ui-section-header !tracking-[0.22em]">{auth("actions.enter2FA")}</p>
+            <label className="mt-3 grid gap-2">
+              <span className="text-sm font-medium text-foreground">{auth("twoFactor.code")}</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder={auth("twoFactor.placeholder")}
+                value={formData.twoFactorCode}
+                onChange={(e) => setFormData((current) => ({ ...current, twoFactorCode: e.target.value }))}
+                maxLength={6}
+                disabled={isLoading}
+              />
+            </label>
+          </div>
+        )}
+      </div>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-foreground lg:sr-only">{common('fields.password')}</span>
-            <Input
-              type="password"
-              placeholder={common('fields.password')}
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-              disabled={isLoading}
-              className="h-11 rounded-xl lg:h-9 lg:rounded-md"
-              autoComplete="current-password"
-            />
-          </label>
+      <div className="space-y-4">
+        <Button type="submit" className="w-full rounded-full" size="lg" disabled={isLoading}>
+          {isLoading ? auth("actions.signingIn") : auth("actions.signIn")}
+        </Button>
 
-          {requires2FA && (
-            <div className="rounded-[1.25rem] border border-primary/20 bg-primary/5 p-3 lg:rounded-lg lg:px-0 lg:py-0 lg:border-0 lg:bg-transparent">
-              <p className="mb-3 text-sm text-foreground lg:sr-only">{auth('actions.enter2FA')}</p>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-foreground lg:sr-only">{auth('twoFactor.code')}</span>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder={auth('twoFactor.placeholder')}
-                  value={formData.twoFactorCode}
-                  onChange={(e) => setFormData({ ...formData, twoFactorCode: e.target.value })}
-                  maxLength={6}
-                  disabled={isLoading}
-                  className="h-11 rounded-xl lg:h-9 lg:rounded-md"
-                />
-              </label>
-            </div>
-          )}
-        </div>
+        <p className="text-center text-sm leading-6 text-muted-foreground">
+          <Link href="/auth/forgot-password" className="font-medium text-foreground hover:underline">
+            {auth("actions.forgotPassword")}
+          </Link>
+        </p>
 
-        <div className="space-y-4">
-          <Button type="submit" className="h-11 w-full rounded-xl text-base lg:mt-2 lg:h-9 lg:rounded-md lg:text-sm" disabled={isLoading}>
-            {isLoading ? common('actions.loading') : auth('actions.signIn')}
-          </Button>
-
-          <p className="text-center text-sm leading-6 text-muted-foreground lg:mt-4 lg:text-sm lg:leading-normal">
-            <Link href="/auth/forgot-password" className="font-medium text-foreground hover:underline">
-              {auth('actions.forgotPassword')}
-            </Link>
-          </p>
-
-          <p className="text-center text-sm leading-6 text-muted-foreground lg:text-sm lg:leading-normal">
-            {auth('screens.signIn.noAccount')}{' '}
-            <Link href="/auth/signup" className="font-medium text-foreground hover:underline">
-              {auth('actions.signUp')}
-            </Link>
-          </p>
-        </div>
+        <p className="text-center text-sm leading-6 text-muted-foreground">
+          {auth("screens.signIn.noAccount")}{" "}
+          <Link href="/auth/signup" className="font-medium text-foreground hover:underline">
+            {auth("actions.signUp")}
+          </Link>
+        </p>
       </div>
     </form>
   );
 }
-
-

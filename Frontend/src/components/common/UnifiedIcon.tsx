@@ -2,7 +2,6 @@
 
 import { ZIcon } from '@zcorvus/z-icons/react';
 import { IconTypeInfo } from '@/types/icons/icons.types';
-import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const FASolidRenderer = dynamic(() => import('./FASolidRenderer'), { ssr: false });

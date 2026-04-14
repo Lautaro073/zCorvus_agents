@@ -1,103 +1,103 @@
 {
-    "title": "Desbloquea Todo el Poder de zCorvus",
-    "subtitle": "Accede a miles de iconos premium y obtén tu token npm para uso ilimitado",
-    "backToIcons": "Volver a iconos",
-    "processing": "Procesando...",
-    "guarantee": "Garantía de devolución de 30 días. Cancela en cualquier momento.",
-    "hero": {
-        "eyebrow": "Acceso premium",
-        "statusEyebrow": "Estado de acceso",
-        "promiseTitle": "Qué desbloqueas",
-        "authReady": "Sesión lista",
-        "authNeeded": "Requiere login",
-        "highlights": {
-            "instant": "Checkout guiado y retorno consistente sin perder tu apariencia visual.",
-            "token": "Tu acceso premium se convierte en token npm listo para proyectos reales.",
-            "support": "Planes pensados para escalar desde uso individual hasta equipos." 
-        }
-    },
-    "plans": {
-        "billing": "Pago seguro",
-        "pro": {
-            "name": "Plan Pro",
-            "badge": "Base sólida",
-            "summary": "Ideal para desbloquear la colección premium y empezar a integrarla hoy mismo.",
-            "cta": "Comenzar Plan Pro",
-            "features": {
-                "icons": "Acceso a todos los iconos premium",
-                "npm": "Token npm para proyectos ilimitados",
-                "updates": "Actualizaciones mensuales de iconos",
-                "support": "Soporte por email"
-            }
-        },
-        "enterprise": {
-            "name": "Plan Enterprise",
-            "badge": "Más Popular",
-            "summary": "Para equipos que necesitan soporte prioritario, licencias compartidas y personalización.",
-            "cta": "Comenzar Plan Enterprise",
-            "features": {
-                "everything": "Todo del Plan Pro",
-                "priority": "Soporte prioritario 24/7",
-                "custom": "Iconos personalizados bajo pedido",
-                "team": "Licencia para equipo (hasta 10 usuarios)"
-            }
-        }
-    },
-    "success": {
-        "eyebrow": "Acceso activado",
-        "title": "¡Pago Exitoso!",
-        "subtitle": "Bienvenido a zCorvus Premium",
-        "statusLabel": "Estado del acceso",
-        "statusProcessing": "Provisionando tu acceso",
-        "statusReady": "Listo para usar",
-        "statusAttention": "Necesita tu revisión",
-        "generatingToken": "Generando tu token npm premium...",
-        "retryAttempt": "Intento {count} de {total}...",
-        "npmToken": "Tu Token NPM",
-        "npmInstructions": "Usa este token para acceder a los paquetes premium de zCorvus en tus proyectos.",
-        "copyToken": "Copiar Token",
-        "downloadNpmrc": "Descargar .npmrc",
-        "tokenCopied": "Token copiado",
-        "tokenGenerated": "Token generado exitosamente",
-        "fileDownloaded": "Archivo descargado",
-        "viewIcons": "Ver Iconos Premium",
-        "viewIconsNow": "Ver Iconos Premium Ahora",
-        "fullAccessMessage": "¡Ya tienes acceso completo a todos los iconos premium!",
-        "tokenNotReady": "Tu token está siendo generado. Recibirás un email con las instrucciones.",
-        "tokenNotFound": "No se pudo generar el token. Contacta soporte.",
-        "continue": "Continuar",
-        "retry": "Reintentar",
-        "contactSupport": "Si el problema persiste, contacta a soporte",
-        "generatingMessage": "El token está siendo generado. Esto puede tomar unos segundos.",
-        "sessionLabel": "ID de sesión",
-        "setupCardTitle": "Ponlo en marcha",
-        "quickAccessTitle": "Siguiente paso",
-        "setupTitle": "Cómo configurar tu token:",
-        "option1": "Opción 1: Haz click en \"Descargar .npmrc\" y coloca el archivo en la raíz de tu proyecto",
-        "option2": "Opción 2: Crea manualmente un archivo .npmrc en la raíz de tu proyecto con este contenido:",
-        "installPackage": "Instala el paquete:",
-        "checkpoints": {
-            "auth": "Validando tu sesión premium",
-            "token": "Buscando tu token npm",
-            "ready": "Preparando acceso inmediato a la colección"
-        },
-        "steps": {
-            "createNpmrc": "Crea un archivo .npmrc en la raíz de tu proyecto",
-            "addToken": "Agrega tu token al archivo: //registry.npmjs.org/:_authToken=TU_TOKEN",
-            "install": "Instala el paquete: npm install @zcorvus/z-icons-premium"
-        }
-    },
-    "cancel": {
-        "title": "Pago Cancelado",
-        "subtitle": "No se realizó ningún cargo. Puedes intentar nuevamente cuando estés listo.",
-        "backToPremium": "Volver a premium",
-        "tryAgain": "Intentar Nuevamente",
-        "backToIcons": "Volver a Iconos"
-    },
-    "errors": {
-        "checkoutFailed": "Error al crear sesión de pago. Por favor intenta nuevamente.",
-        "notAuthenticated": "Debes iniciar sesión primero",
-        "unknown": "Error inesperado",
-        "storageBlocked": "No se pudo verificar tu sesión. Por favor, asegúrate de que las cookies estén habilitadas en tu navegador e intenta nuevamente."
+  "title": "Desbloqueá todo el poder de zCorvus",
+  "subtitle": "Accedé a miles de iconos premium y obtené tu token npm para uso ilimitado.",
+  "backToIcons": "Volver a iconos",
+  "processing": "Procesando...",
+  "guarantee": "Garantía de devolución de 30 días. Cancelá en cualquier momento.",
+  "hero": {
+    "eyebrow": "Acceso premium",
+    "statusEyebrow": "Estado de acceso",
+    "promiseTitle": "Qué desbloqueás",
+    "authReady": "Sesión lista",
+    "authNeeded": "Requiere login",
+    "highlights": {
+      "instant": "Checkout guiado y retorno consistente sin perder tu apariencia visual.",
+      "token": "Tu acceso premium se convierte en token npm listo para proyectos reales.",
+      "support": "Planes pensados para escalar desde uso individual hasta equipos."
     }
+  },
+  "plans": {
+    "billing": "Pago seguro",
+    "pro": {
+      "name": "Plan Pro",
+      "badge": "Base sólida",
+      "summary": "Ideal para desbloquear la colección premium y empezar a integrarla hoy mismo.",
+      "cta": "Comenzar Plan Pro",
+      "features": {
+        "icons": "Acceso a todos los iconos premium",
+        "npm": "Token npm para proyectos ilimitados",
+        "updates": "Actualizaciones mensuales de iconos",
+        "support": "Soporte por email"
+      }
+    },
+    "enterprise": {
+      "name": "Plan Enterprise",
+      "badge": "Más popular",
+      "summary": "Para equipos que necesitan soporte prioritario, licencias compartidas y personalización.",
+      "cta": "Comenzar Plan Enterprise",
+      "features": {
+        "everything": "Todo del Plan Pro",
+        "priority": "Soporte prioritario 24/7",
+        "custom": "Iconos personalizados bajo pedido",
+        "team": "Licencia para equipo (hasta 10 usuarios)"
+      }
+    }
+  },
+  "success": {
+    "eyebrow": "Acceso activado",
+    "title": "¡Pago exitoso!",
+    "subtitle": "Bienvenido a zCorvus Premium",
+    "statusLabel": "Estado del acceso",
+    "statusProcessing": "Provisionando tu acceso",
+    "statusReady": "Listo para usar",
+    "statusAttention": "Necesita tu revisión",
+    "generatingToken": "Generando tu token npm premium...",
+    "retryAttempt": "Intento {count} de {total}...",
+    "npmToken": "Tu token npm",
+    "npmInstructions": "Usá este token para acceder a los paquetes premium de zCorvus en tus proyectos.",
+    "copyToken": "Copiar token",
+    "downloadNpmrc": "Descargar .npmrc",
+    "tokenCopied": "Token copiado",
+    "tokenGenerated": "Token generado exitosamente",
+    "fileDownloaded": "Archivo descargado",
+    "viewIcons": "Ver iconos premium",
+    "viewIconsNow": "Ver iconos premium ahora",
+    "fullAccessMessage": "¡Ya tenés acceso completo a todos los iconos premium!",
+    "tokenNotReady": "Tu token está siendo generado. Recibirás un email con las instrucciones.",
+    "tokenNotFound": "No se pudo generar el token. Contactá soporte.",
+    "continue": "Continuar",
+    "retry": "Reintentar",
+    "contactSupport": "Si el problema persiste, contactá a soporte.",
+    "generatingMessage": "El token está siendo generado. Esto puede tomar unos segundos.",
+    "sessionLabel": "ID de sesión",
+    "setupCardTitle": "Ponelo en marcha",
+    "quickAccessTitle": "Siguiente paso",
+    "setupTitle": "Cómo configurar tu token:",
+    "option1": "Opción 1: Hacé click en \"Descargar .npmrc\" y colocá el archivo en la raíz de tu proyecto.",
+    "option2": "Opción 2: Creá manualmente un archivo .npmrc en la raíz de tu proyecto con este contenido:",
+    "installPackage": "Instalá el paquete:",
+    "checkpoints": {
+      "auth": "Validando tu sesión premium",
+      "token": "Buscando tu token npm",
+      "ready": "Preparando acceso inmediato a la colección"
+    },
+    "steps": {
+      "createNpmrc": "Creá un archivo .npmrc en la raíz de tu proyecto",
+      "addToken": "Agregá tu token al archivo: //registry.npmjs.org/:_authToken=TU_TOKEN",
+      "install": "Instalá el paquete: npm install @zcorvus/z-icons-premium"
+    }
+  },
+  "cancel": {
+    "title": "Pago cancelado",
+    "subtitle": "No se realizó ningún cargo. Podés intentar nuevamente cuando estés listo.",
+    "backToPremium": "Volver a premium",
+    "tryAgain": "Intentar nuevamente",
+    "backToIcons": "Volver a iconos"
+  },
+  "errors": {
+    "checkoutFailed": "Error al crear sesión de pago. Por favor, intentá nuevamente.",
+    "notAuthenticated": "Debés iniciar sesión primero",
+    "unknown": "Error inesperado",
+    "storageBlocked": "No se pudo verificar tu sesión. Por favor, asegurate de que las cookies estén habilitadas en tu navegador e intentá nuevamente."
+  }
 }

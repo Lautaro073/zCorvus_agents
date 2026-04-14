@@ -389,6 +389,8 @@ async function mockAdminApis(
             token_id: `qa-token-${pageParam}`,
             token_finish_date: "2027-04-10T00:00:00.000Z",
             subscriptionStatus: "active",
+            accountStatus: "active",
+            disabled_at: null,
             two_factor_enabled: false,
             created_at: "2026-04-01T00:00:00.000Z",
             updated_at: "2026-04-01T00:00:00.000Z",
@@ -588,7 +590,7 @@ test.describe("Admin panel QA regression", () => {
 
     await page.goto("/es/admin", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { level: 1, name: /panel de administracion/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /panel de administración/i })).toBeVisible();
     await activateAdminDetails(page);
 
     const chart = page.locator("[data-chart]").first();
@@ -648,7 +650,7 @@ test.describe("Admin panel QA regression", () => {
 
     await expect(page).toHaveURL(/\/es\/auth\/login(?:\?|$)/);
     await expect(page.getByRole("heading", { level: 1, name: /iniciar sesión|sign in/i })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1, name: /panel de administracion/i })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: /panel de administración/i })).toHaveCount(0);
   });
 
   test("non-admin direct access to /admin redirects away from admin route", async ({ page, baseURL }) => {
@@ -709,7 +711,7 @@ test.describe("Admin panel QA regression", () => {
     await activateAdminDetails(page);
 
     await expect(page).toHaveURL(/\/es\/admin(?:\?|$)/);
-    await expect(page.getByRole("heading", { level: 1, name: /panel de administracion/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /panel de administración/i })).toBeVisible();
     await expect(page.getByRole("cell", { name: "admin-visible-1", exact: true })).toBeVisible();
   });
 
@@ -735,7 +737,7 @@ test.describe("Admin panel QA regression", () => {
 
     await expect(page.getByPlaceholder("Buscar usuario o email")).toBeVisible();
     await expect(page.getByLabel("Rol")).toBeVisible();
-    await expect(page.getByLabel("Estado de suscripcion")).toBeVisible();
+    await expect(page.getByLabel("Estado de suscripción")).toBeVisible();
     await expect(page.getByLabel("Plan")).toBeVisible();
     await expect(page.getByLabel("Granularidad")).toBeVisible();
     await expect(page.getByRole("button", { name: "Columnas" })).toBeVisible();
@@ -887,7 +889,7 @@ test.describe("Admin panel QA regression", () => {
     await page.goto("/es/admin", { waitUntil: "domcontentloaded" });
     await activateAdminDetails(page);
 
-    await expect(page.getByText("No hay datos suficientes para graficar metricas en el rango actual.")).toBeVisible();
+    await expect(page.getByText("No hay datos suficientes para graficar métricas en el rango actual.")).toBeVisible();
     await expect(page.locator("[data-chart]")).toHaveCount(0);
   });
 

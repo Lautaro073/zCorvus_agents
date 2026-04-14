@@ -46,7 +46,7 @@ function ChartContainer({
       <div
         data-chart={chartId}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-legend-item-text]:text-muted-foreground [&_.recharts-reference-line_line]:stroke-border [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-dot[stroke='#fff']]:stroke-transparent",
+          "rounded-[1.5rem] border border-surface-border bg-background/56 px-2 pt-4 pb-2 text-xs shadow-[var(--shadow-soft)] [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-legend-item-text]:text-muted-foreground [&_.recharts-reference-line_line]:stroke-border [&_.recharts-cartesian-grid_line]:stroke-border/45 [&_.recharts-dot[stroke='#fff']]:stroke-transparent",
           className
         )}
         {...props}
@@ -110,7 +110,7 @@ function ChartTooltipContent({
   }
 
   return (
-    <div className={cn("min-w-[12rem] rounded-lg border border-border/70 bg-background/95 p-2.5 text-xs shadow-sm", className)}>
+    <div className={cn("ui-glass min-w-[12rem] rounded-[1.2rem] p-3 text-xs", className)}>
       {!hideLabel && label !== undefined && (
         <p className="mb-2 font-medium text-foreground">
           {labelFormatter ? labelFormatter(label) : label}
@@ -164,7 +164,7 @@ function ChartLegendContent({
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1", className)}>
+    <div className={cn("flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2", className)}>
       {payload.map((item) => {
         const itemKey = String(item.dataKey ?? item.value ?? "")
         const itemConfig = config[itemKey]

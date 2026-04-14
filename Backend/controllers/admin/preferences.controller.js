@@ -4,6 +4,7 @@ const ALLOWED_COLUMN_KEYS = Object.freeze([
     'username',
     'email',
     'role',
+    'accountStatus',
     'status',
     'plan',
     'startDate',

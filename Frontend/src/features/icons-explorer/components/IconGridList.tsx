@@ -1,17 +1,16 @@
 "use client"
-import { memo, useCallback, useEffect, useEffectEvent, useMemo } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual'
 
-import { ZIcon } from '@zcorvus/z-icons/react';
-import { UnifiedIcon } from '@/components/common/UnifiedIcon';
-import { useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import { ZIcon } from "@zcorvus/z-icons/react"
+import { UnifiedIcon } from "@/components/common/UnifiedIcon"
 import { toast } from "sonner"
-import { IconGroup, LayerModes as LM } from '@/features/icons-explorer';
-import { IconTypeInfo } from '@/types/icons/icons.types';
-import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store';
-import { Button } from '@/components/ui/button';
-import { useTranslations } from 'next-intl';
+import { IconGroup, LayerModes as LM } from "@/features/icons-explorer"
+import { IconTypeInfo } from "@/types/icons/icons.types"
+import { cn } from "@/lib/utils"
+import { useUIStore } from "@/store"
+import { Button } from "@/components/ui/button"
+import { useTranslations } from "next-intl"
 
 interface IconGridListProps {
   iconsData: IconGroup[]
@@ -19,171 +18,198 @@ interface IconGridListProps {
   onShowDetail: (arg: IconTypeInfo) => void
 }
 
-const MAX_ICONS = 500;
+const MAX_ICONS = 500
 
 const IconGridListComponent = memo(({ iconsData, onShowDetail, showDetail }: IconGridListProps) => {
   const parentRef = useRef<HTMLDivElement>(null)
-  const [columns, setColumns] = useState(1);
-  const [showAll, setShowAll] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const layer = useUIStore((s) => s.layer);
-  const common = useTranslations("common");
+  const [columns, setColumns] = useState(1)
+  const [showAll, setShowAll] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const layer = useUIStore((s) => s.layer)
+  const common = useTranslations("common")
 
-  const isCompact = layer === LM.COMPACT;
-  const ITEM_WIDTH = isCompact ? 48 : 104;
+  const isCompact = layer === LM.COMPACT
+  const itemWidth = isCompact ? 56 : 120
 
   const updateColumns = useEffectEvent(() => {
-    const width = parentRef.current?.clientWidth ?? 0;
-    const cols = Math.max(Math.floor(width / ITEM_WIDTH), 1)
-    setColumns(prev => (prev === cols ? prev : cols));
-    setLoading(false);
-  });
+    const width = parentRef.current?.clientWidth ?? 0
+    const cols = Math.max(Math.floor(width / itemWidth), 1)
+    setColumns((prev) => (prev === cols ? prev : cols))
+    setLoading(false)
+  })
 
   useEffect(() => {
-    updateColumns();
-    window.addEventListener('resize', updateColumns);
+    updateColumns()
+    window.addEventListener("resize", updateColumns)
     return () => {
-      window.removeEventListener('resize', updateColumns);
-    };
-  }, [layer, showDetail]);
+      window.removeEventListener("resize", updateColumns)
+    }
+  }, [layer, showDetail])
 
-  const icons = useMemo<IconTypeInfo[]>(() => {
-    const expanded = iconsData.flatMap(group =>
-      (group.icons ?? []).flatMap(icon =>
-        group.type.map(variant => ({
-          type: group.name,
-          name: icon,
-          variant,
-        } as IconTypeInfo))
-      )
-    )
+  const expandedIcons = useMemo<IconTypeInfo[]>(
+    () =>
+      iconsData.flatMap((group) =>
+        (group.icons ?? []).flatMap((icon) =>
+          group.type.map(
+            (variant) =>
+              ({
+                type: group.name,
+                name: icon,
+                variant,
+              }) as IconTypeInfo
+          )
+        )
+      ),
+    [iconsData]
+  )
 
-    return showAll ? expanded : expanded.slice(0, MAX_ICONS)
-  }, [iconsData, showAll])
+  const icons = useMemo(
+    () => (showAll ? expandedIcons : expandedIcons.slice(0, MAX_ICONS)),
+    [expandedIcons, showAll]
+  )
+  const hasMore = expandedIcons.length > MAX_ICONS
+  const totalItems = icons.length
+  const rows = useMemo(() => Math.ceil(totalItems / columns), [totalItems, columns])
 
-  const canShowAll = icons.length < MAX_ICONS
-  const totalItems = icons.length;
-  const rows = useMemo(() => Math.ceil(totalItems / columns), [totalItems, columns]);
-
-  const estimateSize = useCallback(() => ITEM_WIDTH, [ITEM_WIDTH]);
+  const estimateSize = useCallback(() => itemWidth, [itemWidth])
 
   const rowVirtualizer = useVirtualizer({
     count: rows,
     getScrollElement: () => parentRef.current,
-    estimateSize: estimateSize,
+    estimateSize,
     overscan: 5,
   })
 
   const handleCopyIcon = (iconName: string) => {
-    if (!iconName) return;
-    navigator.clipboard.writeText(iconName);
+    if (!iconName) return
+    navigator.clipboard.writeText(iconName)
     toast.success(common("toasts.iconNameCopied"), {
       description: iconName,
-    });
+    })
   }
 
-  const handleCopyReact = (i: IconTypeInfo) => {
-    const codeSnippet = `<ZIcon type="${i.type}" name="${i.name}" variant="${i.variant}" />`;
-    navigator.clipboard.writeText(codeSnippet);
+  const handleCopyReact = (icon: IconTypeInfo) => {
+    const codeSnippet = `<ZIcon type="${icon.type}" name="${icon.name}" variant="${icon.variant}" />`
+    navigator.clipboard.writeText(codeSnippet)
     toast.success(common("toasts.reactCodeCopied"), {
       description: codeSnippet,
-    });
+    })
   }
 
-  const handleCopyHTML = (i: IconTypeInfo) => {
-    const codeSnippet = `<z-icon name="${i.name}" type="${i.type}" variant="${i.variant}" />`;
-    navigator.clipboard.writeText(codeSnippet);
+  const handleCopyHTML = (icon: IconTypeInfo) => {
+    const codeSnippet = `<z-icon name="${icon.name}" type="${icon.type}" variant="${icon.variant}" />`
+    navigator.clipboard.writeText(codeSnippet)
     toast.success(common("toasts.htmlCodeCopied"), {
       description: codeSnippet,
-    });
+    })
   }
 
   if (loading) {
-    return <div ref={parentRef} className="h-auto mb-auto w-full flex flex-wrap gap-2 overflow-y-auto max-h-full" >
-      {Array.from({ length: Math.max(15, icons.length) }).map((_, index) => (
-        <div
-          key={index}
-          className={cn("rounded-lg border border-border grid h-10 w-10 place-content-center bg-card animate-pulse", isCompact ? "h-10 w-10 grid-rows-1" : "h-24 w-24")}
-        >
-        </div>
-      ))}
-    </div>;
+    return (
+      <div ref={parentRef} className="flex h-auto max-h-full w-full flex-wrap gap-3 overflow-y-auto pb-1">
+        {Array.from({ length: Math.max(15, icons.length || 15) }).map((_, index) => (
+          <div
+            key={index}
+            className={cn(
+              "animate-pulse rounded-[1.25rem] border border-surface-border bg-muted/70",
+              isCompact ? "h-12 w-12" : "h-28 w-28"
+            )}
+          />
+        ))}
+      </div>
+    )
   }
 
   return (
-    <div ref={parentRef} className="h-full overflow-y-auto relative w-full">
+    <div ref={parentRef} className="relative h-full overflow-y-auto pr-1">
       <div
-        className="relative w-full transition-all duration-1000 ease-in-out"
+        className="relative w-full"
         style={{ height: rowVirtualizer.getTotalSize() }}
       >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const from = virtualRow.index * columns;
-          const to = Math.min(from + columns, totalItems);
-          const rowIcons = icons.slice(from, to);
+          const from = virtualRow.index * columns
+          const to = Math.min(from + columns, totalItems)
+          const rowIcons = icons.slice(from, to)
 
           return (
             <div
               key={virtualRow.key}
-              className="absolute top-0 left-0 grid w-full transition-all duration-300 ease-in-out"
+              className="absolute left-0 top-0 grid w-full"
               style={{
                 height: `${virtualRow.size}px`,
-                gridTemplateColumns: `repeat(${columns}, ${ITEM_WIDTH}px)`,
+                gridTemplateColumns: `repeat(${columns}, ${itemWidth}px)`,
                 transform: `translateY(${virtualRow.start}px)`,
-                willChange: 'transform',
+                willChange: "transform",
               }}
             >
-              {rowIcons.map((i, idx) => {
-                const id = `${i.type}::${i.name}::${i.variant}::${from + idx}`
+              {rowIcons.map((icon, idx) => {
+                const id = `${icon.type}:${icon.name}:${icon.variant}:${from + idx}`
+                const iconId = `${icon.type}:${icon.name}:${icon.variant}`
+
                 return (
                   <div
                     key={id}
-                    className={cn("group cursor-pointer rounded-lg border border-border grid justify-center px-2 bg-card relative transition-all duration-300 ease-in-out", isCompact ? "h-10 w-10 grid-rows-1" : "h-24 w-24 gap-2 grid-rows-[4fr_3fr]")}
+                    data-icon-id={iconId}
+                    className={cn(
+                      "group relative grid cursor-pointer justify-center rounded-[1.25rem] border border-surface-border bg-surface/92 px-2 py-2 shadow-[var(--shadow-soft)] transition-[transform,border-color,background-color,box-shadow] duration-[180ms] ease-[var(--ease-out)] hover:-translate-y-[1px] hover:border-foreground/14 hover:bg-surface",
+                      isCompact ? "h-12 w-12 grid-rows-1" : "h-28 w-28 gap-2 grid-rows-[4fr_3fr]"
+                    )}
                     onClick={() => {
-                      onShowDetail(i)
-                      handleCopyIcon(i.name);
+                      onShowDetail(icon)
+                      handleCopyIcon(icon.name)
                     }}
                   >
-                    <UnifiedIcon {...i} className={cn("transition-all duration-300 ease-in-out justify-self-center", isCompact ? "self-center" : "self-end")} />
-                    <p className={cn("text-xs transition-opacity duration-300 text-center", isCompact ? "opacity-0 h-0" : "opacity-100")}>{i.name}</p>
-                    <div className={cn("border bg-accent shadow-xs hover:text-accent-foreground  dark:border-input rounded-tr-lg items-center justify-center gap-px absolute w-6 flex flex-col -top-px -right-px px-1 py-2 h-[calc(100%+2px)] rounded-b-none rounded-l-none rounded-br-lg opacity-0 group-hover:opacity-100 transition-all duration-300", isCompact && "hidden")} >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyHTML(i);
-                        }}
-                        className="cursor-pointer">
-                        <ZIcon type={"mina"} name="file-text" className="text-muted-foreground hover:text-foreground transition-colors duration-300 w-full h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyReact(i);
-                        }}
-                        className="cursor-pointer">
-                        <ZIcon type={"mina"} name="code" className="text-muted-foreground hover:text-foreground transition-colors duration-300 w-full h-4" />
-                      </button>
-                    </div>
+                    <UnifiedIcon
+                      {...icon}
+                      className={cn(
+                        "justify-self-center text-foreground transition-transform duration-200 ease-[var(--ease-out)]",
+                        isCompact ? "self-center" : "self-end"
+                      )}
+                    />
+                    <p className={cn("text-center text-xs text-muted-foreground", isCompact ? "hidden" : "line-clamp-2")}>
+                      {icon.name}
+                    </p>
+
+                    {!isCompact && (
+                      <div className="absolute -right-px -top-px flex h-[calc(100%+2px)] w-8 flex-col items-center justify-center gap-1 rounded-r-[1.25rem] rounded-tl-none border border-surface-border bg-background/94 opacity-0 transition-opacity duration-150 ease-[var(--ease-out)] group-hover:opacity-100">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleCopyHTML(icon)
+                          }}
+                          className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                        >
+                          <ZIcon type="mina" name="file-text" className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleCopyReact(icon)
+                          }}
+                          className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                        >
+                          <ZIcon type="mina" name="code" className="size-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
-              }
-
-              )}
+              })}
             </div>
           )
         })}
       </div>
-      {!showAll && !canShowAll && (
-        <div className="sticky bottom-0 flex">
-          <Button onClick={() => setShowAll(true)} variant="outline" className="ml-auto dark:bg-background">
+
+      {!showAll && hasMore && (
+        <div className="sticky bottom-0 flex pt-4">
+          <Button onClick={() => setShowAll(true)} variant="outline" className="ml-auto rounded-full bg-background/88">
             {common("actions.showAll")}
           </Button>
         </div>
       )}
     </div>
-  );
-}, (prevProps, nextProps) => {
-  return Boolean(prevProps.showDetail) === Boolean(nextProps.showDetail);
-});
+  )
+})
 
-IconGridListComponent.displayName = 'IconGridListComponent';
-export const IconGridList = memo(IconGridListComponent);
+IconGridListComponent.displayName = "IconGridListComponent"
+export const IconGridList = IconGridListComponent

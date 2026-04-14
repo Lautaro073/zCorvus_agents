@@ -5,15 +5,15 @@
   },
   "icons": {
     "local": {
-      "title": "LOCAL / ALL",
+      "title": "LOCAL / TODOS",
       "description": "Iconos clásicos especializados para organizaciones"
     },
     "external": {
-      "title": "EXTERNAL / ALL",
+      "title": "EXTERNO / TODOS",
       "description": "Iconos de Praveen Juge - Licencia MIT"
     },
     "premium": {
-      "title": "PREMIUM / ALL",
+      "title": "PREMIUM / TODOS",
       "description": "Iconos Premium de Font Awesome"
     }
   }

@@ -10,6 +10,10 @@
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
+        "prestart": "node scripts/migrate-user-account-lifecycle.js",
+        "predev": "node scripts/migrate-user-account-lifecycle.js",
+        "pretest": "node scripts/migrate-user-account-lifecycle.js",
+        "db:migrate:user-account-lifecycle": "node scripts/migrate-user-account-lifecycle.js",
         "db:migrate:password-reset-otp": "node scripts/migrate-password-reset-otp.mjs",
         "db:backfill:admin-sales-ledger": "node scripts/backfill-admin-sales-ledger.js",
         "db:backfill:admin-sales-ledger:dry": "node scripts/backfill-admin-sales-ledger.js --dry-run"

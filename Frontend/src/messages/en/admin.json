@@ -1,6 +1,7 @@
 {
   "title": "Admin dashboard",
   "description": "Monitor users, subscriptions, and business metrics in real time.",
+  "chartDescription": "Track sales, revenue, and registrations without leaving the admin panel.",
   "kpis": {
     "registrations": "Registrations",
     "salesCount": "Subscription",
@@ -10,6 +11,7 @@
     "search": "Search username or email",
     "role": "Role",
     "subscriptionStatus": "Subscription status",
+    "accountStatus": "Account status",
     "planType": "Plan",
     "sortBy": "Sort by",
     "sortDir": "Direction",
@@ -35,6 +37,10 @@
     "loadUsers": "Could not load users.",
     "loadSubscriptions": "Could not load subscriptions.",
     "loadMetrics": "Could not load metrics.",
+    "updateUser": "Could not update the user.",
+    "disableUser": "Could not disable the user.",
+    "reEnableUser": "Could not re-enable the user.",
+    "deleteUser": "Could not permanently delete the user.",
     "invalidCustomRange": "Custom filter requires both from and to.",
     "invalidDateRange": "From date must be less than or equal to to date."
   },
@@ -44,10 +50,12 @@
       "username": "Username",
       "email": "Email",
       "role": "Role",
+      "accountStatus": "Account",
       "status": "Subscription",
       "startDate": "Start date",
       "columnsControl": "Columns",
-      "tokenExpiry": "Token expiry"
+      "tokenExpiry": "Token expiry",
+      "actions": "Actions"
     },
     "subscriptions": {
       "title": "Subscriptions",
@@ -70,6 +78,10 @@
     "expired": "Expired",
     "none": "No subscription"
   },
+  "accountStatuses": {
+    "active": "Active",
+    "disabled": "Disabled"
+  },
   "roles": {
     "admin": "Administrator",
     "user": "User",
@@ -78,5 +90,27 @@
   "controls": {
     "toggleTheme": "Toggle theme",
     "toggleLocale": "Switch language"
+  },
+  "actions": {
+    "disable": "Disable user",
+    "reEnable": "Re-enable user",
+    "deletePermanent": "Delete permanently",
+    "selfProtected": "Action unavailable on your own account"
+  },
+  "dialogs": {
+    "editUserTitle": "Edit user",
+    "editUserBody": "Update core account data.",
+    "disableTitle": "Disable account",
+    "disableBody": "This user will keep appearing in admin under the matching filters, but the account will be blocked until it is re-enabled.",
+    "deleteTitle": "Delete permanently",
+    "deleteBody": "This action is irreversible and physically removes the user. It is only available after the account has been disabled.",
+    "confirmDisableCta": "Disable",
+    "confirmDeleteCta": "Delete permanently"
+  },
+  "toasts": {
+    "userUpdated": "User updated successfully.",
+    "userDisabled": "User disabled successfully.",
+    "userReEnabled": "User re-enabled successfully.",
+    "userDeleted": "User deleted permanently."
   }
 }

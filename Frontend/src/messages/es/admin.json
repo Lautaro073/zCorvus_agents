@@ -1,6 +1,7 @@
 {
-  "title": "Panel de administracion",
-  "description": "Monitorea usuarios, suscripciones y metricas de negocio en tiempo real.",
+  "title": "Panel de administración",
+  "description": "Monitorea usuarios, suscripciones y métricas de negocio en tiempo real.",
+  "chartDescription": "Seguimiento de ventas, ingresos y registros sin salir del panel.",
   "kpis": {
     "registrations": "Registros",
     "salesCount": "Suscripciones",
@@ -9,32 +10,37 @@
   "filters": {
     "search": "Buscar usuario o email",
     "role": "Rol",
-    "subscriptionStatus": "Estado de suscripcion",
+    "subscriptionStatus": "Estado de suscripción",
+    "accountStatus": "Estado de cuenta",
     "planType": "Plan",
     "sortBy": "Ordenar por",
-    "sortDir": "Direccion",
+    "sortDir": "Dirección",
     "granularity": "Granularidad",
     "from": "Desde",
     "to": "Hasta",
-    "day": "Dia",
+    "day": "Día",
     "month": "Mes",
     "year": "Año",
     "custom": "Personalizado",
-    "expiringInDays": "Vence en (dias)",
+    "expiringInDays": "Vence en (días)",
     "refresh": "Actualizar"
   },
   "states": {
     "emptyUsers": "No hay usuarios para los filtros seleccionados.",
     "emptySubscriptions": "No hay suscripciones para los filtros seleccionados.",
-    "emptyMetrics": "No hay datos suficientes para graficar metricas en el rango actual.",
+    "emptyMetrics": "No hay datos suficientes para graficar métricas en el rango actual.",
     "loadingUsers": "Cargando usuarios...",
     "loadingSubscriptions": "Cargando suscripciones...",
-    "loadingMetrics": "Cargando metricas y preparando graficos..."
+    "loadingMetrics": "Cargando métricas y preparando gráficos..."
   },
   "errors": {
     "loadUsers": "No se pudieron cargar los usuarios.",
     "loadSubscriptions": "No se pudieron cargar las suscripciones.",
-    "loadMetrics": "No se pudieron cargar las metricas.",
+    "loadMetrics": "No se pudieron cargar las métricas.",
+    "updateUser": "No se pudo actualizar el usuario.",
+    "disableUser": "No se pudo deshabilitar el usuario.",
+    "reEnableUser": "No se pudo reactivar el usuario.",
+    "deleteUser": "No se pudo borrar el usuario definitivamente.",
     "invalidCustomRange": "Para filtro personalizado debes enviar desde y hasta.",
     "invalidDateRange": "La fecha desde debe ser menor o igual a hasta."
   },
@@ -44,10 +50,12 @@
       "username": "Usuario",
       "email": "Email",
       "role": "Rol",
-      "status": "Suscripcion",
+      "accountStatus": "Cuenta",
+      "status": "Suscripción",
       "startDate": "Inicio",
       "columnsControl": "Columnas",
-      "tokenExpiry": "Vencimiento"
+      "tokenExpiry": "Vencimiento",
+      "actions": "Acciones"
     },
     "subscriptions": {
       "title": "Suscripciones",
@@ -68,7 +76,11 @@
     "active": "Activa",
     "expiring": "Por vencer",
     "expired": "Vencida",
-    "none": "Sin suscripcion"
+    "none": "Sin suscripción"
+  },
+  "accountStatuses": {
+    "active": "Activa",
+    "disabled": "Deshabilitada"
   },
   "roles": {
     "admin": "Administrador",
@@ -78,5 +90,27 @@
   "controls": {
     "toggleTheme": "Cambiar tema",
     "toggleLocale": "Cambiar idioma"
+  },
+  "actions": {
+    "disable": "Deshabilitar usuario",
+    "reEnable": "Reactivar usuario",
+    "deletePermanent": "Borrar definitivamente",
+    "selfProtected": "Acción no disponible sobre tu propia cuenta"
+  },
+  "dialogs": {
+    "editUserTitle": "Editar usuario",
+    "editUserBody": "Actualiza datos de la cuenta.",
+    "disableTitle": "Deshabilitar cuenta",
+    "disableBody": "El usuario seguirá visible en admin bajo los filtros que correspondan, pero la cuenta quedará bloqueada hasta reactivarla.",
+    "deleteTitle": "Borrar definitivamente",
+    "deleteBody": "Esta acción es irreversible y elimina al usuario de forma física. Solo está disponible después de deshabilitar la cuenta.",
+    "confirmDisableCta": "Deshabilitar",
+    "confirmDeleteCta": "Borrar definitivamente"
+  },
+  "toasts": {
+    "userUpdated": "Usuario actualizado correctamente.",
+    "userDisabled": "Usuario deshabilitado correctamente.",
+    "userReEnabled": "Usuario reactivado correctamente.",
+    "userDeleted": "Usuario borrado definitivamente."
   }
 }

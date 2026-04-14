@@ -2,16 +2,52 @@ const db = require('../utils/db');
 const bcrypt = require('bcryptjs');
 const { generateUUID } = require('../utils/uuid');
 
+const ACCOUNT_STATUS_ACTIVE = 'active';
+const ACCOUNT_STATUS_DISABLED = 'disabled';
+
+let verifyAccountLifecycleSchemaPromise = null;
+
+async function verifyAccountLifecycleSchema() {
+    const columns = await db.query(`PRAGMA table_info('user')`);
+    const availableColumns = new Set(columns.map((column) => String(column.name)));
+    const requiredColumns = ['account_status', 'disabled_at'];
+    const missingColumns = requiredColumns.filter((columnName) => !availableColumns.has(columnName));
+
+    if (missingColumns.length > 0) {
+        throw new Error(
+            `Missing user lifecycle columns: ${missingColumns.join(', ')}. Run "npm run db:migrate:user-account-lifecycle".`
+        );
+    }
+}
+
+function ensureAccountLifecycleSchemaOnce() {
+    if (!verifyAccountLifecycleSchemaPromise) {
+        verifyAccountLifecycleSchemaPromise = verifyAccountLifecycleSchema().catch((error) => {
+            verifyAccountLifecycleSchemaPromise = null;
+            throw error;
+        });
+    }
+
+    return verifyAccountLifecycleSchemaPromise;
+}
+
 /**
  * Modelo User
  */
 class User {
+    static async ensureAccountLifecycleSchema() {
+        await ensureAccountLifecycleSchemaOnce();
+    }
+
     /**
      * Obtener todos los usuarios
      */
     static async findAll() {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
       SELECT u.id, u.username, u.email, u.roles_id, u.token_id, u.settings_icons_id,
+             u.account_status, u.disabled_at,
              u.two_factor_enabled, r.name as role_name
       FROM user u
       LEFT JOIN roles r ON u.roles_id = r.id
@@ -23,8 +59,11 @@ class User {
      * Obtener usuario por ID
      */
     static async findById(id) {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
       SELECT u.id, u.username, u.email, u.password, u.roles_id, u.token_id, u.settings_icons_id,
+             u.account_status, u.disabled_at,
              u.two_factor_enabled, u.two_factor_secret, r.name as role_name
       FROM user u
       LEFT JOIN roles r ON u.roles_id = r.id
@@ -38,6 +77,8 @@ class User {
      * Obtener usuario por email
      */
     static async findByEmail(email) {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
       SELECT u.*, r.name as role_name
       FROM user u
@@ -52,6 +93,8 @@ class User {
      * Obtener usuario por username
      */
     static async findByUsername(username) {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
       SELECT u.*, r.name as role_name
       FROM user u
@@ -66,6 +109,8 @@ class User {
      * Crear nuevo usuario
      */
     static async create(userData) {
+        await this.ensureAccountLifecycleSchema();
+
         // Generar UUID para el usuario
         const userId = generateUUID();
 
@@ -75,6 +120,7 @@ class User {
         const userToInsert = {
             id: userId,
             ...userData,
+            account_status: userData.account_status || ACCOUNT_STATUS_ACTIVE,
             password: hashedPassword
         };
 
@@ -86,6 +132,8 @@ class User {
      * Actualizar usuario
      */
     static async update(id, userData) {
+        await this.ensureAccountLifecycleSchema();
+
         // Si se actualiza la contraseña, hashearla
         if (userData.password) {
             userData.password = await bcrypt.hash(userData.password, 10);
@@ -98,7 +146,24 @@ class User {
      * Eliminar usuario
      */
     static async delete(id) {
+        await this.ensureAccountLifecycleSchema();
         return await db.deleteRow('user', { id });
+    }
+
+    static async disableAccount(userId) {
+        await this.ensureAccountLifecycleSchema();
+        return await db.update('user', {
+            account_status: ACCOUNT_STATUS_DISABLED,
+            disabled_at: new Date().toISOString()
+        }, { id: userId });
+    }
+
+    static async enableAccount(userId) {
+        await this.ensureAccountLifecycleSchema();
+        return await db.update('user', {
+            account_status: ACCOUNT_STATUS_ACTIVE,
+            disabled_at: null
+        }, { id: userId });
     }
 
     /**
@@ -134,8 +199,10 @@ class User {
      * Un usuario solo puede ser Pro (rol 3) si tiene un token activo (finish_date > NOW)
      */
     static async verifyAndUpdateProRole(userId) {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
-            SELECT u.id, u.roles_id, u.token_id, t.finish_date
+            SELECT u.id, u.roles_id, u.token_id, u.account_status, t.finish_date
             FROM user u
             LEFT JOIN token t ON u.token_id = t.id
             WHERE u.id = ?
@@ -166,6 +233,8 @@ class User {
      * Verificar si un usuario tiene token activo
      */
     static async hasActiveToken(userId) {
+        await this.ensureAccountLifecycleSchema();
+
         const sql = `
             SELECT t.* FROM token t
             INNER JOIN user u ON u.token_id = t.id
@@ -179,6 +248,7 @@ class User {
      * Habilitar 2FA para un usuario
      */
     static async enable2FA(userId, secret) {
+        await this.ensureAccountLifecycleSchema();
         return await db.update('user', {
             two_factor_enabled: 1,
             two_factor_secret: secret
@@ -189,6 +259,7 @@ class User {
      * Deshabilitar 2FA para un usuario
      */
     static async disable2FA(userId) {
+        await this.ensureAccountLifecycleSchema();
         return await db.update('user', {
             two_factor_enabled: 0,
             two_factor_secret: null

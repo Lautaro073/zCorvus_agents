@@ -35,6 +35,13 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
+        if (user.account_status === 'disabled') {
+            return res.status(403).json({
+                success: false,
+                message: 'Account is disabled'
+            });
+        }
+
         // Verificar y actualizar rol Pro basado en token activo
         // Solo si el usuario es Pro o User (no admin)
         if (user.roles_id === 2 || user.roles_id === 3) {
@@ -76,6 +83,10 @@ const optionalAuth = async (req, res, next) => {
             if (decoded) {
                 const user = await User.findById(decoded.id);
                 if (user) {
+                    if (user.account_status === 'disabled') {
+                        return next();
+                    }
+
                     req.user = {
                         id: decoded.id,
                         email: decoded.email,

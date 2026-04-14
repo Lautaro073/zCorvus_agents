@@ -3,7 +3,14 @@ const router = express.Router();
 
 const { authenticateToken } = require('../middlewares/auth.middleware');
 const { isAdmin } = require('../middlewares/role.middleware');
-const { getAdminUsers } = require('../controllers/admin/users.controller');
+const { adminUpdateUserValidation } = require('../utils/validators');
+const {
+    getAdminUsers,
+    updateAdminUser,
+    disableAdminUser,
+    reEnableAdminUser,
+    deleteAdminUserPermanently
+} = require('../controllers/admin/users.controller');
 const { getAdminSubscriptions } = require('../controllers/admin/subscriptions.controller');
 const { getAdminMetrics } = require('../controllers/admin/metrics.controller');
 const { getAdminPreferences, saveAdminPreferences } = require('../controllers/admin/preferences.controller');
@@ -25,6 +32,10 @@ router.get('/', (req, res) => {
 });
 
 router.get('/users', getAdminUsers);
+router.put('/users/:id', adminUpdateUserValidation, updateAdminUser);
+router.patch('/users/:id/disable', disableAdminUser);
+router.patch('/users/:id/re-enable', reEnableAdminUser);
+router.delete('/users/:id/permanent', deleteAdminUserPermanently);
 router.get('/subscriptions', getAdminSubscriptions);
 router.get('/metrics', getAdminMetrics);
 router.get('/preferences', getAdminPreferences);

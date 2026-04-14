@@ -141,6 +141,10 @@ const login = async (req, res, next) => {
             return errorResponse(res, 'Invalid credentials', 401);
         }
 
+        if (user.account_status === 'disabled') {
+            return errorResponse(res, 'Account is disabled', 403);
+        }
+
         // Verificar contraseña
         const isPasswordValid = await User.verifyPassword(password, user.password);
 
@@ -336,6 +340,10 @@ const getProfile = async (req, res, next) => {
             return errorResponse(res, 'User not found', 404);
         }
 
+        if (user.account_status === 'disabled') {
+            return errorResponse(res, 'Account is disabled', 403);
+        }
+
         return successResponse(res, {
             id: user.id,
             username: user.username,
@@ -421,6 +429,10 @@ const refreshAccessToken = async (req, res, next) => {
 
         if (!user) {
             return errorResponse(res, 'User not found', 404);
+        }
+
+        if (user.account_status === 'disabled') {
+            return errorResponse(res, 'Account is disabled', 403);
         }
 
         // Actualizar last_used_at

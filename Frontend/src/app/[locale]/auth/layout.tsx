@@ -1,70 +1,69 @@
 "use client"
+
 import { ZCorvusLogo } from "@/components/common/ZCorvusLogo";
 import { AppearanceSwitcher } from "@/components/controllers/AppearanceSwitcher";
 import { AnimatedIcon } from "@/components/common/AnimatedIcon";
-import { MinaIconName, minaIconNames } from '@zcorvus/z-icons/icons';
+import { MinaIconName, minaIconNames } from "@zcorvus/z-icons/icons";
 import { Link } from "@/i18n/navigation";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-
   const columns = [
-    { icons: minaIconNames.slice(50, 120), direction: "up", duration: 100 },
-    { icons: minaIconNames.slice(120, 190), direction: "down", duration: 120 },
-    { icons: minaIconNames.slice(190, 260), direction: "up", duration: 110 },
-    { icons: minaIconNames.slice(260, 330), direction: "down", duration: 130 },
-    { icons: minaIconNames.slice(330, 400), direction: "up", duration: 115 },
+    { icons: minaIconNames.slice(10, 70), direction: "up", duration: 30, className: "hidden min-[1500px]:flex" },
+    { icons: minaIconNames.slice(70, 130), direction: "down", duration: 34, className: "hidden min-[1410px]:flex" },
+    { icons: minaIconNames.slice(130, 190), direction: "up", duration: 38, className: "hidden min-[1320px]:flex" },
+    { icons: minaIconNames.slice(190, 250), direction: "down", duration: 33, className: "hidden min-[1230px]:flex" },
+    { icons: minaIconNames.slice(250, 310), direction: "up", duration: 36, className: "hidden min-[1140px]:flex" },
   ] as const;
 
   return (
-    <div className="bg-background mx-auto flex h-full min-h-0 flex-col overflow-hidden transition-all duration-300 relative lg:h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-6rem)]">
-      <Link href={"/"} className="hidden lg:block absolute">
-        <div className="flex items-center gap-2">
-          <ZCorvusLogo className="size-11" />
-          <p className="font-secondary text-lg">ZCORVUS</p>
-        </div>
-      </Link>
-
-      <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden lg:grid lg:h-full lg:grid-cols-[2fr_1px_3fr] lg:gap-4 lg:items-center lg:w-full lg:max-h-[calc(100vh-6rem)]">
-        <aside className="flex flex-col gap-6 rounded-[2rem] border border-border/70 bg-secondary/35 px-5 py-5 sm:px-6 sm:py-6 lg:h-full lg:min-h-0 lg:gap-2 lg:justify-between lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
-          <div className="flex items-start justify-between gap-4 lg:hidden">
-            <Link href={"/"} className="flex items-center gap-2">
-              <ZCorvusLogo className="size-11" />
-              <p className="font-secondary text-lg">ZCORVUS</p>
+    <div className="relative mx-auto flex h-full w-full max-w-[1680px] flex-col overflow-hidden py-2">
+      <main className="relative grid h-full flex-1 gap-5 overflow-hidden min-[1140px]:pr-[5.75rem] min-[1230px]:pr-[11.25rem] min-[1320px]:pr-[16.75rem] min-[1410px]:pr-[22.25rem] min-[1500px]:pr-[27.75rem] lg:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)]">
+        <aside className="ui-surface-panel-muted relative flex flex-col justify-between overflow-hidden rounded-[2rem] p-5 sm:p-6 lg:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="grid size-12 place-items-center">
+                <ZCorvusLogo className="size-8" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="font-display text-2xl leading-none tracking-tight text-foreground">ZCorvus</p>
+              </div>
             </Link>
 
             <AppearanceSwitcher />
           </div>
 
-          <div className="hidden lg:block" />
-
-          <p className="font-kadwa leading-none text-foreground" style={{ fontSize: 'clamp(3rem, 9vw, 7rem)' }}>
-            Z-ICONS
-          </p>
-
-          <div className="hidden lg:flex">
-            <AppearanceSwitcher />
+          <div className="flex flex-1 items-center py-8 lg:py-10">
+            <div className="space-y-3">
+              <p className="font-display text-[clamp(3.2rem,8vw,6.4rem)] leading-[0.92] tracking-tight text-foreground">
+                Z-ICONS
+              </p>
+            </div>
           </div>
         </aside>
 
-        <div className="hidden bg-border w-px h-full transition-colors duration-300 lg:block" />
-
-        <section className="flex min-h-0 flex-1 items-center gap-4 overflow-hidden lg:h-full">
-          <div className="grid min-h-0 flex-1 place-content-center px-1 lg:px-0">
-            <div className="w-full max-w-md lg:max-w-none">
-              {children}
-            </div>
-          </div>
-          <div className="hidden h-full min-h-0 gap-2 overflow-hidden lg:flex">
-            {columns.map((col, index) => (
-              <AnimatedIcon
-                key={index}
-                icons={col.icons as MinaIconName[]}
-                direction={col.direction}
-                duration={col.duration}
-              />
-            ))}
+        <section className="ui-surface-panel flex min-h-[36rem] items-center rounded-[2rem] p-5 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[34rem]">
+            {children}
           </div>
         </section>
+
+        <aside className="pointer-events-none absolute inset-y-0 right-0 hidden min-[1140px]:flex min-[1140px]:items-stretch">
+          <div className="flex h-full translate-x-0 items-stretch gap-3 2xl:gap-4">
+            {columns.map((column, index) => (
+              <div key={index} className={column.className}>
+                <AnimatedIcon
+                  icons={column.icons as MinaIconName[]}
+                  orientation="vertical"
+                  direction={column.direction}
+                  duration={column.duration}
+                  className="h-full min-h-0 w-[4.6rem]"
+                  iconClassName="size-6.5 text-foreground/12"
+                  gapClassName="gap-3.5"
+                />
+              </div>
+            ))}
+          </div>
+        </aside>
       </main>
     </div>
   )

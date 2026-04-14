@@ -225,6 +225,7 @@ describe('Admin Preferences API', () => {
                     username: false,
                     email: false,
                     role: false,
+                    accountStatus: false,
                     status: false,
                     plan: false,
                     startDate: false,

@@ -214,7 +214,7 @@ test.describe("Admin locale/theme controls regression", () => {
       waitUntil: "domcontentloaded",
     });
 
-    await expect(page.getByRole("heading", { level: 1, name: /panel de administracion/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /panel de administración/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /switch locale|cambiar idioma/i })).toBeVisible();
 
     await page.getByRole("button", { name: /switch locale|cambiar idioma/i }).click();
@@ -235,7 +235,7 @@ test.describe("Admin locale/theme controls regression", () => {
     await mockAdminApis(page);
 
     await page.goto("/es/admin", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Actualizar" }).first().click();
+    await expect(page.getByRole("button", { name: /toggle theme|cambiar tema/i })).toBeVisible();
 
     await page.evaluate(() => {
       window.scrollTo(0, 500);
