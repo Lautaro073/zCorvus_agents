@@ -31,16 +31,18 @@ const AdminTablesSection = dynamic(
 );
 
 const metricGranularityOptions = ["day", "month", "year", "custom"] as const;
+const selectClassName =
+  "ui-focus-ring ui-field-base h-11 rounded-[1.15rem] px-4 text-sm transition-[border-color,background-color,box-shadow] duration-[160ms] ease-[var(--ease-out)]";
 
 function PlaceholderBlock({ className }: { className?: string }) {
-  return <div className={`rounded-md bg-muted/70 ${className ?? ""}`} />;
+  return <div className={`rounded-[1rem] bg-muted/70 ${className ?? ""}`} />;
 }
 
 function AdminTablesSectionFallback({ admin }: { admin: (key: string) => string }) {
   return (
     <section className="grid gap-4" style={{ contentVisibility: "auto", containIntrinsicSize: "620px" }}>
-      <article className="flex min-h-[30rem] flex-col rounded-[1.5rem] border border-border/70 bg-background/80 p-4">
-        <h2 className="text-lg">{admin("table.users.title")}</h2>
+      <article className="ui-surface-panel flex min-h-[30rem] flex-col rounded-[1.85rem] p-4 sm:p-5">
+        <h2 className="text-lg tracking-tight text-foreground">{admin("table.users.title")}</h2>
         <div className="mt-4 min-h-[20rem]">
           <PlaceholderBlock className="h-64 w-full" />
         </div>
@@ -51,12 +53,12 @@ function AdminTablesSectionFallback({ admin }: { admin: (key: string) => string 
 
 function MetricsSectionPlaceholder() {
   return (
-    <div className="grid gap-2" role="status" aria-live="polite" aria-label="loading-metrics-chart">
+    <div className="grid gap-3" role="status" aria-live="polite" aria-label="loading-metrics-chart">
       <div className="h-6 w-48 rounded-md bg-muted/70" />
       {Array.from({ length: 3 }).map((_, idx) => (
-        <PlaceholderBlock key={idx} className="h-10 w-full rounded-lg" />
+        <PlaceholderBlock key={idx} className="h-10 w-full rounded-[1rem]" />
       ))}
-      <PlaceholderBlock className="mt-2 h-56 w-full rounded-xl" />
+      <PlaceholderBlock className="mt-2 h-56 w-full rounded-[1.5rem]" />
     </div>
   );
 }
@@ -207,7 +209,7 @@ export default function AdminDashboardPage() {
   }, [metricsParams.from, metricsParams.granularity, metricsParams.to]);
 
   const activeRangeForLabel = isRangePopoverOpen
-    ? (customRangeDraft ?? customRangeValue)
+    ? customRangeDraft ?? customRangeValue
     : customRangeValue;
 
   const customRangeLabel = useMemo(() => {
@@ -462,14 +464,20 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 pb-4">
-      <section className="rounded-[2rem] border border-border/70 bg-secondary/35 p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="ui-section-header">ADMIN</p>
+    <div className="ui-page-shell py-2">
+      <section className="ui-surface-panel-muted rounded-[2rem] p-5 sm:p-6 lg:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="ui-section-header">Admin</p>
+            <h1 className="mt-2 text-[clamp(2.3rem,4.8vw,3.6rem)] leading-[0.95] tracking-tight text-foreground">
+              {admin("title")}
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+              {admin("description")}
+            </p>
+          </div>
           <AdminAppearanceControls />
         </div>
-        <h1 className="mt-2 text-[clamp(2rem,4vw,2.8rem)] leading-tight">{admin("title")}</h1>
-        <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{admin("description")}</p>
 
         <KPICards
           items={kpiCards.map((metric) => ({
@@ -480,79 +488,84 @@ export default function AdminDashboardPage() {
           }))}
         />
       </section>
-      
+
       <section
-        className="rounded-[1.5rem] border border-border/70 bg-background/80 p-4"
+        className="ui-surface-panel rounded-[1.85rem] p-4 sm:p-5"
         style={{ contentVisibility: "auto", containIntrinsicSize: "360px" }}
       >
-        <h2 className="text-lg">{admin("kpis.salesCount")} / {admin("kpis.revenue")}</h2>
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="ui-section-header">{admin("kpis.salesCount")} / {admin("kpis.revenue")}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Seguimiento de ventas, ingresos y registros sin salir del panel.</p>
+          </div>
 
-        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <select
-            value={metricsParams.granularity ?? "day"}
-            onChange={(event) => onGranularityChange(event.target.value)}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
-            aria-label={admin("filters.granularity")}
-          >
-            {metricGranularityOptions.map((option) => (
-              <option key={option} value={option}>{admin(`filters.${option}`)}</option>
-            ))}
-          </select>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <select
+              value={metricsParams.granularity ?? "day"}
+              onChange={(event) => onGranularityChange(event.target.value)}
+              className={selectClassName}
+              aria-label={admin("filters.granularity")}
+            >
+              {metricGranularityOptions.map((option) => (
+                <option key={option} value={option}>{admin(`filters.${option}`)}</option>
+              ))}
+            </select>
 
-          {metricsParams.granularity === "custom" && (
-            <Popover open={isRangePopoverOpen} onOpenChange={onRangePopoverOpenChange}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="justify-start text-left font-normal transition-colors active:translate-y-[1px]"
-                  aria-label={`${admin("filters.from")} - ${admin("filters.to")}`}
-                >
-                  {customRangeLabel}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-fit p-0" align="start">
-                <div className="grid gap-2 border-b border-border/40 p-3">
-                  <Input
-                    type="date"
-                    aria-label={admin("filters.from")}
-                    value={toInputDateValue((customRangeDraft ?? customRangeValue)?.from)}
-                    onChange={(event) => onCustomRangeInputChange("from", event.currentTarget.value)}
-                    max={maxSelectableDateInput}
-                    className="h-8 text-sm"
-                  />
-                  <Input
-                    type="date"
-                    aria-label={admin("filters.to")}
-                    value={toInputDateValue((customRangeDraft ?? customRangeValue)?.to ?? (customRangeDraft ?? customRangeValue)?.from)}
-                    onChange={(event) => onCustomRangeInputChange("to", event.currentTarget.value)}
-                    max={maxSelectableDateInput}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Calendar
-                    mode="range"
-                    selected={customRangeDraft ?? customRangeValue}
-                    onSelect={onCustomRangeChange}
-                    numberOfMonths={1}
-                    disabled={{ after: maxSelectableDate }}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 border-t border-border/40 p-3">
-                  <Button type="button" variant="ghost" size="sm" onClick={cancelCustomRangeDraft}>
-                    {common("actions.cancel")}
+            {metricsParams.granularity === "custom" && (
+              <Popover open={isRangePopoverOpen} onOpenChange={onRangePopoverOpenChange}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-11 justify-start rounded-[1.15rem] text-left font-normal"
+                    aria-label={`${admin("filters.from")} - ${admin("filters.to")}`}
+                  >
+                    {customRangeLabel}
                   </Button>
-                  <Button type="button" size="sm" className="active:translate-y-[1px]" onClick={applyCustomRangeDraft}>
-                    {common("actions.apply")}
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
+                </PopoverTrigger>
+                <PopoverContent className="w-fit p-0" align="start">
+                  <div className="grid gap-2 border-b border-border/40 p-3">
+                    <Input
+                      type="date"
+                      aria-label={admin("filters.from")}
+                      value={toInputDateValue((customRangeDraft ?? customRangeValue)?.from)}
+                      onChange={(event) => onCustomRangeInputChange("from", event.currentTarget.value)}
+                      max={maxSelectableDateInput}
+                      className="h-10 text-sm"
+                    />
+                    <Input
+                      type="date"
+                      aria-label={admin("filters.to")}
+                      value={toInputDateValue((customRangeDraft ?? customRangeValue)?.to ?? (customRangeDraft ?? customRangeValue)?.from)}
+                      onChange={(event) => onCustomRangeInputChange("to", event.currentTarget.value)}
+                      max={maxSelectableDateInput}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="flex justify-center p-2">
+                    <Calendar
+                      mode="range"
+                      selected={customRangeDraft ?? customRangeValue}
+                      onSelect={onCustomRangeChange}
+                      numberOfMonths={1}
+                      disabled={{ after: maxSelectableDate }}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 border-t border-border/40 p-3">
+                    <Button type="button" variant="ghost" size="sm" onClick={cancelCustomRangeDraft} className="rounded-full">
+                      {common("actions.cancel")}
+                    </Button>
+                    <Button type="button" size="sm" className="rounded-full" onClick={applyCustomRangeDraft}>
+                      {common("actions.apply")}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
 
-        <div className="mt-4 min-h-[22rem] min-w-0 overflow-x-clip">
+        <div className="mt-5 min-h-[22rem] min-w-0 overflow-x-clip">
           {!detailsEnabled && <MetricsSectionPlaceholder />}
           {detailsEnabled && metricsQuery.state === "loading" && <PlaceholderBlock className="h-72 w-full" />}
           {detailsEnabled && metricsQuery.state === "error" && <p className="text-sm text-destructive">{admin("errors.loadMetrics")}</p>}
@@ -564,14 +577,13 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-border/70 bg-background/80 p-4 sm:p-5">
+      <section className="ui-surface-panel rounded-[1.85rem] p-4 sm:p-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Input
             key={usersParams.search ?? "__empty__"}
             placeholder={admin("filters.search")}
             defaultValue={usersParams.search ?? ""}
             onChange={(event) => onSearchInputChange(event.currentTarget.value)}
-            className="transition-colors"
           />
 
           <select
@@ -580,7 +592,7 @@ export default function AdminDashboardPage() {
               setSearchParam(params, "role", event.target.value || undefined);
               setSearchParam(params, "usersPage", 1);
             })}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
+            className={selectClassName}
             aria-label={admin("filters.role")}
           >
             <option value="">{admin("filters.role")}</option>
@@ -595,14 +607,14 @@ export default function AdminDashboardPage() {
               setSearchParam(params, "subscriptionStatus", event.target.value || undefined);
               setSearchParam(params, "usersPage", 1);
             })}
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
+            className={selectClassName}
             aria-label={admin("filters.subscriptionStatus")}
           >
             <option value="">{admin("filters.subscriptionStatus")}</option>
             <option value="active">{admin("statuses.active")}</option>
             <option value="expiring">{admin("statuses.expiring")}</option>
             <option value="expired">{admin("statuses.expired")}</option>
-              <option value="none">{admin("statuses.none")}</option>
+            <option value="none">{admin("statuses.none")}</option>
           </select>
 
           <select
@@ -613,14 +625,13 @@ export default function AdminDashboardPage() {
                 setSearchParam(params, "usersPage", 1);
               })
             }
-            className="ui-focus-ring ui-field-base h-9 rounded-md px-3 text-sm transition-colors"
+            className={selectClassName}
             aria-label={admin("filters.planType")}
           >
             <option value="">{admin("filters.planType")}</option>
             <option value="pro">PRO</option>
             <option value="enterprise">ENTERPRISE</option>
           </select>
-
         </div>
       </section>
 

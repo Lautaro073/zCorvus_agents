@@ -35,14 +35,14 @@ export function KPICards({ items }: KPICardsProps) {
   );
 
   return (
-    <div className="mt-6 grid min-h-[7rem] gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-6 grid min-h-[7rem] gap-3 md:grid-cols-3">
       {items.map((item) => (
         <article
           key={item.key}
-          className="rounded-2xl border border-border/70 bg-background/85 p-4 transition-transform duration-200 hover:-translate-y-[1px]"
+          className="ui-surface-panel rounded-[1.5rem] bg-background/82 p-4 sm:p-5"
         >
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
-          <p className="mt-3 text-3xl font-semibold leading-none tracking-tight">
+          <p className="ui-section-header">{item.label}</p>
+          <p className="mt-4 font-mono text-3xl font-semibold leading-none tracking-tight text-foreground">
             {item.value === null
               ? "--"
               : item.isCurrency

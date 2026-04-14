@@ -17,7 +17,8 @@
     "download": "Descargar",
     "showAll": "Mostrar todos",
     "cancel": "Cancelar",
-    "apply": "Aplicar"
+    "apply": "Aplicar",
+    "signOut": "Cerrar sesión"
   },
   "toasts": {
     "iconNameCopied": "¡Nombre del ícono copiado!",
@@ -44,15 +45,15 @@
   },
   "errors": {
     "somethingWentWrong": "Algo salió mal",
-    "unexpectedError": "Ha ocurrido un error inesperado cargando la página. Por favor, intenta de nuevo."
+    "unexpectedError": "Ha ocurrido un error inesperado cargando la página. Por favor, intentá de nuevo."
   },
   "profile": {
     "name": "Nombre",
-    "email": "Correo Electrónico",
+    "email": "Correo electrónico",
     "language": "Idioma",
-    "editProfile": "Editar Perfil",
+    "editProfile": "Editar perfil",
     "role": "Rol",
-    "memberSince": "Miembro Desde",
+    "memberSince": "Miembro desde",
     "tokenExpires": "Expira el",
     "roles": {
       "user": "Usuario",

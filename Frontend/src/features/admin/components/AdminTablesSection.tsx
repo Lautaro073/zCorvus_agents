@@ -144,8 +144,39 @@ export function AdminTablesSection({
 
   return (
     <section className="grid gap-4 overflow-x-clip">
-      <article className="flex min-h-[30rem] min-w-0 flex-col rounded-[1.5rem] border border-border/70 bg-background/85 p-4 shadow-sm">
-        <h2 className="text-lg font-medium">{admin("table.users.title")}</h2>
+      <article className="ui-surface-panel flex min-h-[30rem] min-w-0 flex-col rounded-[1.85rem] p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="ui-section-header">{admin("table.users.title")}</p>
+            <h2 className="mt-2 text-xl tracking-tight text-foreground">Usuarios</h2>
+          </div>
+
+          {!isLoading && !isError && !isEmpty && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-full">
+                  {admin("table.users.columnsControl")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 rounded-[1.4rem] p-3">
+                <div className="grid gap-2">
+                  {columnOptions.map((columnOption) => (
+                    <label key={columnOption.key} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={visibleColumns[columnOption.key]}
+                        onChange={() => onToggleColumnVisibility(columnOption.key)}
+                        disabled={visibleColumnCount === 1 && visibleColumns[columnOption.key]}
+                      />
+                      <span>{columnOption.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
 
         <div className="mt-4 min-h-[20rem] min-w-0">
           {isLoading && (
@@ -154,7 +185,7 @@ export function AdminTablesSection({
                 {Array.from({ length: 6 }).map((_, rowIdx) => (
                   <div key={rowIdx} className="grid grid-cols-7 gap-2 animate-pulse">
                     {Array.from({ length: 7 }).map((__, colIdx) => (
-                      <div key={`${rowIdx}-${colIdx}`} className="h-8 rounded-md bg-muted/75" />
+                      <div key={`${rowIdx}-${colIdx}`} className="h-10 rounded-[1rem] bg-muted/75" />
                     ))}
                   </div>
                 ))}
@@ -162,56 +193,30 @@ export function AdminTablesSection({
             </div>
           )}
           {isError && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+            <div className="rounded-[1.25rem] border border-destructive/30 bg-destructive/5 p-4">
               <p className="text-sm text-destructive">
                 {isPlanFilterEnabled ? admin("errors.loadSubscriptions") : admin("errors.loadUsers")}
               </p>
             </div>
           )}
           {isEmpty && (
-            <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+            <div className="rounded-[1.25rem] border border-border/60 bg-muted/20 p-4">
               <p className="text-sm text-muted-foreground">{admin("states.emptyUsers")}</p>
             </div>
           )}
 
           {!isLoading && !isError && !isEmpty && (
             <div className="overflow-x-auto overscroll-x-contain">
-              <div className="mb-3 flex justify-end">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="active:translate-y-[1px]">
-                      {admin("table.users.columnsControl")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-52 p-3">
-                    <div className="grid gap-2">
-                      {columnOptions.map((columnOption) => (
-                        <label key={columnOption.key} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 accent-primary"
-                            checked={visibleColumns[columnOption.key]}
-                            onChange={() => onToggleColumnVisibility(columnOption.key)}
-                            disabled={visibleColumnCount === 1 && visibleColumns[columnOption.key]}
-                          />
-                          <span>{columnOption.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
               <table className="w-full min-w-[56rem] text-left text-sm md:min-w-[52rem]">
                 <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
-                  <tr className="border-b border-border/60 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    {visibleColumns.username && <th className="px-2 py-3">{admin("table.users.username")}</th>}
-                    {visibleColumns.email && <th className="px-2 py-3">{admin("table.users.email")}</th>}
-                    {visibleColumns.role && <th className="px-2 py-3">{admin("table.users.role")}</th>}
-                    {visibleColumns.status && <th className="px-2 py-3">{admin("table.users.status")}</th>}
-                    {visibleColumns.plan && <th className="px-2 py-3">{admin("table.subscriptions.plan")}</th>}
-                    {visibleColumns.startDate && <th className="px-2 py-3">{admin("table.users.startDate")}</th>}
-                    {visibleColumns.tokenExpiry && <th className="px-2 py-3">{admin("table.users.tokenExpiry")}</th>}
+                  <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {visibleColumns.username && <th className="px-3 py-3">{admin("table.users.username")}</th>}
+                    {visibleColumns.email && <th className="px-3 py-3">{admin("table.users.email")}</th>}
+                    {visibleColumns.role && <th className="px-3 py-3">{admin("table.users.role")}</th>}
+                    {visibleColumns.status && <th className="px-3 py-3">{admin("table.users.status")}</th>}
+                    {visibleColumns.plan && <th className="px-3 py-3">{admin("table.subscriptions.plan")}</th>}
+                    {visibleColumns.startDate && <th className="px-3 py-3">{admin("table.users.startDate")}</th>}
+                    {visibleColumns.tokenExpiry && <th className="px-3 py-3">{admin("table.users.tokenExpiry")}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -222,22 +227,22 @@ export function AdminTablesSection({
                     const subscriptionFinishDate = item.token_finish_date ?? subscription?.finish_date;
 
                     return (
-                      <tr key={item.id} className="border-b border-border/40 transition-colors hover:bg-muted/20">
-                        {visibleColumns.username && <td className="px-2 py-3 font-medium">{item.username}</td>}
-                        {visibleColumns.email && <td className="px-2 py-3">{item.email}</td>}
-                        {visibleColumns.role && <td className="px-2 py-3">{admin(`roles.${item.role_name}`)}</td>}
-                        {visibleColumns.status && <td className="px-2 py-3">{admin(`statuses.${item.subscriptionStatus}`)}</td>}
+                      <tr key={item.id} className="border-b border-border/40 transition-colors duration-150 hover:bg-muted/16">
+                        {visibleColumns.username && <td className="px-3 py-4 font-medium text-foreground">{item.username}</td>}
+                        {visibleColumns.email && <td className="px-3 py-4 text-muted-foreground">{item.email}</td>}
+                        {visibleColumns.role && <td className="px-3 py-4">{admin(`roles.${item.role_name}`)}</td>}
+                        {visibleColumns.status && <td className="px-3 py-4">{admin(`statuses.${item.subscriptionStatus}`)}</td>}
                         {visibleColumns.plan && (
-                          <td className="px-2 py-3">
-                            <span className="inline-flex rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-xs uppercase tracking-wide">
+                          <td className="px-3 py-4">
+                            <span className="inline-flex rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em]">
                               {resolvedPlan ?? "-"}
                             </span>
                           </td>
                         )}
                         {visibleColumns.startDate && (
-                          <td className="px-2 py-3">{formatDate(subscriptionStartDate)}</td>
+                          <td className="px-3 py-4 text-muted-foreground">{formatDate(subscriptionStartDate)}</td>
                         )}
-                        {visibleColumns.tokenExpiry && <td className="px-2 py-3">{formatDate(subscriptionFinishDate)}</td>}
+                        {visibleColumns.tokenExpiry && <td className="px-3 py-4 text-muted-foreground">{formatDate(subscriptionFinishDate)}</td>}
                       </tr>
                     );
                   })}
@@ -248,7 +253,7 @@ export function AdminTablesSection({
         </div>
 
         {usersPagination && (
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-5 flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
               {usersPagination.page} / {usersPagination.totalPages}
             </p>
@@ -258,7 +263,7 @@ export function AdminTablesSection({
                 size="sm"
                 disabled={!usersPagination.hasPrev}
                 onClick={() => onUsersPageChange(Math.max(1, usersPagination.page - 1))}
-                className="active:translate-y-[1px]"
+                className="rounded-full"
               >
                 {common("actions.previous")}
               </Button>
@@ -267,7 +272,7 @@ export function AdminTablesSection({
                 size="sm"
                 disabled={!usersPagination.hasNext}
                 onClick={() => onUsersPageChange(usersPagination.page + 1)}
-                className="active:translate-y-[1px]"
+                className="rounded-full"
               >
                 {common("actions.next")}
               </Button>

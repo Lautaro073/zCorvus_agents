@@ -17,7 +17,8 @@
     "download": "Download",
     "showAll": "Show all",
     "cancel": "Cancel",
-    "apply": "Apply"
+    "apply": "Apply",
+    "signOut": "Sign out"
   },
   "toasts": {
     "iconNameCopied": "Icon name copied!",

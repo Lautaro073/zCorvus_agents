@@ -1,69 +1,76 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from '@/i18n/navigation';
-import { useLocale } from 'next-intl';
-import { usePremiumAccess } from '@/hooks/usePremiumAccess';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from "react";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PremiumGuardProps {
-    children: React.ReactNode;
-    requiredForTypes?: string[];
+  children: React.ReactNode;
+  requiredForTypes?: string[];
 }
 
-/**
- * Componente que protege contenido premium
- * Redirige a /premium si el usuario no tiene acceso
- */
-export function PremiumGuard({ children, requiredForTypes = ['premium', 'fa-solid', 'fa-regular'] }: PremiumGuardProps) {
-    const { hasAccess, isLoading } = usePremiumAccess();
-    const { isAuthenticated } = useAuth();
-    const router = useRouter();
-    const pathname = usePathname();
-    const locale = useLocale();
+export function PremiumGuard({
+  children,
+  requiredForTypes = ["premium", "fa-solid", "fa-regular"],
+}: PremiumGuardProps) {
+  const { hasAccess, isLoading } = usePremiumAccess();
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
-    useEffect(() => {
-        // Verificar si la ruta actual requiere premium
-        const isPremiumRoute = requiredForTypes.some(type => pathname.includes(`/icons/${type}`));
+  useEffect(() => {
+    const isPremiumRoute = requiredForTypes.some((type) => pathname.includes(`/icons/${type}`));
 
-        if (!isPremiumRoute) return;
-
-        if (!isLoading) {
-            // Si no está autenticado, redirigir a login
-            if (!isAuthenticated) {
-                router.push('/auth/login');
-                return;
-            }
-
-            // Si está autenticado pero no tiene acceso premium, redirigir a página de planes
-            if (!hasAccess) {
-                router.push('/premium');
-            }
-        }
-    }, [hasAccess, isLoading, pathname, router, locale, requiredForTypes, isAuthenticated]);
-
-    // Mientras carga, mostrar skeleton
-    if (isLoading) {
-        return (
-            <div className="flex flex-col gap-6 h-full">
-                <div className="flex items-center justify-between">
-                    <div className="w-[600px] h-10 bg-muted animate-pulse rounded-md" />
-                    <div className="w-10 h-10 bg-muted animate-pulse rounded-md" />
-                </div>
-                <div className="grid grid-cols-4 gap-4">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                        <div key={i} className="h-32 bg-muted animate-pulse rounded-md" />
-                    ))}
-                </div>
-            </div>
-        );
+    if (!isPremiumRoute || isLoading) {
+      return;
     }
 
-    // Si no tiene acceso, no mostrar nada (ya se está redirigiendo)
+    if (!isAuthenticated) {
+      router.replace("/auth/login");
+      return;
+    }
+
     if (!hasAccess) {
-        return null;
+      router.replace("/premium");
     }
+  }, [hasAccess, isAuthenticated, isLoading, pathname, requiredForTypes, router]);
 
-    // Si tiene acceso, mostrar contenido
-    return <>{children}</>;
+  if (isLoading) {
+    return (
+      <div className="grid gap-5">
+        <section className="ui-surface-panel-muted relative overflow-hidden rounded-[1.85rem] p-5 sm:p-6">
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/18 to-transparent" />
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="space-y-4">
+              <div className="h-3 w-28 animate-pulse rounded-full bg-muted/70" />
+              <div className="h-12 w-full max-w-xl animate-pulse rounded-[1.25rem] bg-muted/70" />
+              <div className="h-5 w-full max-w-2xl animate-pulse rounded-full bg-muted/60" />
+              <div className="flex flex-wrap gap-3 pt-3">
+                <div className="h-11 w-36 animate-pulse rounded-full bg-muted/70" />
+                <div className="h-11 w-40 animate-pulse rounded-full bg-muted/55" />
+              </div>
+            </div>
+            <div className="ui-surface-panel grid gap-3 rounded-[1.5rem] p-4">
+              <div className="h-32 animate-pulse rounded-[1.2rem] bg-muted/65" />
+              <div className="h-14 animate-pulse rounded-[1rem] bg-muted/55" />
+              <div className="h-14 animate-pulse rounded-[1rem] bg-muted/55" />
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="ui-surface-panel h-32 animate-pulse rounded-[1.5rem] bg-card/70" />
+          ))}
+        </section>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return null;
+  }
+
+  return <>{children}</>;
 }
