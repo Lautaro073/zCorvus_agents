@@ -9,6 +9,7 @@
     "check": "npm run lint && npm run build",
     "lint": "eslint"
   },
+  
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "file:./vendor/@fortawesome/fontawesome-svg-core",
     "@fortawesome/free-regular-svg-icons": "file:./vendor/@fortawesome/free-regular-svg-icons",
